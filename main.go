@@ -17,13 +17,13 @@ var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a new tailscale exit node",
 	Run: func(cmd *cobra.Command, args []string) {
-		token := os.Getenv("DIGITAL_OCEAN_TOKEN")
-		key := os.Getenv("TAILSCALE_TOKEN")
-		if token == "" || key == "" {
+		digitalOceanToken := os.Getenv("DIGITAL_OCEAN_TOKEN")
+		tailscaleToken := os.Getenv("TAILSCALE_TOKEN")
+		if digitalOceanToken == "" || tailscaleToken == "" {
 			fmt.Println("Error: both DIGITAL_OCEAN_TOKEN and TAILSCALE_TOKEN environment variables are required")
 			os.Exit(1)
 		}
-		handleCreate(token, key)
+		handleCreate(digitalOceanToken, tailscaleToken)
 	},
 }
 
@@ -32,13 +32,13 @@ var deleteCmd = &cobra.Command{
 	Short: "Delete a node with the given node_id using environment variables",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		token := os.Getenv("DIGITAL_OCEAN_TOKEN")
-		if token == "" {
+		digitalOceanToken := os.Getenv("DIGITAL_OCEAN_TOKEN")
+		if digitalOceanToken == "" {
 			fmt.Println("Error: DIGITAL_OCEAN_TOKEN environment variable is required")
 			os.Exit(1)
 		}
 		nodeID := args[0]
-		handleDelete(token, nodeID)
+		handleDelete(digitalOceanToken, nodeID)
 	},
 }
 
@@ -61,7 +61,7 @@ func handleCreate(token string, key string) {
     fmt.Println(err)
     os.Exit(1)
   }
-  fmt.Printf("Created new tailscale exit node: %s", id)
+  fmt.Printf("Created new tailscale exit node: %d", id)
 }
 
 func handleDelete(token string, id string) {
