@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"yvpn/digital_ocean"
 
 	"github.com/spf13/cobra"
 )
@@ -55,12 +56,19 @@ func main() {
 }
 
 func handleCreate(token string, key string) {
-	// Logic for creating with token and key
-	fmt.Printf("Creating key: %s with token: %s\n", key, token)
+  id, err := digital_ocean.Create(token, key)
+  if err != nil {
+    fmt.Println(err)
+    os.Exit(1)
+  }
+  fmt.Printf("Created new tailscale exit node: %s", id)
 }
 
 func handleDelete(token string, id string) {
-	// Logic for deleting with token and id
-	fmt.Printf("Deleting id: %s with token: %s\n", id, token)
+  if err := digital_ocean.Delete(token, id); err != nil {
+    fmt.Println(err)
+    os.Exit(1)
+  }
+  fmt.Printf("Deleted tailscale exit node: %s", id)
 }
 
