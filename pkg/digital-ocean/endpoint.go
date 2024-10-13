@@ -21,34 +21,6 @@ func (e *NewEndpoint) Create() error {
 	client := godo.NewFromToken(e.Token)
 	ctx := context.TODO()
 
-	priv, pub, err := wg.GenerateKeys()
-	if err != nil {
-		return err
-	}
-	serverKeys := wg.Keys{
-		Public:  pub,
-		Private: priv,
-	}
-
-	var clientKeys = make(map[string]wg.Keys)
-
-	for i := 2; i <= 255; i++ {
-		priv, pub, err := wg.GenerateKeys()
-		if err != nil {
-			return err
-		}
-		keys := wg.Keys{
-			Public:  pub,
-			Private: priv,
-		}
-		clientKeys[fmt.Sprintf("10.0.0.%d", i)] = keys
-	}
-
-	serverConfig, err := wg.GenerateServerConfig(serverKeys, clientKeys)
-	if err != nil {
-		return err
-	}
-
 	cloudInit, err := wg.GenerateCloudInit(serverConfig)
 	if err != nil {
 		return err
@@ -94,27 +66,20 @@ func DeleteEndpoint(id int, token string) error {
 	return err
 }
 
-func awaitIPandUpdateEndpoint(token string, id int, clients map[string]wg.Keys) {
+func awaitDropletActivation(token string, id int) error {
 	client := godo.NewFromToken(token)
 	for i := 0; i < 360; i++ {
 		time.Sleep(time.Second)
 		droplet, _, err := client.Droplets.Get(context.TODO(), id)
 		if err != nil {
-			log.Println(err)
-			return
+			return err
 		} else if droplet.Status != "active" {
 			continue
 		}
 
 		ip, err := droplet.PublicIPv4()
 		if err != nil {
-			log.Println(err)
-			return
-		}
-		err = db.UpdateEndpointIPandClients(id, ip, clients)
-		if err != nil {
-			log.Println(err)
-			return
+			return err
 		}
 		return
 	}
