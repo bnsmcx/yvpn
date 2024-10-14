@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"yvpn/digital_ocean"
 
 	"github.com/spf13/cobra"
@@ -37,7 +38,12 @@ var deleteCmd = &cobra.Command{
 			fmt.Println("Error: DIGITAL_OCEAN_TOKEN environment variable is required")
 			os.Exit(1)
 		}
-		nodeID := args[0]
+		nodeID, err := strconv.Atoi(args[0])
+    if err != nil {
+			fmt.Println("Error: node_id should be an integer")
+			os.Exit(1)
+    }
+  
 		handleDelete(digitalOceanToken, nodeID)
 	},
 }
@@ -56,19 +62,18 @@ func main() {
 }
 
 func handleCreate(token string, key string) {
-  id, err := digital_ocean.Create(token, key)
-  if err != nil {
-    fmt.Println(err)
-    os.Exit(1)
-  }
-  fmt.Printf("Created new tailscale exit node: %d", id)
+	id, err := digital_ocean.Create(token, key)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Printf("Created new tailscale exit node: %d", id)
 }
 
-func handleDelete(token string, id string) {
-  if err := digital_ocean.Delete(token, id); err != nil {
-    fmt.Println(err)
-    os.Exit(1)
-  }
-  fmt.Printf("Deleted tailscale exit node: %s", id)
+func handleDelete(token string, id int) {
+	if err := digital_ocean.Delete(token, id); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Printf("Deleted tailscale exit node: %d", id)
 }
-
