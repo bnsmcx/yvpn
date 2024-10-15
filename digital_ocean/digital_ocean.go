@@ -3,11 +3,12 @@ package digital_ocean
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/digitalocean/godo"
 )
 
-func Create(digitalOceanToken, tailscaleToken string) (int, error) {
+func Create(digitalOceanToken, tailscaleAuth string) (string, int, error) {
 	client := godo.NewFromToken(digitalOceanToken)
 	ctx := context.TODO()
 
@@ -36,10 +37,10 @@ runcmd:
   - sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 
 final_message: "Tailscale exit node setup complete."
-`, tailscaleToken)
+`, tailscaleAuth)
 
 	createRequest := &godo.DropletCreateRequest{
-		Name:   "nyc3-yvpn-digital-ocean",
+		Name:   fmt.Sprintf("nyc3-yvpn-digital-ocean-%d", time.Now().Unix()),
 		Region: "nyc3",
 		Size:   "s-1vcpu-1gb",
 		Image: godo.DropletCreateImage{
@@ -50,9 +51,9 @@ final_message: "Tailscale exit node setup complete."
 
 	droplet, _, err := client.Droplets.Create(ctx, createRequest)
 	if err != nil {
-		return 0, err
+		return "", 0, err
 	}
-	return droplet.ID, nil
+	return createRequest.Name, droplet.ID, nil
 }
 
 func Delete(digitalOceantoken string, id int) error {
