@@ -54,7 +54,6 @@ func EnableExit(name, token string) (int, error) {
 				if err := enableExitNode(machine.ID, token); err != nil {
 					return elapsed, fmt.Errorf("Error enabling exit node: %v", err)
 				}
-				fmt.Printf("Exit node active after %d seconds\n", elapsed)
 				return elapsed, nil
 			}
 		}
