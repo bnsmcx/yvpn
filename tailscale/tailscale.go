@@ -119,6 +119,29 @@ func GetAuthKey(token string) (key, id string, err error) {
 	return kr.Key, kr.ID, nil
 }
 
+func DeleteAuthKey(token, id string) error {
+  url := fmt.Sprintf("https://api.tailscale.com/api/v2/tailnet/-/keys/%s", id)
+
+	req, err := http.NewRequest("DELETE", url, nil)
+  if err != nil {
+    return err
+  }
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	res, err := http.DefaultClient.Do(req)
+  if err != nil {
+    return err
+  }
+	defer res.Body.Close()
+
+  if res.StatusCode != 200 {
+    return fmt.Errorf("request failed with status: %s", res.Status)
+  }
+
+  return nil
+}
+
 func EnableExit(name, token string) (int, error) {
 	for elapsed := 0; elapsed < 360; elapsed++ {
 		machines, err := getTailscaleMachines(token)

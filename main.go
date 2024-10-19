@@ -23,10 +23,22 @@ func main() {
 	case "datacenters":
 		do := os.Getenv("DIGITAL_OCEAN_TOKEN")
 		handleFetchDatacenters(do)
-	case "key":
+	case "newkey":
 		tsAPI := os.Getenv("TAILSCALE_API")
     handleFetchTSKey(tsAPI)
+  case "killkey":
+		tsAPI := os.Getenv("TAILSCALE_API")
+    handleKillTSKey(tsAPI)
 	}
+}
+
+func handleKillTSKey(tsAPI string) {
+  err := tailscale.DeleteAuthKey(tsAPI, os.Args[2])
+  if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+  }
+  fmt.Println("Deleted key:", os.Args[2])
 }
 
 func handleFetchTSKey(tailscaleAPI string) {
