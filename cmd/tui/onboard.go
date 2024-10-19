@@ -37,8 +37,11 @@ func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
+	m.tokens.digitalOcean = m.form.GetString("digital_ocean")
+	m.tokens.tailscale = m.form.GetString("tailscale")
+
 	if m.form.State == huh.StateCompleted {
-		return dash("dash"), tea.Batch(cmds...)
+		return NewDash(m.tokens.digitalOcean, m.tokens.tailscale), tea.Batch(cmds...)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -59,12 +62,12 @@ func NewOnboarding() Onboard {
 	m.form = huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
+				Key("tailscale").
 				Title("Tailscale API Token").
-				Value(&m.tokens.tailscale).
 				Validate(requiredField),
 			huh.NewInput().
+				Key("digital_ocean").
 				Title("Digital Ocean API Token").
-				Value(&m.tokens.digitalOcean).
 				Validate(requiredField),
 		),
 	).WithWidth(45).WithShowHelp(false).WithShowErrors(false)

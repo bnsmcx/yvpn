@@ -6,13 +6,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type dash string
+type Dash struct {
+	tokens struct {
+		digitalOcean string
+		tailscale    string
+	}
+}
 
-func (m dash) Init() tea.Cmd {
+func (m Dash) Init() tea.Cmd {
 	return nil
 }
 
-func (m dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -23,7 +28,18 @@ func (m dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m dash) View() string {
-	return fmt.Sprintf("Hello %s", m)
+func (m Dash) View() string {
+	return fmt.Sprintf("Hello %s, %s", m.tokens.digitalOcean, m.tokens.tailscale)
 }
 
+func NewDash(tokenDO, tokenTS string) Dash {
+	return Dash{
+		tokens: struct {
+			digitalOcean string
+			tailscale    string
+		}{
+			digitalOcean: tokenDO,
+			tailscale:    tokenTS,
+		},
+	}
+}
