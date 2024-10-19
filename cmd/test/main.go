@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"github.com/bnsmcx/yvpn/digital_ocean"
-	"github.com/bnsmcx/yvpn/tailscale"
+	"yvpn/pkg/digital_ocean"
+	"yvpn/pkg/tailscale"
 )
 
 func main() {
