@@ -4,7 +4,10 @@ layout {
   }
   pane split_direction="vertical" {
     pane size="33%"
-    pane focus=true size="67%"
+    pane {
+      pane size="20%"
+      pane focus=true
+    }
   }
   pane size=2 borderless=true {
     plugin location="zellij:status-bar"
