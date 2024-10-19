@@ -30,12 +30,12 @@ func main() {
 }
 
 func handleFetchTSKey(tailscaleAPI string) {
-	key, err := tailscale.GetAuthKey(tailscaleAPI)
+	key, id, err := tailscale.GetAuthKey(tailscaleAPI)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-  fmt.Println("New Key:", key)
+  fmt.Println("New Key:", key, id)
 }
 
 func handleFetchDatacenters(digitalOceanToken string) {

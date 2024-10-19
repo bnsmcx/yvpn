@@ -42,65 +42,81 @@ type Routes struct {
 	EnabledRoutes    []string `json:"enabledRoutes"`
 }
 
-func GetAuthKey(token string) (string, error) {
-	key, exists, err := getAuthKey(token)
-	if err != nil {
-		return "", err
-	}
-
-	if exists {
-		return key, nil
-	} else {
-		return createAuthKey(token)
-	}
+type KeyDevicesCreate struct {
+	Reusable      bool     `json:"reusable"`
+	Ephemeral     bool     `json:"ephemeral"`
+	Preauthorized bool     `json:"preauthorized"`
+	Tags          []string `json:"tags"`
 }
 
-func createAuthKey(token string) (string, error) {
-	return "", nil
+type KeyDevices struct {
+	Create KeyDevicesCreate `json:"create"`
 }
 
-type KeyQueryResponse struct {
-	Keys []struct {
-		ID          string `json:"id"`
-		Description string `json:"description,omitempty"`
-		UserID      string `json:"userId,omitempty"`
-	} `json:"keys"`
+type KeyCapabilities struct {
+	Devices KeyDevices `json:"devices"`
 }
 
-func getAuthKey(token string) (string, bool, error) {
-  url := "https://api.tailscale.com/api/v2/tailnet/-/keys?all=true"
+type KeyRequest struct {
+	Capabilities  KeyCapabilities `json:"capabilities"`
+	ExpirySeconds int             `json:"expirySeconds"`
+	Description   string          `json:"description"`
+}
 
-	req, err := http.NewRequest("GET", url, nil)
-  if err != nil {
-    return "", false, err
+type KeyResponse struct {
+	ID           string    `json:"id"`
+	Key          string    `json:"key"`
+}
+
+func GetAuthKey(token string) (key, id string, err error) {
+	url := "https://api.tailscale.com/api/v2/tailnet/-/keys?all=true"
+
+  payload := KeyRequest{
+  	Capabilities:  KeyCapabilities{
+  		Devices: KeyDevices{
+  			Create: KeyDevicesCreate{
+  				Reusable:      false,
+  				Ephemeral:     true,
+  				Preauthorized: true,
+  				Tags:          []string{},
+  			},
+  		},
+  	},
+  	ExpirySeconds: 3600,
+  	Description:   "yVPN endpoint auth key",
   }
 
+  data, err := json.Marshal(payload)
+  if err != nil {
+    return "", "", err
+  }
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+  if err != nil {
+    return "", "", err
+  }
+
+	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	res, err := http.DefaultClient.Do(req)
   if err != nil {
-    return "", false, err
-  } 
+    return "", "", err
+  }
 	defer res.Body.Close()
 
   if res.StatusCode != 200 {
     err = fmt.Errorf("request failed with status: %s", res.Status)
-    return "", false, err
+    return "", "", err
   }
 
-  var keys KeyQueryResponse
-  err = json.NewDecoder(res.Body).Decode(&keys)
+  var kr KeyResponse
+  err = json.NewDecoder(res.Body).Decode(&kr)
   if err != nil {
-    return "", false, err
+    return "", "", err
   }
 
-  for _, key := range keys.Keys {
-    if key.Description == "yvpn" {
-      return key.ID, true, nil
-    }
-  }
-
-	return "", false, nil
+	return kr.Key, kr.ID, nil
 }
 
 func EnableExit(name, token string) (int, error) {
