@@ -8,7 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 )
 
-func Create(digitalOceanToken, tailscaleAuth string) (string, int, error) {
+func Create(digitalOceanToken, tailscaleAuth, datacenter string) (string, int, error) {
 	client := godo.NewFromToken(digitalOceanToken)
 	ctx := context.TODO()
 
@@ -40,11 +40,11 @@ final_message: "Tailscale exit node setup complete."
 `, tailscaleAuth)
 
 	createRequest := &godo.DropletCreateRequest{
-		Name:   fmt.Sprintf("nyc3-yvpn-digital-ocean-%d", time.Now().Unix()),
-		Region: "nyc3",
+		Name:   fmt.Sprintf("%s-yvpn-digital-ocean-%d", datacenter, time.Now().Unix()),
+		Region: datacenter,
 		Size:   "s-1vcpu-1gb",
 		Image: godo.DropletCreateImage{
-			Slug: "ubuntu-20-04-x64",
+			Slug: "ubuntu-24-04-x64",
 		},
 		UserData: cloudInit, // Cloud-init script for Tailscale exit node
 	}
