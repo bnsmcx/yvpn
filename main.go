@@ -20,7 +20,23 @@ func main() {
     do := os.Getenv("DIGITAL_OCEAN_TOKEN")
     id, _ := strconv.Atoi(os.Args[2])
 		handleDelete(do, id)
+  case "datacenters":
+    do := os.Getenv("DIGITAL_OCEAN_TOKEN")
+    handleFetchDatacenters(do)
 	}
+}
+
+func handleFetchDatacenters(digitalOceanToken string) {
+  datacenters, err := digital_ocean.FetchDatacenters(digitalOceanToken)
+  if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+  }
+
+  fmt.Println("Available datacenters:")
+  for _, dc := range datacenters {
+    fmt.Printf("\t%s\n", dc)
+  }
 }
 
 func handleCreate(digitalOceanToken, tailscaleAuth, tailscaleAPI, datacenter string) {

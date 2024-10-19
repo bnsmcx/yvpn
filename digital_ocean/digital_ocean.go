@@ -3,10 +3,37 @@ package digital_ocean
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/digitalocean/godo"
 )
+
+func FetchDatacenters(digitalOceanToken string) ([]string, error) {
+  var datacenters []string
+	client := godo.NewFromToken(digitalOceanToken)
+	ctx := context.TODO()
+
+  opts := &godo.ListOptions{
+    Page: 1,
+    PerPage: 200,
+  }
+
+  regions, _, err := client.Regions.List(ctx, opts)
+  if err != nil {
+    return datacenters, err
+  }
+
+  for _, r := range regions {
+    if r.Available {
+      datacenters = append(datacenters, r.Slug)
+    }
+  }
+
+  slices.Sort(datacenters)
+
+  return datacenters, nil
+}
 
 func Create(digitalOceanToken, tailscaleAuth, datacenter string) (string, int, error) {
 	client := godo.NewFromToken(digitalOceanToken)
