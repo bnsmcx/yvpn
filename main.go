@@ -11,32 +11,44 @@ import (
 func main() {
 	switch os.Args[1] {
 	case "create":
-    do := os.Getenv("DIGITAL_OCEAN_TOKEN")
-    tsAuth := os.Getenv("TAILSCALE_AUTH")
-    tsAPI := os.Getenv("TAILSCALE_API")
-    datacenter := os.Args[2]
+		do := os.Getenv("DIGITAL_OCEAN_TOKEN")
+		tsAuth := os.Getenv("TAILSCALE_AUTH")
+		tsAPI := os.Getenv("TAILSCALE_API")
+		datacenter := os.Args[2]
 		handleCreate(do, tsAuth, tsAPI, datacenter)
 	case "delete":
-    do := os.Getenv("DIGITAL_OCEAN_TOKEN")
-    id, _ := strconv.Atoi(os.Args[2])
+		do := os.Getenv("DIGITAL_OCEAN_TOKEN")
+		id, _ := strconv.Atoi(os.Args[2])
 		handleDelete(do, id)
-  case "datacenters":
-    do := os.Getenv("DIGITAL_OCEAN_TOKEN")
-    handleFetchDatacenters(do)
+	case "datacenters":
+		do := os.Getenv("DIGITAL_OCEAN_TOKEN")
+		handleFetchDatacenters(do)
+	case "key":
+		tsAPI := os.Getenv("TAILSCALE_API")
+    handleFetchTSKey(tsAPI)
 	}
 }
 
-func handleFetchDatacenters(digitalOceanToken string) {
-  datacenters, err := digital_ocean.FetchDatacenters(digitalOceanToken)
-  if err != nil {
+func handleFetchTSKey(tailscaleAPI string) {
+	key, err := tailscale.GetAuthKey(tailscaleAPI)
+	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-  }
+	}
+  fmt.Println("New Key:", key)
+}
 
-  fmt.Println("Available datacenters:")
-  for _, dc := range datacenters {
-    fmt.Printf("\t%s\n", dc)
-  }
+func handleFetchDatacenters(digitalOceanToken string) {
+	datacenters, err := digital_ocean.FetchDatacenters(digitalOceanToken)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Available datacenters:")
+	for _, dc := range datacenters {
+		fmt.Printf("\t%s\n", dc)
+	}
 }
 
 func handleCreate(digitalOceanToken, tailscaleAuth, tailscaleAPI, datacenter string) {

@@ -42,6 +42,67 @@ type Routes struct {
 	EnabledRoutes    []string `json:"enabledRoutes"`
 }
 
+func GetAuthKey(token string) (string, error) {
+	key, exists, err := getAuthKey(token)
+	if err != nil {
+		return "", err
+	}
+
+	if exists {
+		return key, nil
+	} else {
+		return createAuthKey(token)
+	}
+}
+
+func createAuthKey(token string) (string, error) {
+	return "", nil
+}
+
+type KeyQueryResponse struct {
+	Keys []struct {
+		ID          string `json:"id"`
+		Description string `json:"description,omitempty"`
+		UserID      string `json:"userId,omitempty"`
+	} `json:"keys"`
+}
+
+func getAuthKey(token string) (string, bool, error) {
+  url := "https://api.tailscale.com/api/v2/tailnet/-/keys?all=true"
+
+	req, err := http.NewRequest("GET", url, nil)
+  if err != nil {
+    return "", false, err
+  }
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	res, err := http.DefaultClient.Do(req)
+  if err != nil {
+    return "", false, err
+  } 
+	defer res.Body.Close()
+
+  if res.StatusCode != 200 {
+    err = fmt.Errorf("request failed with status: %s", res.Status)
+    return "", false, err
+  }
+
+  var keys KeyQueryResponse
+  err = json.NewDecoder(res.Body).Decode(&keys)
+  if err != nil {
+    return "", false, err
+  }
+
+  for _, key := range keys.Keys {
+    if key.Description == "yvpn" {
+      return key.ID, true, nil
+    }
+  }
+
+	return "", false, nil
+}
+
 func EnableExit(name, token string) (int, error) {
 	for elapsed := 0; elapsed < 360; elapsed++ {
 		machines, err := getTailscaleMachines(token)
