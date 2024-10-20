@@ -1,0 +1,27 @@
+# Base image for Go apps
+FROM golang:1.21-alpine AS build
+
+# Set environment variables for Go
+ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+
+# Create app directory and copy code
+WORKDIR /app
+COPY . .
+
+# Download dependencies and build the binary
+RUN go mod download
+RUN go build -o main ./cmd
+
+# Production image
+FROM alpine:latest
+
+# Copy the binary from the build stage
+WORKDIR /app
+COPY --from=build /app/main .
+
+# Expose only SSH port
+EXPOSE 22
+
+# Run the app
+CMD ["./main", "ssh"]
+
