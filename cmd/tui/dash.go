@@ -13,7 +13,7 @@ type Dash struct {
 		digitalOcean string
 		tailscale    string
 	}
-	datacenters []string
+	Datacenters []string
 	endpoints   map[string]string // name to digital ocean id
 	cursor      int
 }
@@ -34,6 +34,12 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.cursor = 1
 			}
+    case "enter":
+      switch m.cursor {
+      case 0:
+        return NewAdd(m), tea.EnterAltScreen
+      case 1:
+    }
 		}
 	}
 	return m, nil
@@ -46,13 +52,13 @@ func (m Dash) View() string {
 	sb.WriteString("| Available Datacenters:                                   \n")
 	sb.WriteString("|   ")
 	remaining := 56
-	for i, dc := range m.datacenters {
+	for i, dc := range m.Datacenters {
 		if remaining-(len(dc)+2) < 0 { // length of dc name plus space and comma
 			sb.WriteString("\n|   ")
 			remaining = 56
 		}
 
-		if i != len(m.datacenters)-1 {
+		if i != len(m.Datacenters)-1 {
 			sb.WriteString(fmt.Sprintf("%s, ", dc))
 			remaining -= len(dc) + 2 // length of dc name plus space and comma
 		} else {
@@ -82,7 +88,7 @@ func NewDash(tokenDO, tokenTS string) Dash {
 	}
 
 	return Dash{
-		datacenters: datacenters,
+		Datacenters: datacenters,
 		tokens: struct {
 			digitalOcean string
 			tailscale    string

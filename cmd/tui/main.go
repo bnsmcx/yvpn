@@ -11,7 +11,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	p := tea.NewProgram(NewOnboarding())
+	p := tea.NewProgram(NewOnboarding(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}
