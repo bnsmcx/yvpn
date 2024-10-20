@@ -5,7 +5,6 @@ in
 
 pkgs.mkShell {
   buildInputs = with pkgs; [
-    docker
     go
     git
     gopls
