@@ -30,7 +30,7 @@ WORKDIR /app
 COPY --from=build /app/cmd/tui/main .
 
 # Expose port 22
-EXPOSE 22
+EXPOSE 1337
 
 # Run the binary
 CMD ["./main", "ssh"]
