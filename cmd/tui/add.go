@@ -2,15 +2,20 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
 
 type Add struct {
-	dash tea.Model
-	form *huh.Form
+	dash       tea.Model
+	form       *huh.Form
+	started    bool
+	done       bool
+	start      time.Time
+	datacenter string
 }
 
 func (m Add) Init() tea.Cmd {
@@ -28,23 +33,37 @@ func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmds []tea.Cmd
 
-	// Process the form
 	form, cmd := m.form.Update(msg)
 	if f, ok := form.(*huh.Form); ok {
 		m.form = f
 		cmds = append(cmds, cmd)
 	}
 
-  log.Println(m.form.GetString("datacenter"))
-
-	if m.form.State == huh.StateCompleted {
-		return m.dash, tea.Batch(cmds...)
+	if m.form.State == huh.StateCompleted && !m.started {
+		m.datacenter = m.form.GetString("datacenter")
+		m.start = time.Now()
+    m.started = true
+		//   m.form.GetString("datacenter"))
+		// return m.dash, tea.Batch(cmds...)
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m Add) View() string {
+	if m.form.State == huh.StateCompleted {
+		var sb strings.Builder
+		sb.WriteString("|---[ yVPN add exit node ]---------------------------------\n")
+		sb.WriteString("|                                                          \n")
+		sb.WriteString(fmt.Sprintf("|  Creating new exit node: %s\n", m.datacenter))
+		sb.WriteString(fmt.Sprintf("|    Elapsed time: %s", time.Since(m.start).String()))
+		sb.WriteString("|                                                          \n")
+		sb.WriteString("|    Average time: ~180 seconds (placeholder guess)        \n")
+		sb.WriteString("|                                                          \n")
+		sb.WriteString("|----------------------------------------------------------\n")
+
+		return sb.String()
+	}
 	return m.form.View()
 }
 
