@@ -25,7 +25,7 @@ func main() {
 	}
 
 	if len(os.Args) > 1 && os.Args[1] == "ssh" {
-		serveOverSSH("localhost", "1337")
+		serveOverSSH("0.0.0.0", "1337")
 	} else {
 		do, good1 := os.LookupEnv("DIGITAL_OCEAN_TOKEN")
 		ts, good2 := os.LookupEnv("TAILSCALE_API")
