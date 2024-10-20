@@ -2,8 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"strings"
 	"time"
+	"yvpn/pkg/digital_ocean"
+	"yvpn/pkg/tailscale"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -14,7 +18,7 @@ type tickMsg struct{}
 type doneMsg struct{}
 
 type Add struct {
-	dash       tea.Model
+	dash       Dash
 	form       *huh.Form
 	started    bool
 	done       bool
@@ -62,8 +66,32 @@ func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Add) addExit() tea.Cmd {
 	return func() tea.Msg {
-		// Simulate a long task (e.g., 5 seconds)
-		time.Sleep(5 * time.Second)
+		tailscaleAuth, tsKeyID, err := tailscale.GetAuthKey(m.dash.tokens.tailscale)
+		if err != nil {
+			log.Println("getting tailscale key:", err)
+			os.Exit(1)
+		}
+
+		name, id, err := digital_ocean.Create(m.dash.tokens.digitalOcean, tailscaleAuth, m.datacenter)
+		if err != nil {
+			log.Println("creating droplet:", err)
+			os.Exit(1)
+		}
+
+		_, err = tailscale.EnableExit(name, m.dash.tokens.tailscale)
+		if err != nil {
+			log.Printf("\tenabling tailscale exit: %s\n", err.Error())
+      digital_ocean.Delete(m.dash.tokens.digitalOcean, id)
+			tailscale.DeleteAuthKey(m.dash.tokens.tailscale, tsKeyID)
+			os.Exit(1)
+		}
+
+		err = tailscale.DeleteAuthKey(m.dash.tokens.tailscale, tsKeyID)
+		if err != nil {
+			fmt.Println("deleting tailscale key:", err)
+			os.Exit(1)
+		}
+
 		return doneMsg{}
 	}
 }
@@ -78,7 +106,7 @@ func (m Add) View() string {
 			sb.WriteString("|---[ yVPN add exit node ]---------------------------------\n")
 			sb.WriteString("|                                                          \n")
 			sb.WriteString(fmt.Sprintf("|  Creating new exit node: %s\n", m.datacenter))
-			sb.WriteString(fmt.Sprintf("|    Elapsed time: %s", time.Since(m.start).String()))
+			sb.WriteString(fmt.Sprintf("|    Elapsed time: %s\n", time.Since(m.start).String()))
 			sb.WriteString("|                                                          \n")
 			sb.WriteString("|    Average time: ~180 seconds (placeholder guess)        \n")
 			sb.WriteString("|                                                          \n")
