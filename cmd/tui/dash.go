@@ -14,7 +14,7 @@ type Dash struct {
 		tailscale    string
 	}
 	Datacenters []string
-	endpoints   map[int]string // digital ocean id to name
+	endpoints   map[string]int //  name to digital ocean id
 	cursor      int
 }
 
@@ -28,7 +28,7 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
-		case "l", "h", "tab", "shift+tab":
+		case "l", "h", "tab", "shift+tab", "left", "right":
 			if m.cursor == 1 {
 				m.cursor = 0
 			} else {
@@ -39,6 +39,7 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case 0:
 				return NewAdd(m), tea.EnterAltScreen
 			case 1:
+				return NewDelete(m), tea.EnterAltScreen
 			}
 		}
 	}
@@ -53,7 +54,7 @@ func (m Dash) View() string {
 	sb.WriteString("| Active Exit Nodes:                                       \n")
 	sb.WriteString("|                                                          \n")
 	if len(m.endpoints) > 0 {
-		for id, name := range m.endpoints {
+		for name, id := range m.endpoints {
 			sb.WriteString(fmt.Sprintf("|   [%d] %s\n", id, name))
 		}
 	} else {
@@ -79,7 +80,7 @@ func NewDash(tokenDO, tokenTS string) Dash {
 	}
 
 	return Dash{
-    endpoints: make(map[int]string),
+		endpoints:   make(map[string]int),
 		Datacenters: datacenters,
 		tokens: struct {
 			digitalOcean string
