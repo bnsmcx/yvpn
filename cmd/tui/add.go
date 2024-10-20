@@ -15,7 +15,10 @@ import (
 
 type tickMsg struct{}
 
-type doneMsg struct{}
+type doneMsg struct {
+	name string
+	id   int
+}
 
 type Add struct {
 	dash       Dash
@@ -39,10 +42,15 @@ func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case doneMsg:
 		m.done = true
+    m.dash.endpoints[msg.id] = msg.name
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
+		case "enter":
+			if m.done {
+				return m.dash, tea.EnterAltScreen
+			}
 		}
 	}
 
@@ -81,7 +89,7 @@ func (m Add) addExit() tea.Cmd {
 		_, err = tailscale.EnableExit(name, m.dash.tokens.tailscale)
 		if err != nil {
 			log.Printf("\tenabling tailscale exit: %s\n", err.Error())
-      digital_ocean.Delete(m.dash.tokens.digitalOcean, id)
+			digital_ocean.Delete(m.dash.tokens.digitalOcean, id)
 			tailscale.DeleteAuthKey(m.dash.tokens.tailscale, tsKeyID)
 			os.Exit(1)
 		}
@@ -92,7 +100,7 @@ func (m Add) addExit() tea.Cmd {
 			os.Exit(1)
 		}
 
-		return doneMsg{}
+		return doneMsg{name: name, id: id}
 	}
 }
 
@@ -100,7 +108,7 @@ func (m Add) View() string {
 	var content string
 	if m.form.State == huh.StateCompleted {
 		if m.done {
-			content = fmt.Sprintf("Done in %s", time.Since(m.start))
+			content = fmt.Sprintf("Done in %s (press enter to return to dash)", time.Since(m.start))
 		} else {
 			var sb strings.Builder
 			sb.WriteString("|---[ yVPN add exit node ]---------------------------------\n")
@@ -136,8 +144,7 @@ func NewAdd(dash Dash) Add {
 			huh.NewSelect[string]().
 				Key("datacenter").
 				Options(huh.NewOptions(dash.Datacenters...)...).
-				Title("Choose your level").
-				Description("This will determine your benefits package"),
+				Title("Choose datacenter"),
 
 			huh.NewConfirm().
 				Key("done").
@@ -148,8 +155,8 @@ func NewAdd(dash Dash) Add {
 					}
 					return nil
 				}).
-				Affirmative("Yep").
-				Negative("Wait, no")),
+				Affirmative("Yes").
+				Negative("No")),
 	).WithWidth(60).WithShowHelp(true).WithShowErrors(false)
 
 	return m

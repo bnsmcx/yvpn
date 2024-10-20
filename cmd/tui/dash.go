@@ -14,7 +14,7 @@ type Dash struct {
 		tailscale    string
 	}
 	Datacenters []string
-	endpoints   map[string]string // name to digital ocean id
+	endpoints   map[int]string // digital ocean id to name
 	cursor      int
 }
 
@@ -34,12 +34,12 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.cursor = 1
 			}
-    case "enter":
-      switch m.cursor {
-      case 0:
-        return NewAdd(m), tea.EnterAltScreen
-      case 1:
-    }
+		case "enter":
+			switch m.cursor {
+			case 0:
+				return NewAdd(m), tea.EnterAltScreen
+			case 1:
+			}
 		}
 	}
 	return m, nil
@@ -47,27 +47,18 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Dash) View() string {
 	var sb strings.Builder
-	sb.WriteString("|---[ yVPN dashboard]--------------------------------------\n")
+	sb.WriteString("|---[ yVPN dashboard ]-------------------------------------\n")
 	sb.WriteString("|                                                          \n")
-	sb.WriteString("| Available Datacenters:                                   \n")
-	sb.WriteString("|   ")
-	remaining := 56
-	for i, dc := range m.Datacenters {
-		if remaining-(len(dc)+2) < 0 { // length of dc name plus space and comma
-			sb.WriteString("\n|   ")
-			remaining = 56
-		}
-
-		if i != len(m.Datacenters)-1 {
-			sb.WriteString(fmt.Sprintf("%s, ", dc))
-			remaining -= len(dc) + 2 // length of dc name plus space and comma
-		} else {
-			sb.WriteString(fmt.Sprintf("%s\n", dc))
-		}
-	}
 	sb.WriteString("|                                                          \n")
 	sb.WriteString("| Active Exit Nodes:                                       \n")
-	sb.WriteString("|   <---- TODO, Not Implemented ---->                      \n")
+	sb.WriteString("|                                                          \n")
+	if len(m.endpoints) > 0 {
+		for id, name := range m.endpoints {
+			sb.WriteString(fmt.Sprintf("|   [%d] %s\n", id, name))
+		}
+	} else {
+		sb.WriteString("|   [ none ]                                               \n")
+	}
 	sb.WriteString("|                                                          \n")
 	sb.WriteString("| Actions:                                                 \n")
 	switch m.cursor {
@@ -88,6 +79,7 @@ func NewDash(tokenDO, tokenTS string) Dash {
 	}
 
 	return Dash{
+    endpoints: make(map[int]string),
 		Datacenters: datacenters,
 		tokens: struct {
 			digitalOcean string
