@@ -6,21 +6,43 @@ on:
       - main
 
 jobs:
-  build-and-run:
-    runs-on: [self-hosted, yvpn]
+  build:
+    runs-on: ubuntu-latest  # GitHub-hosted runner for building
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Build Docker image
+        run: docker build -t yvpn:latest .
+
+      - name: Save Docker image as a .tar file
+        run: docker save yvpn:latest -o yvpn_image.tar
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: yvpn_image
+          path: yvpn_image.tar
+
+  deploy:
+    runs-on: [self-hosted, yvpn]  # Self-hosted runner for deployment
+    needs: build
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: yvpn_image
+          path: .
+
+      - name: Load Docker image
+        run: docker load -i yvpn_image.tar
+
       - name: Remove existing container if running
         run: |
-          if [ "$(sudo docker ps -q -f name=yvpn_container)" ]; then
+          if [ "$(docker ps -q -f name=yvpn_container)" ]; then
             docker stop yvpn_container
             docker rm yvpn_container
           fi
-
-      - name: Build Docker container
-        run: docker build -t yvpn:latest .
 
       - name: Run Docker container
         run: docker run -d -p 1337:1337 --name yvpn_container yvpn:latest
