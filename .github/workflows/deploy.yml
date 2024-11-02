@@ -36,14 +36,32 @@ jobs:
 
       - name: Load Docker image
         run: docker load -i yvpn_image.tar
-
-      - name: Remove existing container if running
+      
+      - name: Clean up Docker containers and networks
         run: |
+          # Stop and remove the existing container if it exists
           if [ "$(docker ps -aq -f name=yvpn_container)" ]; then
             docker stop yvpn_container || true
             docker rm -f yvpn_container || true
           fi
+          # Remove any unused networks to free up resources
+          docker network prune -f
 
-      - name: Run Docker container with restart policy
-        run: docker run -d --restart unless-stopped -p 1337:22 --name yvpn_container yvpn:latest
+
+      - name: Ensure port 1337 is free
+        run: |
+          # Check and kill any processes using port 1337
+          if lsof -i :1337; then
+            PID=$(lsof -t -i :1337)
+            echo "Killing process $PID using port 1337"
+            kill -9 $PID
+          fi
+
+      - name: Run Docker container with retry
+        run: |
+          for i in {1..3}; do
+            docker run -d -p 1337:22 --name yvpn_container yvpn:latest && break
+            echo "Retrying in 5 seconds..."
+            sleep 5
+          done
 
