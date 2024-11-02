@@ -23,5 +23,5 @@ jobs:
         run: docker build -t yvpn:latest .
 
       - name: Run Docker container
-        run: docker run -d -p 22:1337 --name yvpn_container yvpn:latest
+        run: docker run -d -p 1337:1337 --name yvpn_container yvpn:latest
 
