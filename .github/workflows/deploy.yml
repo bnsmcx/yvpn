@@ -1,0 +1,27 @@
+name: Build, Remove Old, and Start Docker Container
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-run:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Remove existing container if running
+        run: |
+          if [ "$(sudo docker ps -q -f name=yvpn_container)" ]; then
+            docker stop yvpn_container
+            docker rm yvpn_container
+          fi
+
+      - name: Build Docker container
+        run: docker build -t yvpn:latest .
+
+      - name: Run Docker container
+        run: docker run -d -p 22:1337 --name yvpn_container yvpn:latest
+
