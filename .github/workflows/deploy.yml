@@ -39,9 +39,9 @@ jobs:
 
       - name: Remove existing container if running
         run: |
-          if [ "$(docker ps -q -f name=yvpn_container)" ]; then
-            docker stop yvpn_container
-            docker rm yvpn_container
+          if [ "$(docker ps -aq -f name=yvpn_container)" ]; then
+            docker stop yvpn_container || true
+            docker rm -f yvpn_container || true
           fi
 
       - name: Run Docker container
