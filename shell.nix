@@ -9,13 +9,10 @@ pkgs.mkShell {
     git
     gopls
     lunarvim
-    nmap
     zellij
   ];
 
   shellHook = ''
-    echo "Welcome to your nix-shell environment!"
-    
     # Setting aliases
     alias vim=lvim
     
