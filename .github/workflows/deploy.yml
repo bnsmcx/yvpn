@@ -44,6 +44,6 @@ jobs:
             docker rm -f yvpn_container || true
           fi
 
-      - name: Run Docker container
-        run: docker run -d -p 1337:22 --name yvpn_container yvpn:latest
+      - name: Run Docker container with restart policy
+        run: docker run -d --restart unless-stopped -p 1337:22 --name yvpn_container yvpn:latest
 
