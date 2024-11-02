@@ -45,5 +45,5 @@ jobs:
           fi
 
       - name: Run Docker container
-        run: docker run -d -p 1337:1337 --name yvpn_container yvpn:latest
+        run: docker run -d -p 1337:22 --name yvpn_container yvpn:latest
 
