@@ -1,4 +1,4 @@
-name: Build, Remove Old, and Start Docker Container
+name: Deploy yVPN
 
 on:
   push:
