@@ -6,7 +6,6 @@ import (
 	"yvpn/pkg/digital_ocean"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/log"
 )
 
 type Dash struct {
@@ -74,10 +73,10 @@ func (m Dash) View() string {
 	return sb.String()
 }
 
-func NewDash(tokenDO, tokenTS string) Dash {
+func NewDash(tokenDO, tokenTS string) (Dash, error) {
 	datacenters, err := digital_ocean.FetchDatacenters(tokenDO)
 	if err != nil {
-    log.Fatalf("fetching available datacenters %s", err.Error())
+    return Dash{}, fmt.Errorf("fetching available datacenters %s", err.Error())
 	}
 
 	return Dash{
@@ -90,5 +89,5 @@ func NewDash(tokenDO, tokenTS string) Dash {
 			digitalOcean: tokenDO,
 			tailscale:    tokenTS,
 		},
-	}
+	}, nil
 }

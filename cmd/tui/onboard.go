@@ -8,10 +8,6 @@ import (
 )
 
 type Onboard struct {
-	tokens struct {
-		digitalOcean string
-		tailscale    string
-	}
 	form *huh.Form
 }
 
@@ -22,8 +18,7 @@ func (m Onboard) Init() tea.Cmd {
 func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c":
+		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
 		}
 	}
@@ -37,11 +32,16 @@ func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	m.tokens.digitalOcean = m.form.GetString("digital_ocean")
-	m.tokens.tailscale = m.form.GetString("tailscale")
-
+	// Check if form is completed
 	if m.form.State == huh.StateCompleted {
-		return NewDash(m.tokens.digitalOcean, m.tokens.tailscale), tea.Batch(cmds...)
+		dash, err := NewDash(
+      m.form.GetString("digital_ocean"), 
+      m.form.GetString("tailscale"))
+		if err != nil {
+      m = NewOnboarding()
+			return m, m.Init()
+		}
+		return dash, tea.Batch(cmds...)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -52,12 +52,7 @@ func (m Onboard) View() string {
 }
 
 func NewOnboarding() Onboard {
-	m := Onboard{
-		tokens: struct {
-			digitalOcean string
-			tailscale    string
-		}{},
-	}
+	m := Onboard{}
 
 	m.form = huh.NewForm(
 		huh.NewGroup(
