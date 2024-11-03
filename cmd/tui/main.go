@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -11,7 +10,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	cLog "github.com/charmbracelet/log"
+	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/charmbracelet/wish/activeterm"
@@ -54,25 +53,25 @@ func serveOverSSH(host, port string) {
 		),
 	)
 	if err != nil {
-		cLog.Error("Could not start server", "error", err)
+		log.Error("Could not start server", "error", err)
 	}
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	cLog.Info("Starting SSH server", "host", host, "port", port)
+	log.Info("Starting SSH server", "host", host, "port", port)
 	go func() {
 		if err = s.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-			cLog.Error("Could not start server", "error", err)
+			log.Error("Could not start server", "error", err)
 			done <- nil
 		}
 	}()
 
 	<-done
-	cLog.Info("Stopping SSH server")
+	log.Info("Stopping SSH server")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer func() { cancel() }()
 	if err := s.Shutdown(ctx); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-		cLog.Error("Could not stop server", "error", err)
+		log.Error("Could not stop server", "error", err)
 	}
 }
 
