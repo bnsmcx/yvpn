@@ -121,7 +121,7 @@ func (m Onboard) theme() *huh.Theme {
 		foreground = lipgloss.AdaptiveColor{Dark: "#f8f8f2"}
 		comment    = lipgloss.AdaptiveColor{Dark: "#6272a4"}
 		green      = lipgloss.AdaptiveColor{Dark: "#50fa7b"}
-		prompt     = lipgloss.Color(ACCENT_COLOR)
+		prompt     = lipgloss.AdaptiveColor{Dark: ACCENT_COLOR, Light: ACCENT_COLOR}
 		red        = lipgloss.AdaptiveColor{Dark: "#ff5555"}
 		yellow     = lipgloss.AdaptiveColor{Dark: "#f1fa8c"}
 	)
