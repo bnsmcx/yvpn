@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/lipgloss"
 	"golang.org/x/term"
+	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -159,7 +160,7 @@ func yvpnThem() *huh.Theme {
 }
 
 func NewOnboarding() Onboard {
-	w, h, err := term.GetSize(0)
+	w, h, err := term.GetSize(int(os.Stdin.Fd()))
 	if err != nil {
 		panic(err)
 	}
