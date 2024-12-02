@@ -18,6 +18,8 @@ import (
 	"github.com/charmbracelet/wish/logging"
 )
 
+const VERSION = "0.1.0"
+
 func main() {
 	if _, err := tea.LogToFile("debug.log", "simple"); err != nil {
 		log.Fatal(err)
@@ -29,10 +31,10 @@ func main() {
 		do, good1 := os.LookupEnv("DIGITAL_OCEAN_TOKEN")
 		ts, good2 := os.LookupEnv("TAILSCALE_API")
 		if good1 && good2 {
-      dash, err := NewDash(do, ts)
-      if err != nil {
-        log.Fatal(err)
-      }
+			dash, err := NewDash(do, ts)
+			if err != nil {
+				log.Fatal(err)
+			}
 			p := tea.NewProgram(dash, tea.WithAltScreen())
 			if _, err := p.Run(); err != nil {
 				log.Fatal(err)

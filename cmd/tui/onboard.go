@@ -2,13 +2,19 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"github.com/charmbracelet/lipgloss"
+	"golang.org/x/term"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
 
 type Onboard struct {
-	form *huh.Form
+	form   *huh.Form
+	width  int
+	height int
 }
 
 func (m Onboard) Init() tea.Cmd {
@@ -17,6 +23,8 @@ func (m Onboard) Init() tea.Cmd {
 
 func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width, m.height = msg.Width, msg.Height
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
@@ -35,10 +43,10 @@ func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Check if form is completed
 	if m.form.State == huh.StateCompleted {
 		dash, err := NewDash(
-      m.form.GetString("digital_ocean"), 
-      m.form.GetString("tailscale"))
+			m.form.GetString("digital_ocean"),
+			m.form.GetString("tailscale"))
 		if err != nil {
-      m = NewOnboarding()
+			m = NewOnboarding()
 			return m, m.Init()
 		}
 		return dash, tea.Batch(cmds...)
@@ -48,11 +56,37 @@ func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Onboard) View() string {
-	return m.form.View()
+	top := m.getTopBar()
+	content := lipgloss.Place(m.width, m.height-lipgloss.Height(top),
+		lipgloss.Center, lipgloss.Center, m.form.View())
+	return fmt.Sprint(lipgloss.JoinVertical(lipgloss.Center, top, content))
+}
+
+func (m Onboard) getTopBar() string {
+	style := lipgloss.NewStyle().
+		Background(lipgloss.Color("9")).
+		Foreground(lipgloss.Color("15")).
+		MarginBottom(1)
+	left := lipgloss.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
+		Render("Onboarding")
+	right := lipgloss.NewStyle().Align(lipgloss.Right).PaddingRight(1).
+		Render(fmt.Sprintf("yVPN %s", VERSION))
+	padding := strings.Repeat(" ",
+		m.width-(lipgloss.Width(left)+lipgloss.Width(right)))
+	bar := lipgloss.JoinHorizontal(lipgloss.Center, left, padding, right)
+	return style.Render(bar)
 }
 
 func NewOnboarding() Onboard {
-	m := Onboard{}
+	w, h, err := term.GetSize(0)
+	if err != nil {
+		panic(err)
+	}
+
+	m := Onboard{
+		width:  w,
+		height: h,
+	}
 
 	m.form = huh.NewForm(
 		huh.NewGroup(
