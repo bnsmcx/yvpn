@@ -88,7 +88,7 @@ func (m Onboard) getTopBar() string {
 }
 
 func (m Onboard) getStyledForm() string {
-	m.form.WithTheme(theme()).WithWidth(m.width - (m.width / 4))
+	m.form.WithTheme(m.theme()).WithWidth(m.width - (m.width / 4))
 	return m.renderer.NewStyle().
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color(ACCENT_COLOR)).
@@ -113,7 +113,7 @@ func (m Onboard) getBottomBar() string {
 	return style.Render(bar)
 }
 
-func theme() *huh.Theme {
+func (m Onboard) theme() *huh.Theme {
 	t := huh.ThemeBase()
 	var (
 		background = lipgloss.AdaptiveColor{Dark: "#282a36"}
@@ -152,8 +152,8 @@ func theme() *huh.Theme {
 
 	t.Blurred = t.Focused
 	t.Blurred.Base = t.Blurred.Base.BorderStyle(lipgloss.HiddenBorder())
-	t.Blurred.NextIndicator = lipgloss.NewStyle()
-	t.Blurred.PrevIndicator = lipgloss.NewStyle()
+	t.Blurred.NextIndicator = m.renderer.NewStyle()
+	t.Blurred.PrevIndicator = m.renderer.NewStyle()
 
 	return t
 }
