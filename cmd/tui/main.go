@@ -40,7 +40,7 @@ func main() {
 				log.Fatal(err)
 			}
 		} else {
-			p := tea.NewProgram(NewOnboarding(), tea.WithAltScreen())
+			p := tea.NewProgram(NewOnboarding(0, 0), tea.WithAltScreen())
 			if _, err := p.Run(); err != nil {
 				log.Fatal(err)
 			}
@@ -82,5 +82,12 @@ func serveOverSSH(host, port string) {
 }
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-	return NewOnboarding(), []tea.ProgramOption{tea.WithAltScreen()}
+	pty, _, active := s.Pty()
+	if !active {
+		wish.Fatalln(s, "no active terminal, skipping")
+		return nil, nil
+	}
+
+	return NewOnboarding(pty.Window.Height, pty.Window.Width),
+		[]tea.ProgramOption{tea.WithAltScreen()}
 }

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/charmbracelet/lipgloss"
-	"golang.org/x/term"
-	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -47,7 +45,7 @@ func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.form.GetString("digital_ocean"),
 			m.form.GetString("tailscale"))
 		if err != nil {
-			m = NewOnboarding()
+			m = NewOnboarding(0, 0)
 			return m, m.Init()
 		}
 		return dash, tea.Batch(cmds...)
@@ -159,15 +157,10 @@ func yvpnThem() *huh.Theme {
 	return t
 }
 
-func NewOnboarding() Onboard {
-	w, h, err := term.GetSize(int(os.Stdin.Fd()))
-	if err != nil {
-		panic(err)
-	}
-
+func NewOnboarding(height, width int) Onboard {
 	m := Onboard{
-		width:  w,
-		height: contain(h, 30),
+		width:  width,
+		height: contain(height, 30),
 	}
 
 	m.form = huh.NewForm(
