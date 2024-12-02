@@ -24,7 +24,7 @@ func (m Onboard) Init() tea.Cmd {
 func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width, m.height = msg.Width, msg.Height
+		m.width, m.height = msg.Width, contain(msg.Height, 30)
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
@@ -55,11 +55,21 @@ func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+func contain(height int, max int) int {
+	if height > max {
+		return max
+	}
+
+	return height
+}
+
 func (m Onboard) View() string {
 	top := m.getTopBar()
-	content := lipgloss.Place(m.width, m.height-lipgloss.Height(top),
+	bottom := m.getBottomBar()
+	content := lipgloss.Place(m.width,
+		m.height-(lipgloss.Height(top)+lipgloss.Height(bottom)),
 		lipgloss.Center, lipgloss.Center, m.getStyledForm())
-	return fmt.Sprint(lipgloss.JoinVertical(lipgloss.Center, top, content))
+	return fmt.Sprint(lipgloss.JoinVertical(lipgloss.Center, top, content, bottom))
 }
 
 func (m Onboard) getTopBar() string {
@@ -86,6 +96,21 @@ func (m Onboard) getStyledForm() string {
 		PaddingLeft(2).
 		PaddingRight(2).
 		Render(m.form.View())
+}
+
+func (m Onboard) getBottomBar() string {
+	style := lipgloss.NewStyle().
+		Background(lipgloss.Color("#E59500")).
+		Foreground(lipgloss.Color("0")).
+		MarginBottom(1)
+	left := lipgloss.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
+		Render("")
+	right := lipgloss.NewStyle().Align(lipgloss.Right).PaddingRight(1).
+		Render("")
+	padding := strings.Repeat(" ",
+		m.width-(lipgloss.Width(left)+lipgloss.Width(right)))
+	bar := lipgloss.JoinHorizontal(lipgloss.Center, left, padding, right)
+	return style.Render(bar)
 }
 
 func yvpnThem() *huh.Theme {
@@ -141,7 +166,7 @@ func NewOnboarding() Onboard {
 
 	m := Onboard{
 		width:  w,
-		height: h,
+		height: contain(h, 30),
 	}
 
 	m.form = huh.NewForm(
