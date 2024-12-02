@@ -73,7 +73,7 @@ func (m Onboard) View() string {
 
 func (m Onboard) getTopBar() string {
 	style := lipgloss.NewStyle().
-		Background(lipgloss.Color("#E59500")).
+		Background(lipgloss.Color("214")).
 		Foreground(lipgloss.Color("0")).
 		MarginBottom(1)
 	left := lipgloss.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
@@ -87,10 +87,10 @@ func (m Onboard) getTopBar() string {
 }
 
 func (m Onboard) getStyledForm() string {
-	m.form.WithTheme(yvpnThem()).WithWidth(m.width - (m.width / 4))
+	m.form.WithTheme(theme()).WithWidth(m.width - (m.width / 4))
 	return lipgloss.NewStyle().
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("#E59500")).
+		BorderForeground(lipgloss.Color("214")).
 		PaddingTop(2).
 		PaddingLeft(2).
 		PaddingRight(2).
@@ -99,7 +99,7 @@ func (m Onboard) getStyledForm() string {
 
 func (m Onboard) getBottomBar() string {
 	style := lipgloss.NewStyle().
-		Background(lipgloss.Color("#E59500")).
+		Background(lipgloss.Color("214")).
 		Foreground(lipgloss.Color("0")).
 		MarginBottom(1)
 	left := lipgloss.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
@@ -112,7 +112,7 @@ func (m Onboard) getBottomBar() string {
 	return style.Render(bar)
 }
 
-func yvpnThem() *huh.Theme {
+func theme() *huh.Theme {
 	t := huh.ThemeBase()
 	var (
 		background = lipgloss.AdaptiveColor{Dark: "#282a36"}
@@ -120,7 +120,7 @@ func yvpnThem() *huh.Theme {
 		foreground = lipgloss.AdaptiveColor{Dark: "#f8f8f2"}
 		comment    = lipgloss.AdaptiveColor{Dark: "#6272a4"}
 		green      = lipgloss.AdaptiveColor{Dark: "#50fa7b"}
-		prompt     = lipgloss.AdaptiveColor{Dark: "#E59500"}
+		prompt     = lipgloss.AdaptiveColor{Dark: "214"}
 		red        = lipgloss.AdaptiveColor{Dark: "#ff5555"}
 		yellow     = lipgloss.AdaptiveColor{Dark: "#f1fa8c"}
 	)
