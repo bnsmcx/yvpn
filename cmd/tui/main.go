@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"golang.org/x/term"
 	"net"
 	"os"
 	"os/signal"
@@ -40,7 +41,11 @@ func main() {
 				log.Fatal(err)
 			}
 		} else {
-			p := tea.NewProgram(NewOnboarding(0, 0), tea.WithAltScreen())
+			w, h, err := term.GetSize(int(os.Stdout.Fd()))
+			if err != nil {
+				log.Fatal(err)
+			}
+			p := tea.NewProgram(NewOnboarding(h, w, nil), tea.WithAltScreen())
 			if _, err := p.Run(); err != nil {
 				log.Fatal(err)
 			}
@@ -88,6 +93,8 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		return nil, nil
 	}
 
-	return NewOnboarding(pty.Window.Height, pty.Window.Width),
+	renderer := bubbletea.MakeRenderer(s)
+
+	return NewOnboarding(pty.Window.Height, pty.Window.Width, renderer),
 		[]tea.ProgramOption{tea.WithAltScreen()}
 }

@@ -11,9 +11,10 @@ import (
 )
 
 type Onboard struct {
-	form   *huh.Form
-	width  int
-	height int
+	renderer *lipgloss.Renderer
+	form     *huh.Form
+	width    int
+	height   int
 }
 
 func (m Onboard) Init() tea.Cmd {
@@ -45,7 +46,7 @@ func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.form.GetString("digital_ocean"),
 			m.form.GetString("tailscale"))
 		if err != nil {
-			m = NewOnboarding(0, 0)
+			m = NewOnboarding(0, 0, nil)
 			return m, m.Init()
 		}
 		return dash, tea.Batch(cmds...)
@@ -72,13 +73,13 @@ func (m Onboard) View() string {
 }
 
 func (m Onboard) getTopBar() string {
-	style := lipgloss.NewStyle().
-		Background(lipgloss.Color("214")).
+	style := m.renderer.NewStyle().
+		Background(lipgloss.Color("E59500")).
 		Foreground(lipgloss.Color("0")).
 		MarginBottom(1)
-	left := lipgloss.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
+	left := m.renderer.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
 		Render("Onboarding")
-	right := lipgloss.NewStyle().Align(lipgloss.Right).PaddingRight(1).
+	right := m.renderer.NewStyle().Align(lipgloss.Right).PaddingRight(1).
 		Render(fmt.Sprintf("yVPN %s", VERSION))
 	padding := strings.Repeat(" ",
 		m.width-(lipgloss.Width(left)+lipgloss.Width(right)))
@@ -88,9 +89,9 @@ func (m Onboard) getTopBar() string {
 
 func (m Onboard) getStyledForm() string {
 	m.form.WithTheme(theme()).WithWidth(m.width - (m.width / 4))
-	return lipgloss.NewStyle().
+	return m.renderer.NewStyle().
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("214")).
+		BorderForeground(lipgloss.Color("E59500")).
 		PaddingTop(2).
 		PaddingLeft(2).
 		PaddingRight(2).
@@ -98,13 +99,13 @@ func (m Onboard) getStyledForm() string {
 }
 
 func (m Onboard) getBottomBar() string {
-	style := lipgloss.NewStyle().
-		Background(lipgloss.Color("214")).
+	style := m.renderer.NewStyle().
+		Background(lipgloss.Color("E59500")).
 		Foreground(lipgloss.Color("0")).
 		MarginBottom(1)
-	left := lipgloss.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
+	left := m.renderer.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
 		Render("")
-	right := lipgloss.NewStyle().Align(lipgloss.Right).PaddingRight(1).
+	right := m.renderer.NewStyle().Align(lipgloss.Right).PaddingRight(1).
 		Render("")
 	padding := strings.Repeat(" ",
 		m.width-(lipgloss.Width(left)+lipgloss.Width(right)))
@@ -120,7 +121,7 @@ func theme() *huh.Theme {
 		foreground = lipgloss.AdaptiveColor{Dark: "#f8f8f2"}
 		comment    = lipgloss.AdaptiveColor{Dark: "#6272a4"}
 		green      = lipgloss.AdaptiveColor{Dark: "#50fa7b"}
-		prompt     = lipgloss.AdaptiveColor{Dark: "214"}
+		prompt     = lipgloss.AdaptiveColor{Dark: "#E59500"}
 		red        = lipgloss.AdaptiveColor{Dark: "#ff5555"}
 		yellow     = lipgloss.AdaptiveColor{Dark: "#f1fa8c"}
 	)
@@ -157,10 +158,16 @@ func theme() *huh.Theme {
 	return t
 }
 
-func NewOnboarding(height, width int) Onboard {
+func NewOnboarding(height, width int, renderer *lipgloss.Renderer) Onboard {
 	m := Onboard{
 		width:  width,
 		height: contain(height, 30),
+	}
+
+	if renderer != nil {
+		m.renderer = renderer
+	} else {
+		m.renderer = lipgloss.DefaultRenderer()
 	}
 
 	m.form = huh.NewForm(
