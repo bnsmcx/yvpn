@@ -40,11 +40,11 @@ jobs:
       - name: Clean up Docker container
         run: |
           # Stop and remove the existing container if it exists
-          if [ "$(docker ps -aq -f name=yvpn_container)" ]; then
-            docker stop yvpn_container || true
-            docker rm -f yvpn_container || true
+          if [ "$(docker ps -aq -f name=yvpn)" ]; then
+            docker stop yvpn || true
+            docker rm -f yvpn || true
           fi
 
       - name: Run Docker container
-        run: docker run -d -p 22:1337 --name yvpn_container yvpn:latest
+        run: docker run -d -p 22:1337 --name yvpn yvpn:latest
 
