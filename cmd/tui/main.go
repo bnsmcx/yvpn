@@ -19,7 +19,10 @@ import (
 	"github.com/charmbracelet/wish/logging"
 )
 
-const VERSION = "0.1.0"
+const (
+	VERSION      = "0.1.0"
+	ACCENT_COLOR = "130"
+)
 
 func main() {
 	if _, err := tea.LogToFile("debug.log", "simple"); err != nil {

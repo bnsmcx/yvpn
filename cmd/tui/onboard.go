@@ -74,7 +74,7 @@ func (m Onboard) View() string {
 
 func (m Onboard) getTopBar() string {
 	style := m.renderer.NewStyle().
-		Background(lipgloss.Color("E59500")).
+		Background(lipgloss.Color(ACCENT_COLOR)).
 		Foreground(lipgloss.Color("0")).
 		MarginBottom(1)
 	left := m.renderer.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
@@ -91,7 +91,7 @@ func (m Onboard) getStyledForm() string {
 	m.form.WithTheme(theme()).WithWidth(m.width - (m.width / 4))
 	return m.renderer.NewStyle().
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("E59500")).
+		BorderForeground(lipgloss.Color(ACCENT_COLOR)).
 		PaddingTop(2).
 		PaddingLeft(2).
 		PaddingRight(2).
@@ -100,7 +100,7 @@ func (m Onboard) getStyledForm() string {
 
 func (m Onboard) getBottomBar() string {
 	style := m.renderer.NewStyle().
-		Background(lipgloss.Color("E59500")).
+		Background(lipgloss.Color(ACCENT_COLOR)).
 		Foreground(lipgloss.Color("0")).
 		MarginBottom(1)
 	left := m.renderer.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
@@ -121,7 +121,7 @@ func theme() *huh.Theme {
 		foreground = lipgloss.AdaptiveColor{Dark: "#f8f8f2"}
 		comment    = lipgloss.AdaptiveColor{Dark: "#6272a4"}
 		green      = lipgloss.AdaptiveColor{Dark: "#50fa7b"}
-		prompt     = lipgloss.AdaptiveColor{Dark: "#E59500"}
+		prompt     = lipgloss.AdaptiveColor{Dark: ACCENT_COLOR}
 		red        = lipgloss.AdaptiveColor{Dark: "#ff5555"}
 		yellow     = lipgloss.AdaptiveColor{Dark: "#f1fa8c"}
 	)
