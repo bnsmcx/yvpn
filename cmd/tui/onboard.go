@@ -116,14 +116,14 @@ func (m Onboard) getBottomBar() string {
 func (m Onboard) theme() *huh.Theme {
 	t := huh.ThemeBase()
 	var (
-		background = lipgloss.AdaptiveColor{Dark: "#282a36"}
-		selection  = lipgloss.AdaptiveColor{Dark: "#44475a"}
-		foreground = lipgloss.AdaptiveColor{Dark: "#f8f8f2"}
-		comment    = lipgloss.AdaptiveColor{Dark: "#6272a4"}
-		green      = lipgloss.AdaptiveColor{Dark: "#50fa7b"}
-		prompt     = lipgloss.AdaptiveColor{Dark: ACCENT_COLOR, Light: ACCENT_COLOR}
-		red        = lipgloss.AdaptiveColor{Dark: "#ff5555"}
-		yellow     = lipgloss.AdaptiveColor{Dark: "#f1fa8c"}
+		background = lipgloss.Color(ACCENT_COLOR)
+		selection  = lipgloss.Color(ACCENT_COLOR)
+		foreground = lipgloss.Color(ACCENT_COLOR)
+		comment    = lipgloss.Color(ACCENT_COLOR)
+		green      = lipgloss.Color(ACCENT_COLOR)
+		prompt     = lipgloss.Color(ACCENT_COLOR)
+		red        = lipgloss.Color(ACCENT_COLOR)
+		yellow     = lipgloss.Color(ACCENT_COLOR)
 	)
 
 	t.Focused.Base = t.Focused.Base.BorderForeground(selection)
