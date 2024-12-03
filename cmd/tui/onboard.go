@@ -114,48 +114,25 @@ func (m Onboard) getBottomBar() string {
 }
 
 func (m Onboard) theme() *huh.Theme {
-	t := huh.ThemeBase()
-	var (
-		background = lipgloss.Color(ACCENT_COLOR)
-		selection  = lipgloss.Color(ACCENT_COLOR)
-		foreground = lipgloss.Color(ACCENT_COLOR)
-		comment    = lipgloss.Color(ACCENT_COLOR)
-		green      = lipgloss.Color(ACCENT_COLOR)
-		prompt     = lipgloss.Color(ACCENT_COLOR)
-		red        = lipgloss.Color(ACCENT_COLOR)
-		yellow     = lipgloss.Color(ACCENT_COLOR)
-	)
-
-	t.Focused.Base = t.Focused.Base.BorderForeground(selection)
-	t.Focused.Title = t.Focused.Title.Foreground(prompt)
-	t.Focused.NoteTitle = t.Focused.NoteTitle.Foreground(prompt)
-	t.Focused.Description = t.Focused.Description.Foreground(comment)
-	t.Focused.ErrorIndicator = t.Focused.ErrorIndicator.Foreground(red)
-	t.Focused.Directory = t.Focused.Directory.Foreground(prompt)
-	t.Focused.File = t.Focused.File.Foreground(foreground)
-	t.Focused.ErrorMessage = t.Focused.ErrorMessage.Foreground(red)
-	t.Focused.SelectSelector = t.Focused.SelectSelector.Foreground(yellow)
-	t.Focused.NextIndicator = t.Focused.NextIndicator.Foreground(yellow)
-	t.Focused.PrevIndicator = t.Focused.PrevIndicator.Foreground(yellow)
-	t.Focused.Option = t.Focused.Option.Foreground(foreground)
-	t.Focused.MultiSelectSelector = t.Focused.MultiSelectSelector.Foreground(yellow)
-	t.Focused.SelectedOption = t.Focused.SelectedOption.Foreground(green)
-	t.Focused.SelectedPrefix = t.Focused.SelectedPrefix.Foreground(green)
-	t.Focused.UnselectedOption = t.Focused.UnselectedOption.Foreground(foreground)
-	t.Focused.UnselectedPrefix = t.Focused.UnselectedPrefix.Foreground(comment)
-	t.Focused.FocusedButton = t.Focused.FocusedButton.Foreground(yellow).Background(prompt).Bold(true)
-	t.Focused.BlurredButton = t.Focused.BlurredButton.Foreground(foreground).Background(background)
-
-	t.Focused.TextInput.Cursor = t.Focused.TextInput.Cursor.Foreground(yellow)
-	t.Focused.TextInput.Placeholder = t.Focused.TextInput.Placeholder.Foreground(comment)
-	t.Focused.TextInput.Prompt = t.Focused.TextInput.Prompt.Foreground(yellow)
-
-	t.Blurred = t.Focused
-	t.Blurred.Base = t.Blurred.Base.BorderStyle(lipgloss.HiddenBorder())
-	t.Blurred.NextIndicator = m.renderer.NewStyle()
-	t.Blurred.PrevIndicator = m.renderer.NewStyle()
-
-	return t
+	custom := huh.ThemeBase()
+	custom.Blurred.Title = m.renderer.NewStyle().
+		Foreground(lipgloss.Color("8"))
+	custom.Blurred.TextInput.Prompt = m.renderer.NewStyle().
+		Foreground(lipgloss.Color("8"))
+	custom.Blurred.TextInput.Text = m.renderer.NewStyle().
+		Foreground(lipgloss.Color("8"))
+	custom.Focused.Title = m.renderer.NewStyle().
+		Foreground(lipgloss.Color(ACCENT_COLOR))
+	custom.Focused.TextInput.Prompt = m.renderer.NewStyle().
+		Foreground(lipgloss.Color(ACCENT_COLOR))
+	custom.Focused.TextInput.Cursor = m.renderer.NewStyle().
+		Foreground(lipgloss.Color(ACCENT_COLOR))
+	custom.Focused.Base = m.renderer.NewStyle().
+		Padding(0, 1).
+		Border(lipgloss.ThickBorder(), false).
+		BorderLeft(true).
+		BorderForeground(lipgloss.Color(ACCENT_COLOR))
+	return custom
 }
 
 func NewOnboarding(height, width int, renderer *lipgloss.Renderer) Onboard {
