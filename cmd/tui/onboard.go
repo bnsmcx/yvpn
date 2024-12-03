@@ -46,8 +46,8 @@ func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.form.GetString("digital_ocean"),
 			m.form.GetString("tailscale"))
 		if err != nil {
-			m = NewOnboarding(0, 0, nil)
-			return m, m.Init()
+			resetModel := NewOnboarding(m.height, m.width, m.renderer)
+			return resetModel, resetModel.Init()
 		}
 		return dash, tea.Batch(cmds...)
 	}
