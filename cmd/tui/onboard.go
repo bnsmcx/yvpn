@@ -3,11 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/charmbracelet/lipgloss"
-	"strings"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type Onboard struct {
@@ -55,40 +53,17 @@ func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func contain(height int, max int) int {
-	if height > max {
-		return max
-	}
-
-	return height
-}
-
 func (m Onboard) View() string {
-	top := m.getTopBar()
-	bottom := m.getBottomBar()
+	top := getTopBar(m.renderer, m.width)
+	bottom := getBottomBar(m.renderer, m.width)
 	content := lipgloss.Place(m.width,
 		m.height-(lipgloss.Height(top)+lipgloss.Height(bottom)),
 		lipgloss.Center, lipgloss.Center, m.getStyledForm())
 	return fmt.Sprint(lipgloss.JoinVertical(lipgloss.Center, top, content, bottom))
 }
 
-func (m Onboard) getTopBar() string {
-	style := m.renderer.NewStyle().
-		Background(lipgloss.Color(ACCENT_COLOR)).
-		Foreground(lipgloss.Color("0")).
-		MarginBottom(1)
-	left := m.renderer.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
-		Render("Onboarding")
-	right := m.renderer.NewStyle().Align(lipgloss.Right).PaddingRight(1).
-		Render(fmt.Sprintf("yVPN %s", VERSION))
-	padding := strings.Repeat(" ",
-		m.width-(lipgloss.Width(left)+lipgloss.Width(right)))
-	bar := lipgloss.JoinHorizontal(lipgloss.Center, left, padding, right)
-	return style.Render(bar)
-}
-
 func (m Onboard) getStyledForm() string {
-	m.form.WithTheme(m.theme()).WithWidth(m.width - (m.width / 4))
+	m.form.WithTheme(m.formTheme()).WithWidth(m.width - (m.width / 4))
 	return m.renderer.NewStyle().
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color(ACCENT_COLOR)).
@@ -98,22 +73,7 @@ func (m Onboard) getStyledForm() string {
 		Render(m.form.View())
 }
 
-func (m Onboard) getBottomBar() string {
-	style := m.renderer.NewStyle().
-		Background(lipgloss.Color(ACCENT_COLOR)).
-		Foreground(lipgloss.Color("0")).
-		MarginBottom(1)
-	left := m.renderer.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
-		Render("")
-	right := m.renderer.NewStyle().Align(lipgloss.Right).PaddingRight(1).
-		Render("")
-	padding := strings.Repeat(" ",
-		m.width-(lipgloss.Width(left)+lipgloss.Width(right)))
-	bar := lipgloss.JoinHorizontal(lipgloss.Center, left, padding, right)
-	return style.Render(bar)
-}
-
-func (m Onboard) theme() *huh.Theme {
+func (m Onboard) formTheme() *huh.Theme {
 	custom := huh.ThemeBase()
 	custom.Blurred.Title = m.renderer.NewStyle().
 		Foreground(lipgloss.Color("8"))

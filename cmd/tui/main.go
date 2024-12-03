@@ -20,8 +20,7 @@ import (
 )
 
 const (
-	VERSION      = "0.1.0"
-	ACCENT_COLOR = "130"
+	VERSION = "0.1.0"
 )
 
 func main() {
