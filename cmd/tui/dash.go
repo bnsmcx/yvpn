@@ -106,18 +106,21 @@ func (m Dash) buildTable() table.Model {
 	}
 
 	var rows []table.Row
-	for id, name := range []string{"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude",
-		"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude",
-		"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude"} {
-		rows = append(rows, table.Row{name, fmt.Sprint(id)})
-	}
-	//if len(m.endpoints) > 0 {
-	//	for name, id := range m.endpoints {
-	//		rows = append(rows, table.Row{name, fmt.Sprint(id)})
-	//	}
-	//} else {
-	//	rows = append(rows, table.Row{"None", ""})
+
+	// test data
+	//for id, name := range []string{"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude",
+	//	"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude",
+	//	"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude"} {
+	//	rows = append(rows, table.Row{name, fmt.Sprint(id)})
 	//}
+
+	if len(m.endpoints) > 0 {
+		for name, id := range m.endpoints {
+			rows = append(rows, table.Row{name, fmt.Sprint(id)})
+		}
+	} else {
+		rows = append(rows, table.Row{"None", ""})
+	}
 
 	t := table.New(
 		table.WithColumns(columns),
