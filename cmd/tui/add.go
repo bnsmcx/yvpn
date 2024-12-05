@@ -42,7 +42,7 @@ func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case addedMsg:
 		m.done = true
-    m.dash.endpoints[msg.name] = msg.id
+		m.dash.endpoints[msg.name] = msg.id
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
@@ -157,7 +157,7 @@ func NewAdd(dash Dash) Add {
 				}).
 				Affirmative("Yes").
 				Negative("No")),
-	).WithWidth(60).WithShowHelp(true).WithShowErrors(false)
+	).WithWidth(dash.width).WithShowHelp(true).WithShowErrors(false)
 
 	return m
 }
