@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
-	"strings"
 	"yvpn/pkg/digital_ocean"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -28,6 +28,8 @@ func (m Dash) Init() tea.Cmd {
 
 func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width, m.height = msg.Width, contain(msg.Height, 30)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
@@ -53,37 +55,68 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Dash) View() string {
 	top := getTopBar("Dashboard", m.renderer, m.width)
 	bottom := getBottomBar(m.renderer, m.width)
-	content := lipgloss.Place(m.width,
-		m.height-(lipgloss.Height(top)+lipgloss.Height(bottom)),
-		lipgloss.Center, lipgloss.Center, m.content())
+	height := m.height - (lipgloss.Height(top) + lipgloss.Height(bottom))
+	content := lipgloss.Place(m.width, height,
+		lipgloss.Top, lipgloss.Top, m.content(height))
 	return fmt.Sprint(lipgloss.JoinVertical(lipgloss.Center, top, content, bottom))
 }
 
-func (m Dash) content() string {
-	var sb strings.Builder
-	sb.WriteString("|---[ yVPN dashboard ]-------------------------------------\n")
-	sb.WriteString("|                                                          \n")
-	sb.WriteString("|                                                          \n")
-	sb.WriteString("| Active Exit Nodes:                                       \n")
-	sb.WriteString("|                                                          \n")
-	if len(m.endpoints) > 0 {
-		for name, id := range m.endpoints {
-			sb.WriteString(fmt.Sprintf("|   [%d] %s\n", id, name))
-		}
-	} else {
-		sb.WriteString("|   [ none ]                                               \n")
+func (m Dash) content(height int) string {
+	// These widths are set via manual tinkering
+	width := (m.width - 8) / 2
+	columns := []table.Column{
+		{Title: "Exit node", Width: width},
+		{Title: "ID", Width: width},
 	}
-	sb.WriteString("|                                                          \n")
-	sb.WriteString("| Actions:                                                 \n")
-	switch m.cursor {
-	case 0:
-		sb.WriteString("|                   > Add <     Delete                   \n")
-	case 1:
-		sb.WriteString("|                     Add     > Delete <                 \n")
-	}
-	sb.WriteString("|----------------------------------------------------------\n")
 
-	return sb.String()
+	var rows []table.Row
+	for id, name := range []string{"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude"} {
+		rows = append(rows, table.Row{name, fmt.Sprint(id)})
+	}
+	//if len(m.endpoints) > 0 {
+	//	for name, id := range m.endpoints {
+	//		rows = append(rows, table.Row{name, fmt.Sprint(id)})
+	//	}
+	//} else {
+	//	rows = append(rows, table.Row{"None", ""})
+	//}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(height),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		Renderer(m.renderer).
+		BorderStyle(lipgloss.NormalBorder()).
+		Foreground(lipgloss.Color(ACCENT_COLOR)).
+		BorderForeground(lipgloss.Color(ACCENT_COLOR)).
+		BorderBottom(true).
+		Bold(false)
+	s.Cell = s.Cell.
+		Renderer(m.renderer).
+		Foreground(lipgloss.Color(ACCENT_COLOR)).
+		Bold(false)
+	s.Selected = s.Selected.
+		Renderer(m.renderer).
+		BorderStyle(lipgloss.InnerHalfBlockBorder()).
+		Foreground(lipgloss.Color(ACCENT_COLOR)).
+		BorderForeground(lipgloss.Color(ACCENT_COLOR)).
+		BorderLeft(true).
+		Bold(false)
+	t.SetStyles(s)
+
+	//switch m.cursor {
+	//case 0:
+	//	sb.WriteString("|                   > Add <     Delete                   \n")
+	//case 1:
+	//	sb.WriteString("|                     Add     > Delete <                 \n")
+	//}
+
+	return lipgloss.PlaceHorizontal(m.width, lipgloss.Center, t.View())
 }
 
 func NewDash(renderer *lipgloss.Renderer, h, w int, tokenDO, tokenTS string) (Dash, error) {
