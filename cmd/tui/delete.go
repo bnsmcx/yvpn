@@ -74,6 +74,7 @@ func (m Delete) deleteExit() tea.Cmd {
 			log.Println(err)
 		}
 		delete(m.dash.endpoints, m.endpoint)
+		m.dash.table = m.dash.buildTable()
 		return deletedMsg{name: m.endpoint, id: id}
 	}
 }
