@@ -8,13 +8,13 @@ import (
 
 const ACCENT_COLOR = "130"
 
-func getTopBar(renderer *lipgloss.Renderer, width int) string {
+func getTopBar(title string, renderer *lipgloss.Renderer, width int) string {
 	style := renderer.NewStyle().
 		Background(lipgloss.Color(ACCENT_COLOR)).
 		Foreground(lipgloss.Color("0")).
 		MarginBottom(1)
 	left := renderer.NewStyle().Align(lipgloss.Left).PaddingLeft(1).
-		Render("Onboarding")
+		Render(title)
 	right := renderer.NewStyle().Align(lipgloss.Right).PaddingRight(1).
 		Render(fmt.Sprintf("yVPN %s", VERSION))
 	padding := strings.Repeat(" ",

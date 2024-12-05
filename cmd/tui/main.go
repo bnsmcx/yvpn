@@ -31,10 +31,14 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "ssh" {
 		serveOverSSH("0.0.0.0", "1337")
 	} else {
+		w, h, err := term.GetSize(int(os.Stdout.Fd()))
+		if err != nil {
+			log.Fatal(err)
+		}
 		do, good1 := os.LookupEnv("DIGITAL_OCEAN_TOKEN")
 		ts, good2 := os.LookupEnv("TAILSCALE_API")
 		if good1 && good2 {
-			dash, err := NewDash(do, ts)
+			dash, err := NewDash(h, w, do, ts)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -43,10 +47,6 @@ func main() {
 				log.Fatal(err)
 			}
 		} else {
-			w, h, err := term.GetSize(int(os.Stdout.Fd()))
-			if err != nil {
-				log.Fatal(err)
-			}
 			p := tea.NewProgram(NewOnboarding(h, w, nil), tea.WithAltScreen())
 			if _, err := p.Run(); err != nil {
 				log.Fatal(err)
