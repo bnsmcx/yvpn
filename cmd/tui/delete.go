@@ -38,6 +38,7 @@ func (m Delete) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case deletedMsg:
 		m.done = true
+		m.dash.table = m.dash.buildTable()
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
@@ -74,7 +75,6 @@ func (m Delete) deleteExit() tea.Cmd {
 			log.Println(err)
 		}
 		delete(m.dash.endpoints, m.endpoint)
-		m.dash.table = m.dash.buildTable()
 		return deletedMsg{name: m.endpoint, id: id}
 	}
 }
