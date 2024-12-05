@@ -73,7 +73,7 @@ func (m Delete) deleteExit() tea.Cmd {
 		if err := digital_ocean.Delete(m.dash.tokens.digitalOcean, id); err != nil {
 			log.Println(err)
 		}
-    delete(m.dash.endpoints, m.endpoint)
+		delete(m.dash.endpoints, m.endpoint)
 		return deletedMsg{name: m.endpoint, id: id}
 	}
 }
@@ -114,8 +114,8 @@ func NewDelete(dash Dash) Delete {
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Key("endpoint").
-				Options(huh.NewOptions(endpoints...)...).
-				Title("Choose datacenter"),
+				Options(huh.NewOptions(dash.table.SelectedRow()[0])...).
+				Title("Are you sure you want to delete this exit?"),
 
 			huh.NewConfirm().
 				Key("done").
@@ -128,7 +128,7 @@ func NewDelete(dash Dash) Delete {
 				}).
 				Affirmative("Yes").
 				Negative("No")),
-	).WithWidth(60).WithShowHelp(true).WithShowErrors(false)
+	).WithWidth(dash.width).WithShowHelp(true).WithShowErrors(false)
 
 	return m
 }

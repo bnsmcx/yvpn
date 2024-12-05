@@ -34,7 +34,8 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, contain(msg.Height, 30)
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "enter":
+		case "d":
+			return NewDelete(m), tea.EnterAltScreen
 		case "n":
 			return NewAdd(m), tea.EnterAltScreen
 		case "ctrl+c", "q":
@@ -65,7 +66,7 @@ func (m Dash) View() string {
 
 func (m Dash) makeHelpMenu() string {
 	processed := assembleHelpEntries(m.table.KeyMap.ShortHelp())
-	processed = append(processed, "enter [interact]", "n [create new]")
+	processed = append(processed, "d [delete]", "n [create new]")
 	var spacer = " 𔗘 "
 	var sb strings.Builder
 
