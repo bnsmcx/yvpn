@@ -43,6 +43,7 @@ func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case addedMsg:
 		m.done = true
 		m.dash.endpoints[msg.name] = msg.id
+		m.dash.table = m.dash.buildTable()
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
