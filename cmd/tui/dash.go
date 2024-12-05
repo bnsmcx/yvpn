@@ -18,8 +18,8 @@ type Dash struct {
 		tailscale    string
 	}
 	Datacenters []string
+	table       table.Model
 	endpoints   map[string]int //  name to digital ocean id
-	cursor      int
 }
 
 func (m Dash) Init() tea.Cmd {
@@ -34,19 +34,6 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
-		case "l", "h", "tab", "shift+tab", "left", "right":
-			if m.cursor == 1 {
-				m.cursor = 0
-			} else {
-				m.cursor = 1
-			}
-		case "enter":
-			switch m.cursor {
-			case 0:
-				return NewAdd(m), tea.EnterAltScreen
-			case 1:
-				return NewDelete(m), tea.EnterAltScreen
-			}
 		}
 	}
 	return m, nil
@@ -62,6 +49,12 @@ func (m Dash) View() string {
 }
 
 func (m Dash) content(height int) string {
+	t := m.table
+	t.SetHeight(height)
+	return lipgloss.PlaceHorizontal(m.width, lipgloss.Center, t.View())
+}
+
+func (m Dash) buildTable() table.Model {
 	// These widths are set via manual tinkering
 	width := (m.width - 8) / 2
 	columns := []table.Column{
@@ -85,7 +78,6 @@ func (m Dash) content(height int) string {
 		table.WithColumns(columns),
 		table.WithRows(rows),
 		table.WithFocused(true),
-		table.WithHeight(height),
 	)
 
 	s := table.DefaultStyles()
@@ -109,14 +101,7 @@ func (m Dash) content(height int) string {
 		Bold(false)
 	t.SetStyles(s)
 
-	//switch m.cursor {
-	//case 0:
-	//	sb.WriteString("|                   > Add <     Delete                   \n")
-	//case 1:
-	//	sb.WriteString("|                     Add     > Delete <                 \n")
-	//}
-
-	return lipgloss.PlaceHorizontal(m.width, lipgloss.Center, t.View())
+	return t
 }
 
 func NewDash(renderer *lipgloss.Renderer, h, w int, tokenDO, tokenTS string) (Dash, error) {
@@ -125,7 +110,7 @@ func NewDash(renderer *lipgloss.Renderer, h, w int, tokenDO, tokenTS string) (Da
 		return Dash{}, fmt.Errorf("fetching available datacenters %s", err.Error())
 	}
 
-	return Dash{
+	dash := Dash{
 		renderer:    renderer,
 		height:      contain(h, 30),
 		width:       w,
@@ -138,5 +123,9 @@ func NewDash(renderer *lipgloss.Renderer, h, w int, tokenDO, tokenTS string) (Da
 			digitalOcean: tokenDO,
 			tailscale:    tokenTS,
 		},
-	}, nil
+	}
+
+	dash.table = dash.buildTable()
+
+	return dash, nil
 }
