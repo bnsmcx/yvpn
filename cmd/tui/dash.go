@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
+	"strings"
 	"yvpn/pkg/digital_ocean"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -40,7 +42,7 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// This is ugly but it works, "I'll refactor it later"
 	m.table.SetHeight(m.height - (lipgloss.Height(
 		getTopBar("", m.renderer, m.width)) +
-		lipgloss.Height(getBottomBar(m.renderer, m.width))) - 1)
+		lipgloss.Height(getBottomBar(m.renderer, m.width, ""))) - 1)
 
 	var cmd tea.Cmd
 	m.table, cmd = m.table.Update(msg)
@@ -50,12 +52,45 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Dash) View() string {
 	top := getTopBar("Dashboard", m.renderer, m.width)
-	bottom := getBottomBar(m.renderer, m.width)
+	bottom := getBottomBar(m.renderer, m.width, m.makeHelpMenu())
 	height := m.height - (lipgloss.Height(top) + lipgloss.Height(bottom))
 	content := lipgloss.Place(m.width, height,
 		lipgloss.Top, lipgloss.Top,
 		lipgloss.PlaceHorizontal(m.width, lipgloss.Center, m.table.View()))
 	return fmt.Sprint(lipgloss.JoinVertical(lipgloss.Center, top, content, bottom))
+}
+
+func (m Dash) makeHelpMenu() string {
+	processed := assembleHelpEntries(m.table.KeyMap.ShortHelp())
+	processed = append(processed, "enter [interact]", "n [create new]")
+	var spacer = " 𔗘 "
+	var sb strings.Builder
+
+	for i, entry := range processed {
+		if sb.Len()+len(entry)+len(spacer) > m.width {
+			break
+		}
+
+		sb.WriteString(entry)
+
+		if i != len(processed)-1 {
+			sb.WriteString(spacer)
+		}
+	}
+
+	return sb.String()
+}
+
+func assembleHelpEntries(help []key.Binding) []string {
+	var assembled []string
+	for _, item := range help {
+		assembled = append(assembled, makeHelpMsg(item))
+	}
+	return assembled
+}
+
+func makeHelpMsg(item key.Binding) string {
+	return fmt.Sprintf("%s [%s]", item.Help().Key, item.Help().Desc)
 }
 
 func (m Dash) buildTable() table.Model {

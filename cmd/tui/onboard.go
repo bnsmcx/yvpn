@@ -55,7 +55,7 @@ func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Onboard) View() string {
 	top := getTopBar("Onboarding", m.renderer, m.width)
-	bottom := getBottomBar(m.renderer, m.width)
+	bottom := getBottomBar(m.renderer, m.width, "")
 	content := lipgloss.Place(m.width,
 		m.height-(lipgloss.Height(top)+lipgloss.Height(bottom)),
 		lipgloss.Center, lipgloss.Center, m.getStyledForm())
