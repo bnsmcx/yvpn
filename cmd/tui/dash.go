@@ -9,6 +9,8 @@ import (
 )
 
 type Dash struct {
+	height int
+	width  int
 	tokens struct {
 		digitalOcean string
 		tailscale    string
@@ -73,13 +75,15 @@ func (m Dash) View() string {
 	return sb.String()
 }
 
-func NewDash(tokenDO, tokenTS string) (Dash, error) {
+func NewDash(h, w int, tokenDO, tokenTS string) (Dash, error) {
 	datacenters, err := digital_ocean.FetchDatacenters(tokenDO)
 	if err != nil {
-    return Dash{}, fmt.Errorf("fetching available datacenters %s", err.Error())
+		return Dash{}, fmt.Errorf("fetching available datacenters %s", err.Error())
 	}
 
 	return Dash{
+		height:      h,
+		width:       w,
 		endpoints:   make(map[string]int),
 		Datacenters: datacenters,
 		tokens: struct {
