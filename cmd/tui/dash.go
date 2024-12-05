@@ -36,7 +36,11 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	}
-	return m, nil
+
+	var cmd tea.Cmd
+	m.table, cmd = m.table.Update(msg)
+
+	return m, cmd
 }
 
 func (m Dash) View() string {
