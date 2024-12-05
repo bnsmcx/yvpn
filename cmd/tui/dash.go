@@ -37,6 +37,11 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	// This is ugly but it works, "I'll refactor it later"
+	m.table.SetHeight(m.height - (lipgloss.Height(
+		getTopBar("", m.renderer, m.width)) +
+		lipgloss.Height(getBottomBar(m.renderer, m.width))) - 1)
+
 	var cmd tea.Cmd
 	m.table, cmd = m.table.Update(msg)
 
@@ -48,14 +53,9 @@ func (m Dash) View() string {
 	bottom := getBottomBar(m.renderer, m.width)
 	height := m.height - (lipgloss.Height(top) + lipgloss.Height(bottom))
 	content := lipgloss.Place(m.width, height,
-		lipgloss.Top, lipgloss.Top, m.content(height))
+		lipgloss.Top, lipgloss.Top,
+		lipgloss.PlaceHorizontal(m.width, lipgloss.Center, m.table.View()))
 	return fmt.Sprint(lipgloss.JoinVertical(lipgloss.Center, top, content, bottom))
-}
-
-func (m Dash) content(height int) string {
-	t := m.table
-	t.SetHeight(height)
-	return lipgloss.PlaceHorizontal(m.width, lipgloss.Center, t.View())
 }
 
 func (m Dash) buildTable() table.Model {
@@ -67,7 +67,9 @@ func (m Dash) buildTable() table.Model {
 	}
 
 	var rows []table.Row
-	for id, name := range []string{"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude"} {
+	for id, name := range []string{"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude",
+		"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude",
+		"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude"} {
 		rows = append(rows, table.Row{name, fmt.Sprint(id)})
 	}
 	//if len(m.endpoints) > 0 {
