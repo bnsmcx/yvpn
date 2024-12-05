@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"yvpn/pkg/digital_ocean"
 
@@ -9,9 +10,10 @@ import (
 )
 
 type Dash struct {
-	height int
-	width  int
-	tokens struct {
+	renderer *lipgloss.Renderer
+	height   int
+	width    int
+	tokens   struct {
 		digitalOcean string
 		tailscale    string
 	}
@@ -49,6 +51,15 @@ func (m Dash) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Dash) View() string {
+	top := getTopBar("Dashboard", m.renderer, m.width)
+	bottom := getBottomBar(m.renderer, m.width)
+	content := lipgloss.Place(m.width,
+		m.height-(lipgloss.Height(top)+lipgloss.Height(bottom)),
+		lipgloss.Center, lipgloss.Center, m.content())
+	return fmt.Sprint(lipgloss.JoinVertical(lipgloss.Center, top, content, bottom))
+}
+
+func (m Dash) content() string {
 	var sb strings.Builder
 	sb.WriteString("|---[ yVPN dashboard ]-------------------------------------\n")
 	sb.WriteString("|                                                          \n")
@@ -75,14 +86,15 @@ func (m Dash) View() string {
 	return sb.String()
 }
 
-func NewDash(h, w int, tokenDO, tokenTS string) (Dash, error) {
+func NewDash(renderer *lipgloss.Renderer, h, w int, tokenDO, tokenTS string) (Dash, error) {
 	datacenters, err := digital_ocean.FetchDatacenters(tokenDO)
 	if err != nil {
 		return Dash{}, fmt.Errorf("fetching available datacenters %s", err.Error())
 	}
 
 	return Dash{
-		height:      h,
+		renderer:    renderer,
+		height:      contain(h, 30),
 		width:       w,
 		endpoints:   make(map[string]int),
 		Datacenters: datacenters,

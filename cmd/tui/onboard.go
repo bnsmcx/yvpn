@@ -40,7 +40,7 @@ func (m Onboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Check if form is completed
 	if m.form.State == huh.StateCompleted {
-		dash, err := NewDash(m.height, m.width,
+		dash, err := NewDash(m.renderer, m.height, m.width,
 			m.form.GetString("digital_ocean"),
 			m.form.GetString("tailscale"))
 		if err != nil {
