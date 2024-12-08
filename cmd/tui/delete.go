@@ -2,22 +2,24 @@ package main
 
 import (
 	"fmt"
+	"github.com/charmbracelet/lipgloss"
 	"log"
 	"strings"
 	"time"
 	"yvpn/pkg/digital_ocean"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 )
 
 type Delete struct {
 	dash     Dash
-	form     *huh.Form
 	started  bool
 	done     bool
 	start    time.Time
 	endpoint string
+	height   int
+	width    int
+	renderer *lipgloss.Renderer
 }
 
 type deletedMsg struct {
@@ -26,7 +28,7 @@ type deletedMsg struct {
 }
 
 func (m Delete) Init() tea.Cmd {
-	return m.form.Init()
+	return nil
 }
 
 func (m Delete) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -52,14 +54,7 @@ func (m Delete) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmds []tea.Cmd
 
-	form, cmd := m.form.Update(msg)
-	if f, ok := form.(*huh.Form); ok {
-		m.form = f
-		cmds = append(cmds, cmd)
-	}
-
-	if m.form.State == huh.StateCompleted && !m.started {
-		m.endpoint = m.form.GetString("endpoint")
+	if !m.started {
 		m.start = time.Now()
 		m.started = true
 		cmds = append(cmds, tick(), m.deleteExit())
@@ -81,55 +76,26 @@ func (m Delete) deleteExit() tea.Cmd {
 
 func (m Delete) View() string {
 	var content string
-	if m.form.State == huh.StateCompleted {
-		if m.done {
-			content = fmt.Sprintf("Done in %s (press enter to return to dash)", time.Since(m.start))
-		} else {
-			var sb strings.Builder
-			sb.WriteString("|---[ yVPN delete exit node ]------------------------------\n")
-			sb.WriteString("|                                                          \n")
-			sb.WriteString(fmt.Sprintf("|  Deleting exit node: %s\n", m.endpoint))
-			sb.WriteString(fmt.Sprintf("|    Elapsed time: %s\n", time.Since(m.start).String()))
-			sb.WriteString("|                                                          \n")
-			sb.WriteString("|                                                          \n")
-			sb.WriteString("|----------------------------------------------------------\n")
-			content = sb.String()
-		}
+	if m.done {
+		content = fmt.Sprintf("Done in %s (press enter to return to dash)", time.Since(m.start))
 	} else {
-		content = m.form.View()
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf(" Deleting exit node: %s\n", m.endpoint))
+		sb.WriteString(fmt.Sprintf(" \tElapsed time: %s\n", time.Since(m.start).String()))
+		content = m.renderer.NewStyle().
+			Foreground(lipgloss.Color(ACCENT_COLOR)).Render(sb.String())
 	}
 	return content
 }
 
 func NewDelete(dash Dash) Delete {
 	m := Delete{
-		dash: dash,
+		renderer: dash.renderer,
+		dash:     dash,
+		width:    dash.width,
+		height:   dash.height,
+		endpoint: dash.table.SelectedRow()[0],
 	}
-
-	var endpoints []string
-	for name, _ := range m.dash.endpoints {
-		endpoints = append(endpoints, name)
-	}
-
-	m.form = huh.NewForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Key("endpoint").
-				Options(huh.NewOptions(dash.table.SelectedRow()[0])...).
-				Title("Are you sure you want to delete this exit?"),
-
-			huh.NewConfirm().
-				Key("done").
-				Title("All done?").
-				Validate(func(v bool) error {
-					if !v {
-						return fmt.Errorf("Welp, finish up then")
-					}
-					return nil
-				}).
-				Affirmative("Yes").
-				Negative("No")),
-	).WithWidth(dash.width).WithShowHelp(true).WithShowErrors(false)
 
 	return m
 }
