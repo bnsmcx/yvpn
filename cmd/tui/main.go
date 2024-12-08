@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -96,6 +97,27 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	}
 
 	renderer := bubbletea.MakeRenderer(s)
+
+	var do, ts string
+	for _, val := range s.Environ() {
+		keyValPair := strings.Split(val, "=")
+		key := keyValPair[0]
+		val = keyValPair[1]
+		if key == "DIGITAL_OCEAN_TOKEN" {
+			do = val
+		}
+		if key == "TAILSCALE_API" {
+			ts = val
+		}
+	}
+
+	if do != "" && ts != "" {
+		dash, err := NewDash(renderer, pty.Window.Height, pty.Window.Width, do, ts)
+		// Only go straight to dash if the creds seem valid, go to onboarding
+		if err == nil {
+			return dash, []tea.ProgramOption{tea.WithAltScreen()}
+		}
+	}
 
 	return NewOnboarding(pty.Window.Height, pty.Window.Width, renderer),
 		[]tea.ProgramOption{tea.WithAltScreen()}
