@@ -155,7 +155,7 @@ func (m Dash) buildTable() table.Model {
 func NewDash(renderer *lipgloss.Renderer, h, w int, tokenDO, tokenTS string) (Dash, error) {
 	datacenters, err := digital_ocean.FetchDatacenters(tokenDO)
 	if err != nil {
-		return Dash{}, fmt.Errorf("fetching available datacenters %s", err.Error())
+		return Dash{}, fmt.Errorf("fetching available datacenters: %s", err.Error())
 	}
 
 	dash := Dash{
@@ -171,6 +171,15 @@ func NewDash(renderer *lipgloss.Renderer, h, w int, tokenDO, tokenTS string) (Da
 			digitalOcean: tokenDO,
 			tailscale:    tokenTS,
 		},
+	}
+
+	nodes, err := digital_ocean.FetchExitNodes(tokenDO)
+	if err != nil {
+		return Dash{}, fmt.Errorf("fetching exit nodes: %s", err.Error())
+	}
+
+	for _, node := range nodes {
+		dash.endpoints[node.Name] = node.ID
 	}
 
 	dash.table = dash.buildTable()
