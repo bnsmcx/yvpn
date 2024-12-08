@@ -10,29 +10,29 @@ import (
 )
 
 func FetchDatacenters(digitalOceanToken string) ([]string, error) {
-  var datacenters []string
+	var datacenters []string
 	client := godo.NewFromToken(digitalOceanToken)
 	ctx := context.TODO()
 
-  opts := &godo.ListOptions{
-    Page: 1,
-    PerPage: 200,
-  }
+	opts := &godo.ListOptions{
+		Page:    1,
+		PerPage: 200,
+	}
 
-  regions, _, err := client.Regions.List(ctx, opts)
-  if err != nil {
-    return datacenters, err
-  }
+	regions, _, err := client.Regions.List(ctx, opts)
+	if err != nil {
+		return datacenters, err
+	}
 
-  for _, r := range regions {
-    if r.Available {
-      datacenters = append(datacenters, r.Slug)
-    }
-  }
+	for _, r := range regions {
+		if r.Available {
+			datacenters = append(datacenters, r.Slug)
+		}
+	}
 
-  slices.Sort(datacenters)
+	slices.Sort(datacenters)
 
-  return datacenters, nil
+	return datacenters, nil
 }
 
 func Create(digitalOceanToken, tailscaleAuth, datacenter string) (string, int, error) {
@@ -67,7 +67,8 @@ final_message: "Tailscale exit node setup complete."
 `, tailscaleAuth)
 
 	createRequest := &godo.DropletCreateRequest{
-		Name:   fmt.Sprintf("%s-yvpn-digital-ocean-%d", datacenter, time.Now().Unix()),
+		Tags:   []string{"yVPN"},
+		Name:   fmt.Sprintf("%s-yvpn-%d", datacenter, time.Now().Unix()),
 		Region: datacenter,
 		Size:   "s-1vcpu-1gb",
 		Image: godo.DropletCreateImage{
