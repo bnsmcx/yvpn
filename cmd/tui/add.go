@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/lipgloss"
 	"log"
 	"os"
-	"strings"
 	"time"
 	"yvpn/pkg/digital_ocean"
 	"yvpn/pkg/tailscale"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 )
 
 type tickMsg struct{}
@@ -21,8 +21,11 @@ type addedMsg struct {
 }
 
 type Add struct {
+	width      int
+	height     int
+	table      table.Model
+	renderer   *lipgloss.Renderer
 	dash       Dash
-	form       *huh.Form
 	started    bool
 	done       bool
 	start      time.Time
@@ -30,7 +33,7 @@ type Add struct {
 }
 
 func (m Add) Init() tea.Cmd {
-	return m.form.Init()
+	return nil
 }
 
 func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -46,31 +49,28 @@ func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dash.table = m.dash.buildTable()
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "esc":
+			return m.dash, tea.EnterAltScreen
 		case "ctrl+c":
 			return m, tea.Quit
 		case "enter":
 			if m.done {
 				return m.dash, tea.EnterAltScreen
+			} else {
+				log.Println(m.table.SelectedRow())
 			}
 		}
 	}
 
-	var cmds []tea.Cmd
+	// This is ugly but it works, "I'll refactor it later"
+	m.table.SetHeight(m.height - (lipgloss.Height(
+		getTopBar("", m.renderer, m.width)) +
+		lipgloss.Height(getBottomBar(m.renderer, m.width, ""))) - 1)
 
-	form, cmd := m.form.Update(msg)
-	if f, ok := form.(*huh.Form); ok {
-		m.form = f
-		cmds = append(cmds, cmd)
-	}
+	var cmd tea.Cmd
+	m.table, cmd = m.table.Update(msg)
 
-	if m.form.State == huh.StateCompleted && !m.started {
-		m.datacenter = m.form.GetString("datacenter")
-		m.start = time.Now()
-		m.started = true
-		cmds = append(cmds, tick(), m.addExit())
-	}
-
-	return m, tea.Batch(cmds...)
+	return m, cmd
 }
 
 func (m Add) addExit() tea.Cmd {
@@ -106,27 +106,68 @@ func (m Add) addExit() tea.Cmd {
 }
 
 func (m Add) View() string {
-	var content string
-	if m.form.State == huh.StateCompleted {
-		if m.done {
-			content = fmt.Sprintf("Done in %s (press enter to return to dash)", time.Since(m.start))
-		} else {
-			var sb strings.Builder
-			sb.WriteString("|---[ yVPN add exit node ]---------------------------------\n")
-			sb.WriteString("|                                                          \n")
-			sb.WriteString(fmt.Sprintf("|  Creating new exit node: %s\n", m.datacenter))
-			sb.WriteString(fmt.Sprintf("|    Elapsed time: %s\n", time.Since(m.start).String()))
-			sb.WriteString("|                                                          \n")
-			sb.WriteString("|    Average time: ~180 seconds (placeholder guess)        \n")
-			sb.WriteString("|                                                          \n")
-			sb.WriteString("|----------------------------------------------------------\n")
+	top := getTopBar("Create exit node", m.renderer, m.width)
+	bottom := getBottomBar(m.renderer, m.width, "")
+	height := m.height - (lipgloss.Height(top) + lipgloss.Height(bottom))
+	content := lipgloss.Place(m.width, height,
+		lipgloss.Top, lipgloss.Top,
+		lipgloss.PlaceHorizontal(m.width, lipgloss.Center, m.table.View()))
+	return fmt.Sprint(lipgloss.JoinVertical(lipgloss.Center, top, content, bottom))
+}
 
-			content = sb.String()
+func (m Add) buildTable() table.Model {
+	// These widths are set via manual tinkering
+	width := (m.width - 8) / 2
+	columns := []table.Column{
+		{Title: "Datacenter", Width: width},
+		{Title: "Provider", Width: width},
+	}
+
+	var rows []table.Row
+
+	// test data
+	//for id, name := range []string{"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude",
+	//	"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude",
+	//	"foo", "bar", "spam", "eggs", "rock", "the", "casbah", "my", "dude"} {
+	//	rows = append(rows, table.Row{name, fmt.Sprint(id)})
+	//}
+
+	if len(m.dash.Datacenters) > 0 {
+		for _, dc := range m.dash.Datacenters {
+			rows = append(rows, table.Row{dc, "Digital Ocean"})
 		}
 	} else {
-		content = m.form.View()
+		rows = append(rows, table.Row{"None", ""})
 	}
-	return content
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		Renderer(m.renderer).
+		BorderStyle(lipgloss.NormalBorder()).
+		Foreground(lipgloss.Color(ACCENT_COLOR)).
+		BorderForeground(lipgloss.Color(ACCENT_COLOR)).
+		BorderBottom(true).
+		Bold(false)
+	s.Cell = s.Cell.
+		Renderer(m.renderer).
+		Foreground(lipgloss.Color(ACCENT_COLOR)).
+		Bold(false)
+	s.Selected = s.Selected.
+		Renderer(m.renderer).
+		BorderStyle(lipgloss.InnerHalfBlockBorder()).
+		Foreground(lipgloss.Color(ACCENT_COLOR)).
+		BorderForeground(lipgloss.Color(ACCENT_COLOR)).
+		BorderLeft(true).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
 }
 
 func tick() tea.Cmd {
@@ -137,28 +178,13 @@ func tick() tea.Cmd {
 
 func NewAdd(dash Dash) Add {
 	m := Add{
-		dash: dash,
+		dash:     dash,
+		renderer: dash.renderer,
+		width:    dash.width,
+		height:   dash.height,
 	}
 
-	m.form = huh.NewForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Key("datacenter").
-				Options(huh.NewOptions(dash.Datacenters...)...).
-				Title("Choose datacenter"),
-
-			huh.NewConfirm().
-				Key("done").
-				Title("All done?").
-				Validate(func(v bool) error {
-					if !v {
-						return fmt.Errorf("Welp, finish up then")
-					}
-					return nil
-				}).
-				Affirmative("Yes").
-				Negative("No")),
-	).WithWidth(dash.width).WithShowHelp(true).WithShowErrors(false)
+	m.table = m.buildTable()
 
 	return m
 }
