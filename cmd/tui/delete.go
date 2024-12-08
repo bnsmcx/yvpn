@@ -81,7 +81,7 @@ func (m Delete) View() string {
 	var content string
 	if m.done {
 		msg := fmt.Sprintf(" Done in %s (press enter to return to dash)", time.Since(m.start))
-		msg = fmt.Sprintf("%s\n%s", msg, strings.Repeat("-", m.width-lipgloss.Width(msg)))
+		msg = fmt.Sprintf("%s%s\n", msg, strings.Repeat(" ", m.width-lipgloss.Width(msg)))
 		msg = m.renderer.NewStyle().
 			Foreground(lipgloss.Color(ACCENT_COLOR)).Render(msg)
 		content = lipgloss.Place(m.width, height,
