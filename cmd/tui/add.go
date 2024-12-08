@@ -6,12 +6,17 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"log"
 	"os"
+	"strings"
+	"sync"
 	"time"
 	"yvpn/pkg/digital_ocean"
 	"yvpn/pkg/tailscale"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+var messages []string
+var mu sync.Mutex
 
 type tickMsg struct{}
 
@@ -57,7 +62,10 @@ func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.done {
 				return m.dash, tea.EnterAltScreen
 			} else {
-				log.Println(m.table.SelectedRow())
+				m.datacenter = m.table.SelectedRow()[0]
+				m.start = time.Now()
+				m.started = true
+				return m, tea.Batch(tick(), m.addExit())
 			}
 		}
 	}
@@ -75,18 +83,30 @@ func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Add) addExit() tea.Cmd {
 	return func() tea.Msg {
+
+		mu.Lock()
+		messages = append(messages, " Getting an auth key from Tailscale...")
+		mu.Unlock()
 		tailscaleAuth, tsKeyID, err := tailscale.GetAuthKey(m.dash.tokens.tailscale)
 		if err != nil {
 			log.Println("getting tailscale key:", err)
 			os.Exit(1)
 		}
 
+		mu.Lock()
+		messages = append(messages,
+			fmt.Sprintf(" Provisioning a new droplet in the %s datacenter...",
+				m.datacenter))
+		mu.Unlock()
 		name, id, err := digital_ocean.Create(m.dash.tokens.digitalOcean, tailscaleAuth, m.datacenter)
 		if err != nil {
 			log.Println("creating droplet:", err)
 			os.Exit(1)
 		}
 
+		mu.Lock()
+		messages = append(messages, " Waiting for the new exit node to phone home to Tailscale...")
+		mu.Unlock()
 		_, err = tailscale.EnableExit(name, m.dash.tokens.tailscale)
 		if err != nil {
 			log.Printf("\tenabling tailscale exit: %s\n", err.Error())
@@ -95,23 +115,55 @@ func (m Add) addExit() tea.Cmd {
 			os.Exit(1)
 		}
 
+		mu.Lock()
+		messages = append(messages, " Deleting the Tailscale auth key...")
+		mu.Unlock()
 		err = tailscale.DeleteAuthKey(m.dash.tokens.tailscale, tsKeyID)
 		if err != nil {
 			fmt.Println("deleting tailscale key:", err)
 			os.Exit(1)
 		}
 
+		mu.Lock()
+		messages = append(messages, fmt.Sprintf(" Done in %s", time.Since(m.start)))
+		mu.Unlock()
 		return addedMsg{name: name, id: id}
 	}
 }
 
 func (m Add) View() string {
 	top := getTopBar("Create exit node", m.renderer, m.width)
-	bottom := getBottomBar(m.renderer, m.width, "")
+	bottom := getBottomBar(m.renderer, m.width, "esc [return to dash]")
 	height := m.height - (lipgloss.Height(top) + lipgloss.Height(bottom))
-	content := lipgloss.Place(m.width, height,
-		lipgloss.Top, lipgloss.Top,
-		lipgloss.PlaceHorizontal(m.width, lipgloss.Center, m.table.View()))
+	var content string
+	if m.started {
+		mu.Lock()
+		var sb strings.Builder
+		var ending, padChar string
+		for i, msg := range messages {
+			sb.WriteString(msg)
+			if i != len(messages)-1 {
+				ending = "[Completed] \n"
+				padChar = "."
+			} else {
+				ending = "\n"
+				padChar = " "
+			}
+			padding := m.width - lipgloss.Width(msg+ending)
+			sb.WriteString(strings.Repeat(padChar, padding))
+			sb.WriteString(ending)
+		}
+		mu.Unlock()
+		summary := m.renderer.NewStyle().
+			Foreground(lipgloss.Color(ACCENT_COLOR)).Render(sb.String())
+		content = lipgloss.Place(m.width, height,
+			lipgloss.Top, lipgloss.Left,
+			lipgloss.PlaceHorizontal(m.width, lipgloss.Center, summary))
+	} else {
+		content = lipgloss.Place(m.width, height,
+			lipgloss.Top, lipgloss.Top,
+			lipgloss.PlaceHorizontal(m.width, lipgloss.Center, m.table.View()))
+	}
 	return fmt.Sprint(lipgloss.JoinVertical(lipgloss.Center, top, content, bottom))
 }
 
