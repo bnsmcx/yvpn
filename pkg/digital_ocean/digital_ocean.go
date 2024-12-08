@@ -9,9 +9,39 @@ import (
 	"github.com/digitalocean/godo"
 )
 
-func FetchDatacenters(digitalOceanToken string) ([]string, error) {
+type ExitNode struct {
+	Name string
+	ID   int
+}
+
+func FetchExitNodes(token string) (nodes []ExitNode, err error) {
+	client := godo.NewFromToken(token)
+	ctx := context.TODO()
+
+	opt := &godo.ListOptions{
+		Page:    1,
+		PerPage: 200,
+	}
+
+	droplets, _, err := client.Droplets.ListByTag(ctx, "yVPN", opt)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, d := range droplets {
+		node := ExitNode{
+			Name: d.Name,
+			ID:   d.ID,
+		}
+		nodes = append(nodes, node)
+	}
+
+	return nodes, nil
+}
+
+func FetchDatacenters(token string) ([]string, error) {
 	var datacenters []string
-	client := godo.NewFromToken(digitalOceanToken)
+	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
 	opts := &godo.ListOptions{
@@ -35,8 +65,8 @@ func FetchDatacenters(digitalOceanToken string) ([]string, error) {
 	return datacenters, nil
 }
 
-func Create(digitalOceanToken, tailscaleAuth, datacenter string) (string, int, error) {
-	client := godo.NewFromToken(digitalOceanToken)
+func Create(token, tailscaleAuth, datacenter string) (string, int, error) {
+	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
 	// Cloud-init script for setting up Tailscale as an exit node
@@ -84,8 +114,8 @@ final_message: "Tailscale exit node setup complete."
 	return createRequest.Name, droplet.ID, nil
 }
 
-func Delete(digitalOceantoken string, id int) error {
-	client := godo.NewFromToken(digitalOceantoken)
+func Delete(token string, id int) error {
+	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
 	_, err := client.Droplets.Delete(ctx, id)
