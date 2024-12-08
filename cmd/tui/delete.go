@@ -75,17 +75,33 @@ func (m Delete) deleteExit() tea.Cmd {
 }
 
 func (m Delete) View() string {
+	top := getTopBar("Deleting exit node", m.renderer, m.width)
+	bottom := getBottomBar(m.renderer, m.width, "esc [return to dash]")
+	height := m.height - (lipgloss.Height(top) + lipgloss.Height(bottom))
 	var content string
 	if m.done {
-		content = fmt.Sprintf("Done in %s (press enter to return to dash)", time.Since(m.start))
+		msg := fmt.Sprintf(" Done in %s (press enter to return to dash)", time.Since(m.start))
+		msg = fmt.Sprintf("%s\n%s", msg, strings.Repeat("-", m.width-lipgloss.Width(msg)))
+		msg = m.renderer.NewStyle().
+			Foreground(lipgloss.Color(ACCENT_COLOR)).Render(msg)
+		content = lipgloss.Place(m.width, height,
+			lipgloss.Top, lipgloss.Left,
+			lipgloss.PlaceHorizontal(m.width, lipgloss.Center, msg))
 	} else {
 		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf(" Deleting exit node: %s\n", m.endpoint))
-		sb.WriteString(fmt.Sprintf(" \tElapsed time: %s\n", time.Since(m.start).String()))
+		msg := fmt.Sprintf(" Deleting exit node: %s", m.endpoint)
+		msg = fmt.Sprintf("%s%s\n", msg, strings.Repeat(" ", m.width-lipgloss.Width(msg)))
+		sb.WriteString(msg)
+		msg = fmt.Sprintf(" \tElapsed time: %s", time.Since(m.start).String())
+		msg = fmt.Sprintf("%s%s\n", msg, strings.Repeat(" ", m.width-lipgloss.Width(msg)))
+		sb.WriteString(msg)
 		content = m.renderer.NewStyle().
 			Foreground(lipgloss.Color(ACCENT_COLOR)).Render(sb.String())
+		content = lipgloss.Place(m.width, height,
+			lipgloss.Top, lipgloss.Left,
+			lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content))
 	}
-	return content
+	return fmt.Sprint(lipgloss.JoinVertical(lipgloss.Center, top, content, bottom))
 }
 
 func NewDelete(dash Dash) Delete {
