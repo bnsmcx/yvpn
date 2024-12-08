@@ -43,6 +43,8 @@ func (m Delete) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dash.table = m.dash.buildTable()
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "esc":
+			return m.dash, tea.EnterAltScreen
 		case "ctrl+c":
 			return m, tea.Quit
 		case "enter":
@@ -90,10 +92,10 @@ func (m Delete) View() string {
 	} else {
 		var sb strings.Builder
 		msg := fmt.Sprintf(" Deleting exit node: %s", m.endpoint)
-		msg = fmt.Sprintf("%s%s\n", msg, strings.Repeat(" ", m.width-lipgloss.Width(msg)))
+		msg = fmt.Sprintf("%s%s\n", msg, strings.Repeat(" ", m.width-lipgloss.Width(msg)-4))
 		sb.WriteString(msg)
 		msg = fmt.Sprintf(" \tElapsed time: %s", time.Since(m.start).String())
-		msg = fmt.Sprintf("%s%s\n", msg, strings.Repeat(" ", m.width-lipgloss.Width(msg)))
+		msg = fmt.Sprintf("%s%s\n", msg, strings.Repeat(" ", m.width-lipgloss.Width(msg)-4))
 		sb.WriteString(msg)
 		content = m.renderer.NewStyle().
 			Foreground(lipgloss.Color(ACCENT_COLOR)).Render(sb.String())
