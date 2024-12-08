@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
-	"log"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -81,52 +79,43 @@ func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func addMessage(msg string) {
+	mu.Lock()
+	messages = append(messages, msg)
+	mu.Unlock()
+}
+
 func (m Add) addExit() tea.Cmd {
 	return func() tea.Msg {
 
-		mu.Lock()
-		messages = append(messages, " Getting an auth key from Tailscale...")
-		mu.Unlock()
+		addMessage(" Getting an auth key from Tailscale...")
 		tailscaleAuth, tsKeyID, err := tailscale.GetAuthKey(m.dash.tokens.tailscale)
 		if err != nil {
-			log.Println("getting tailscale key:", err)
-			os.Exit(1)
+			addMessage(fmt.Sprintf(" \tERROR: %s", err.Error()))
 		}
 
-		mu.Lock()
-		messages = append(messages,
-			fmt.Sprintf(" Provisioning a new droplet in the %s datacenter...",
-				m.datacenter))
-		mu.Unlock()
+		addMessage(fmt.Sprintf(" Provisioning a new droplet in the %s datacenter...",
+			m.datacenter))
 		name, id, err := digital_ocean.Create(m.dash.tokens.digitalOcean, tailscaleAuth, m.datacenter)
 		if err != nil {
-			log.Println("creating droplet:", err)
-			os.Exit(1)
+			addMessage(fmt.Sprintf(" \tERROR: %s", err.Error()))
 		}
 
-		mu.Lock()
-		messages = append(messages, " Waiting for the new exit node to phone home to Tailscale...")
-		mu.Unlock()
+		addMessage(" Waiting for the new exit node to phone home to Tailscale...")
 		_, err = tailscale.EnableExit(name, m.dash.tokens.tailscale)
 		if err != nil {
-			log.Printf("\tenabling tailscale exit: %s\n", err.Error())
+			addMessage(fmt.Sprintf(" \tERROR: %s", err.Error()))
 			digital_ocean.Delete(m.dash.tokens.digitalOcean, id)
 			tailscale.DeleteAuthKey(m.dash.tokens.tailscale, tsKeyID)
-			os.Exit(1)
 		}
 
-		mu.Lock()
-		messages = append(messages, " Deleting the Tailscale auth key...")
-		mu.Unlock()
+		addMessage(" Deleting the Tailscale auth key...")
 		err = tailscale.DeleteAuthKey(m.dash.tokens.tailscale, tsKeyID)
 		if err != nil {
-			fmt.Println("deleting tailscale key:", err)
-			os.Exit(1)
+			addMessage(fmt.Sprintf(" \tERROR: %s", err.Error()))
 		}
 
-		mu.Lock()
-		messages = append(messages, fmt.Sprintf(" Done in %s", time.Since(m.start)))
-		mu.Unlock()
+		addMessage(fmt.Sprintf(" Done in %s", time.Since(m.start)))
 		return addedMsg{name: name, id: id}
 	}
 }
