@@ -53,11 +53,13 @@ func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
+			clearMessages()
 			return m.dash, tea.EnterAltScreen
 		case "ctrl+c":
 			return m, tea.Quit
 		case "enter":
 			if m.done {
+				clearMessages()
 				return m.dash, tea.EnterAltScreen
 			} else {
 				m.datacenter = m.table.SelectedRow()[0]
@@ -77,6 +79,12 @@ func (m Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.table, cmd = m.table.Update(msg)
 
 	return m, cmd
+}
+
+func clearMessages() {
+	mu.Lock()
+	messages = []string{}
+	mu.Unlock()
 }
 
 func addMessage(msg string) {
