@@ -64,86 +64,86 @@ type KeyRequest struct {
 }
 
 type KeyResponse struct {
-	ID           string    `json:"id"`
-	Key          string    `json:"key"`
+	ID  string `json:"id"`
+	Key string `json:"key"`
 }
 
 func GetAuthKey(token string) (key, id string, err error) {
 	url := "https://api.tailscale.com/api/v2/tailnet/-/keys?all=true"
 
-  payload := KeyRequest{
-  	Capabilities:  KeyCapabilities{
-  		Devices: KeyDevices{
-  			Create: KeyDevicesCreate{
-  				Reusable:      false,
-  				Ephemeral:     true,
-  				Preauthorized: true,
-  				Tags:          []string{},
-  			},
-  		},
-  	},
-  	ExpirySeconds: 3600,
-  	Description:   "yVPN endpoint auth key",
-  }
+	payload := KeyRequest{
+		Capabilities: KeyCapabilities{
+			Devices: KeyDevices{
+				Create: KeyDevicesCreate{
+					Reusable:      false,
+					Ephemeral:     true,
+					Preauthorized: true,
+					Tags:          []string{},
+				},
+			},
+		},
+		ExpirySeconds: 3600,
+		Description:   "yVPN endpoint auth key",
+	}
 
-  data, err := json.Marshal(payload)
-  if err != nil {
-    return "", "", err
-  }
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return "", "", err
+	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
-  if err != nil {
-    return "", "", err
-  }
+	if err != nil {
+		return "", "", err
+	}
 
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	res, err := http.DefaultClient.Do(req)
-  if err != nil {
-    return "", "", err
-  }
+	if err != nil {
+		return "", "", err
+	}
 	defer res.Body.Close()
 
-  if res.StatusCode != 200 {
-    err = fmt.Errorf("request failed with status: %s", res.Status)
-    return "", "", err
-  }
+	if res.StatusCode != 200 {
+		err = fmt.Errorf("request failed with status: %s", res.Status)
+		return "", "", err
+	}
 
-  var kr KeyResponse
-  err = json.NewDecoder(res.Body).Decode(&kr)
-  if err != nil {
-    return "", "", err
-  }
+	var kr KeyResponse
+	err = json.NewDecoder(res.Body).Decode(&kr)
+	if err != nil {
+		return "", "", err
+	}
 
 	return kr.Key, kr.ID, nil
 }
 
 func DeleteAuthKey(token, id string) error {
-  url := fmt.Sprintf("https://api.tailscale.com/api/v2/tailnet/-/keys/%s", id)
+	url := fmt.Sprintf("https://api.tailscale.com/api/v2/tailnet/-/keys/%s", id)
 
 	req, err := http.NewRequest("DELETE", url, nil)
-  if err != nil {
-    return err
-  }
+	if err != nil {
+		return err
+	}
 
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	res, err := http.DefaultClient.Do(req)
-  if err != nil {
-    return err
-  }
+	if err != nil {
+		return err
+	}
 	defer res.Body.Close()
 
-  if res.StatusCode != 200 {
-    return fmt.Errorf("request failed with status: %s", res.Status)
-  }
+	if res.StatusCode != 200 {
+		return fmt.Errorf("request failed with status: %s", res.Status)
+	}
 
-  return nil
+	return nil
 }
 
 func EnableExit(name, token string) (int, error) {
-	for elapsed := 0; elapsed < 360; elapsed++ {
+	for elapsed := 0; elapsed < 3600; elapsed++ {
 		machines, err := getTailscaleMachines(token)
 		if err != nil {
 			return elapsed, fmt.Errorf("Error retrieving Tailscale machines: %s", err.Error())
@@ -160,7 +160,7 @@ func EnableExit(name, token string) (int, error) {
 
 		time.Sleep(time.Second)
 	}
-	return 360, fmt.Errorf("Exit node not found on tailnet within six minutes.")
+	return 3600, fmt.Errorf("Exit node not found on tailnet within sixty minutes.")
 }
 
 func getTailscaleMachines(token string) ([]Device, error) {
