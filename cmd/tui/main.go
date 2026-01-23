@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"golang.org/x/term"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -18,6 +18,7 @@ import (
 	"github.com/charmbracelet/wish/activeterm"
 	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/logging"
+	"golang.org/x/term"
 )
 
 const (
@@ -29,29 +30,49 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if len(os.Args) > 1 && os.Args[1] == "ssh" {
+	if len(os.Args) < 2 {
+		printUsage()
+		return
+	}
+
+	switch os.Args[1] {
+	case "tui":
+		runTUI()
+	case "ssh":
 		serveOverSSH("0.0.0.0", "1337")
-	} else {
-		w, h, err := term.GetSize(int(os.Stdout.Fd()))
+	case "list", "datacenters", "create", "delete":
+		runCLI(os.Args[1:])
+	case "--help", "-h", "help":
+		printUsage()
+	case "--version", "-v", "version":
+		fmt.Printf("yvpn version %s\n", VERSION)
+	default:
+		fmt.Fprintf(os.Stderr, "Error: unknown command '%s'\n", os.Args[1])
+		printUsage()
+		os.Exit(1)
+	}
+}
+
+func runTUI() {
+	w, h, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	do, good1 := os.LookupEnv("DIGITAL_OCEAN_TOKEN")
+	ts, good2 := os.LookupEnv("TAILSCALE_API")
+	if good1 && good2 {
+		dash, err := NewDash(nil, h, w, do, ts)
 		if err != nil {
 			log.Fatal(err)
 		}
-		do, good1 := os.LookupEnv("DIGITAL_OCEAN_TOKEN")
-		ts, good2 := os.LookupEnv("TAILSCALE_API")
-		if good1 && good2 {
-			dash, err := NewDash(nil, h, w, do, ts)
-			if err != nil {
-				log.Fatal(err)
-			}
-			p := tea.NewProgram(dash, tea.WithAltScreen())
-			if _, err := p.Run(); err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			p := tea.NewProgram(NewOnboarding(h, w, nil), tea.WithAltScreen())
-			if _, err := p.Run(); err != nil {
-				log.Fatal(err)
-			}
+		p := tea.NewProgram(dash, tea.WithAltScreen())
+		if _, err := p.Run(); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		p := tea.NewProgram(NewOnboarding(h, w, nil), tea.WithAltScreen())
+		if _, err := p.Run(); err != nil {
+			log.Fatal(err)
 		}
 	}
 }
