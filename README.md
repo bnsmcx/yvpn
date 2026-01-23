@@ -9,6 +9,7 @@ yVPN simplifies the creation and management of distributed VPN exit nodes. It pr
 ## Features
 
 - **Interactive TUI** - Clean terminal interface with keyboard navigation
+- **Scriptable CLI** - JSON output for automation and scripting
 - **One-click provisioning** - Create exit nodes in any DigitalOcean datacenter
 - **Automated setup** - Droplets are fully configured via cloud-init (Tailscale installation, IP forwarding, NAT rules)
 - **SSH access** - Run as an SSH server for remote management without local installation
@@ -16,30 +17,43 @@ yVPN simplifies the creation and management of distributed VPN exit nodes. It pr
 
 ## Prerequisites
 
-- Go 1.21+
 - DigitalOcean API token (with read/write access)
 - Tailscale API key
-- SSH host key (for SSH server mode)
 
 ## Installation
 
-### From source
+### From GitHub Releases
+
+Download the latest binary for your platform from the [Releases page](https://github.com/bnsmcx/yvpn/releases).
 
 ```bash
-git clone https://github.com/your-username/yvpn.git
+# Linux
+curl -LO https://github.com/bnsmcx/yvpn/releases/latest/download/yvpn-linux-amd64
+chmod +x yvpn-linux-amd64
+sudo mv yvpn-linux-amd64 /usr/local/bin/yvpn
+
+# macOS (Apple Silicon)
+curl -LO https://github.com/bnsmcx/yvpn/releases/latest/download/yvpn-darwin-arm64
+chmod +x yvpn-darwin-arm64
+sudo mv yvpn-darwin-arm64 /usr/local/bin/yvpn
+
+# macOS (Intel)
+curl -LO https://github.com/bnsmcx/yvpn/releases/latest/download/yvpn-darwin-amd64
+chmod +x yvpn-darwin-amd64
+sudo mv yvpn-darwin-amd64 /usr/local/bin/yvpn
+```
+
+### From Source
+
+```bash
+git clone https://github.com/bnsmcx/yvpn.git
 cd yvpn
 go build -o yvpn ./cmd/tui
 ```
 
-### Docker
+Requires Go 1.21+.
 
-```bash
-docker build -t yvpn:latest .
-```
-
-## Usage
-
-### Local TUI Mode
+## Configuration
 
 Set your credentials as environment variables:
 
@@ -48,20 +62,46 @@ export DIGITAL_OCEAN_TOKEN=<your_digitalocean_token>
 export TAILSCALE_API=<your_tailscale_api_key>
 ```
 
-Run the application:
+## Usage
+
+### Interactive TUI
 
 ```bash
-./yvpn
+yvpn tui
 ```
 
 If credentials aren't set, you'll be prompted to enter them on startup.
+
+### CLI Commands
+
+```bash
+# List existing exit nodes
+yvpn list
+
+# List available datacenters
+yvpn datacenters
+
+# Create a new exit node
+yvpn create nyc1
+
+# Delete an exit node by ID
+yvpn delete 12345
+
+# JSON output for scripting
+yvpn list --json
+yvpn datacenters --json
+yvpn create nyc1 --json
+
+# Show version
+yvpn --version
+```
 
 ### SSH Server Mode
 
 Run yVPN as an SSH server for remote access:
 
 ```bash
-./yvpn ssh
+yvpn ssh
 ```
 
 This starts an SSH server on port 1337. Connect with:
@@ -72,13 +112,7 @@ ssh -p 1337 user@hostname
 
 Pass credentials via SSH environment variables.
 
-### Docker
-
-```bash
-docker run -d -p 22:1337 --name yvpn yvpn:latest
-```
-
-### Keyboard Controls
+### TUI Keyboard Controls
 
 | Key | Action |
 |-----|--------|
@@ -104,14 +138,14 @@ docker run -d -p 22:1337 --name yvpn yvpn:latest
 ```
 yvpn/
 ├── cmd/
-│   ├── tui/           # Main TUI application
-│   │   ├── main.go    # Entry point, SSH server
-│   │   ├── dash.go    # Dashboard view
-│   │   ├── add.go     # Create exit node screen
-│   │   ├── delete.go  # Delete exit node screen
-│   │   ├── onboard.go # Credential input
-│   │   └── style.go   # UI styling
-│   └── test/          # CLI testing tool
+│   └── tui/           # Main application
+│       ├── main.go    # Entry point, SSH server
+│       ├── cli.go     # CLI commands
+│       ├── dash.go    # Dashboard view
+│       ├── add.go     # Create exit node screen
+│       ├── delete.go  # Delete exit node screen
+│       ├── onboard.go # Credential input
+│       └── style.go   # UI styling
 ├── pkg/
 │   ├── digital_ocean/ # DigitalOcean API wrapper
 │   └── tailscale/     # Tailscale API wrapper
@@ -130,27 +164,6 @@ nix-shell
 
 This provides Go, Git, gopls, and development tools.
 
-### Testing CLI
-
-A CLI tool is available for testing individual operations:
-
-```bash
-# List available datacenters
-go run cmd/test/main.go datacenters
-
-# Create exit node in a datacenter
-go run cmd/test/main.go create <datacenter>
-
-# Delete exit node by droplet ID
-go run cmd/test/main.go delete <droplet_id>
-
-# Generate new Tailscale auth key
-go run cmd/test/main.go newkey
-
-# Delete Tailscale auth key
-go run cmd/test/main.go killkey <key_id>
-```
-
 ## Droplet Specifications
 
 Exit nodes are created with:
@@ -164,3 +177,7 @@ Exit nodes are created with:
 - [Lip Gloss](https://github.com/charmbracelet/lipgloss) - Styling
 - [Wish](https://github.com/charmbracelet/wish) - SSH server
 - [godo](https://github.com/digitalocean/godo) - DigitalOcean API client
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
