@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build binaries
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          LDFLAGS="-X main.VERSION=$VERSION"
+
+          # Linux AMD64
+          GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o yvpn-linux-amd64 ./cmd/tui
+
+          # macOS AMD64 (Intel)
+          GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o yvpn-darwin-amd64 ./cmd/tui
+
+          # macOS ARM64 (Apple Silicon)
+          GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o yvpn-darwin-arm64 ./cmd/tui
+
+          # Windows AMD64
+          GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o yvpn-windows-amd64.exe ./cmd/tui
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            yvpn-linux-amd64
+            yvpn-darwin-amd64
+            yvpn-darwin-arm64
+            yvpn-windows-amd64.exe
+          generate_release_notes: true
