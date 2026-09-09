@@ -1,2 +1,8 @@
 yvpn
 .idea/
+
+# web app test deps / artifacts (the app itself has none)
+node_modules/
+package-lock.json
+package.json
+apps/web/test/*.png

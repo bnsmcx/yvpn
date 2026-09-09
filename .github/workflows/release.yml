@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
 
+defaults:
+  run:
+    working-directory: apps/cli
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -16,6 +20,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.21'
+          cache-dependency-path: apps/cli/go.sum
 
       - name: Build binaries
         run: |
@@ -38,8 +43,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            yvpn-linux-amd64
-            yvpn-darwin-amd64
-            yvpn-darwin-arm64
-            yvpn-windows-amd64.exe
+            apps/cli/yvpn-linux-amd64
+            apps/cli/yvpn-darwin-amd64
+            apps/cli/yvpn-darwin-arm64
+            apps/cli/yvpn-windows-amd64.exe
           generate_release_notes: true
