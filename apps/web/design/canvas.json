@@ -1,155 +1,16 @@
 {
   "artboards": [
-    {
-      "file": "PhosphorSignIn.dc.html",
-      "x": 0,
-      "y": 0,
-      "w": 820,
-      "h": 660,
-      "title": "Phosphor \u00b7 Sign in"
-    },
-    {
-      "file": "Main.dc.html",
-      "x": 900,
-      "y": 0,
-      "w": 1340,
-      "h": 660,
-      "title": "Phosphor \u00b7 Dashboard (dark)"
-    },
-    {
-      "file": "PhosphorCreate.dc.html",
-      "x": 2320,
-      "y": 0,
-      "w": 860,
-      "h": 790,
-      "title": "Phosphor \u00b7 Create"
-    },
-    {
-      "file": "SubstrateSignIn.dc.html",
-      "x": 0,
-      "y": 2080,
-      "w": 820,
-      "h": 660,
-      "title": "Substrate \u00b7 Sign in"
-    },
-    {
-      "file": "SubstrateDash.dc.html",
-      "x": 900,
-      "y": 2080,
-      "w": 1340,
-      "h": 660,
-      "title": "Substrate \u00b7 Dashboard"
-    },
-    {
-      "file": "SubstrateCreate.dc.html",
-      "x": 2320,
-      "y": 2080,
-      "w": 860,
-      "h": 815,
-      "title": "Substrate \u00b7 Create"
-    },
-    {
-      "file": "MeridianSignIn.dc.html",
-      "x": 0,
-      "y": 3120,
-      "w": 820,
-      "h": 660,
-      "title": "Meridian \u00b7 Sign in"
-    },
-    {
-      "file": "MeridianDash.dc.html",
-      "x": 900,
-      "y": 3120,
-      "w": 1340,
-      "h": 660,
-      "title": "Meridian \u00b7 Dashboard"
-    },
-    {
-      "file": "MeridianCreate.dc.html",
-      "x": 2320,
-      "y": 3120,
-      "w": 860,
-      "h": 900,
-      "title": "Meridian \u00b7 Create"
-    },
-    {
-      "file": "PhosphorLight.dc.html",
-      "x": 900,
-      "y": 4160,
-      "w": 1340,
-      "h": 660,
-      "title": "Phosphor \u00b7 Dashboard (light) \u2014 the honest test"
-    },
-    {
-      "file": "TVAConsole.dc.html",
-      "x": 900,
-      "y": 1040,
-      "w": 1340,
-      "h": 660,
-      "title": "TVA \u00b7 Dashboard (console)"
-    },
-    {
-      "file": "TVAScreen.dc.html",
-      "x": 2320,
-      "y": 1040,
-      "w": 1340,
-      "h": 660,
-      "title": "TVA \u00b7 Dashboard (screen only)"
-    },
-    {
-      "file": "TVASignIn.dc.html",
-      "x": 0,
-      "y": 1040,
-      "w": 820,
-      "h": 660,
-      "title": "TVA \u00b7 Sign in"
-    }
+    { "file": "SignIn.dc.html",     "x": 0,    "y": 0, "w": 820,  "h": 660, "title": "Sign in" },
+    { "file": "Main.dc.html",       "x": 900,  "y": 0, "w": 1340, "h": 660, "title": "Dashboard" },
+    { "file": "ScreenOnly.dc.html", "x": 2320, "y": 0, "w": 1340, "h": 660, "title": "Dashboard — screen only (not shipped)" }
   ],
   "annotations": [
-    {
-      "id": "note-phosphor",
-      "x": -360,
-      "y": 40,
-      "w": 290,
-      "text": "PHOSPHOR\nOperator console. Monospace throughout, hairline rules, corner ticks, scanline texture, phosphor-green accent with a real glow. The GUI sibling of the Bubble Tea TUI \u2014 bracketed key hints, a status line on top and a keymap bar on the bottom.\n\nStrongest identity of the three, and the densest.\n\nTradeoff: the CRT metaphor is dark-native. See the light-mode board at the bottom before committing."
-    },
-    {
-      "id": "note-substrate",
-      "x": -360,
-      "y": 2120,
-      "w": 290,
-      "text": "SUBSTRATE\nThe restrained one. System sans for chrome, mono for every piece of data. Cards, 8px radii, one indigo accent, soft shadows. Closest to Linear / Vercel / the Tailscale admin console.\n\nWill age best and is the least risky to port \u2014 it is roughly where the app already is, done properly.\n\nTradeoff: nothing about it is memorable. It looks like every other dev tool, which may be exactly what you want."
-    },
-    {
-      "id": "note-meridian",
-      "x": -360,
-      "y": 3160,
-      "w": 290,
-      "text": "MERIDIAN\nGeography as the organising idea. The band across the top plots each node at its REAL longitude and latitude \u2014 fra1 sits east of nyc1 because Frankfurt is east of New York, and all three sit north because your whole fleet is in the northern mid-latitudes. Not decoration: it is a fact about your fleet you cannot get from the table.\n\nThe datacenter picker carries the same motif \u2014 each card shows where in the world that region is.\n\nTradeoff: the band costs ~150px of vertical space and earns it at 3 nodes, less so at 20. It could collapse once the table gets long."
-    },
-    {
-      "id": "note-light",
-      "x": -360,
-      "y": 4200,
-      "w": 290,
-      "text": "The same Phosphor dashboard inverted to light.\n\nThe scanlines and glow are gone \u2014 they cannot survive a white ground \u2014 so what remains is the layout and the hairline discipline. It holds up, but it stops being a CRT and becomes a plain dense table.\n\nWorth deciding deliberately: Phosphor could ship dark-only and ignore the OS preference, which is defensible for a tool like this and is what the app does NOT do today."
-    },
-    {
-      "id": "note-how",
-      "x": 900,
-      "y": -330,
-      "w": 760,
-      "text": "Three directions, same three screens, same real data. Compare across a row for one direction; compare down a column to see how each direction handles the same screen.\n\nAll three use system font stacks only and draw every icon as inline SVG or a CSS shape, so whichever wins ports into the single-file app with no assets and no build step."
-    },
-    {
-      "id": "note-tva",
-      "x": -360,
-      "y": 1080,
-      "w": 290,
-      "text": "TVA\nPhosphor's bones in the Time Variance Authority palette: amber P3 phosphor on warm near-black, cream text, tan hairlines, olive and brick-rust indicator lamps. Amber is the interactive colour; healthy nodes read olive so the four states stay distinguishable instead of collapsing into one hue.\n\nCONSOLE (left) puts the screen inside the beige housing \u2014 silkscreened labels, indicator lamps, printed key legends on the lower rail, a prompt cursor on the screen itself. Furthest from a normal web app, closest to the workstation.\n\nSCREEN ONLY (right) is the same recolour with no housing \u2014 all screen, like a terminal filling the window.\n\nTradeoff: the console frame spends ~90px of height on chrome that carries no data, and the beige is a commitment. The flat one gives that height back to the table.\n\nThe sign-in matches the app as it now stands: ONE credentials field holding both tokens, with the two-token helper collapsed beneath it. No proxy URL \u2014 the relay is served from the same origin."
-    }
+    { "id": "note-shipped", "x": -360, "y": 40, "w": 290,
+      "text": "TVA — SHIPPED\nThis is what apps/web/index.html is built from.\n\nA beige console housing with the working area set into it as an amber-phosphor screen. Amber #FFB000 is the interactive colour; a healthy node reads olive and a failed one brick-rust, so the four node states stay distinguishable instead of collapsing into one hue.\n\nThe DISPLAY switch on the lower rail has three positions — auto, dark, light — addressed directly rather than cycled, because a physical selector shows its own state.\n\nThe alternatives this was chosen over (Phosphor in green, Substrate, Meridian) were deleted once it shipped; they are in the history if they are ever wanted again." },
+    { "id": "note-variant", "x": 2320, "y": -210, "w": 640,
+      "text": "The variant that did not ship: the same palette with no housing, all screen. It gives back the ~110px the rails cost and loses the thing that makes it read as a workstation rather than just an amber terminal. Kept as the record of that choice." },
+    { "id": "note-create", "x": 900, "y": -210, "w": 1340,
+      "text": "Sign-in and dashboard only. There is no create-dialog board in this direction — the create flow was designed directly in the app, so index.html is its source of truth." }
   ],
-  "launch": {
-    "view": "canvas"
-  }
+  "launch": { "view": "canvas" }
 }

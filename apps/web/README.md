@@ -128,7 +128,7 @@ still renders and a warning appears, rather than the page going blank.
 
 The app is styled as a TVA-style workstation: a beige console housing with the
 working area set into it as an amber-phosphor screen. Colours come from the
-`TVA` boards in [`design/`](design) — amber `#FFB000` as the interactive colour on
+boards in [`design/`](design) — amber `#FFB000` as the interactive colour on
 a warm near-black screen, cream text, tan hairlines, with olive and brick-rust
 for healthy and failed states so the four node states stay distinguishable
 instead of collapsing into one hue.
