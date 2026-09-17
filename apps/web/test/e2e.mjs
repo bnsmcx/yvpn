@@ -292,12 +292,45 @@ await page.waitForTimeout(300);
 await page.reload();
 await page.waitForTimeout(500);
 check('stays signed in across reload', await page.isVisible('#view-dash'));
+
+// --- theme toggle and persistence ---
+const scheme = () => page.evaluate(() => document.documentElement.style.colorScheme || '');
+const reload = async () => { await page.reload(); await page.waitForTimeout(400); };
+
+check('starts out following the system', (await scheme()) === '');
+await page.click('#btn-theme');
+check('first click -> dark', (await scheme()) === 'dark', await scheme());
+await reload();
+check('dark survives a reload', (await scheme()) === 'dark', await scheme());
+
+await page.click('#btn-theme');
+check('second click -> light', (await scheme()) === 'light', await scheme());
+await reload();
+check('light survives a reload', (await scheme()) === 'light', await scheme());
+
+await page.click('#btn-theme');
+check('third click -> follow system', (await scheme()) === '', await scheme());
+await reload();
+check('follow-system survives a reload', (await scheme()) === '', await scheme());
+
+// Restoring in <head> is what stops a stored choice flashing the wrong palette
+// on load; assert it structurally, since a post-load read cannot prove ordering.
+{
+  const html = fs.readFileSync(APP, 'utf8');
+  const headEnd = html.indexOf('</head>');
+  const restore = html.indexOf('yvpn.theme');
+  check('theme is restored inside <head>, before any paint',
+        restore > 0 && headEnd > 0 && restore < headEnd);
+}
+
+await page.click('#btn-theme');           // back to dark, to check it outlives sign-out
 await page.click('#btn-logout');
 await page.waitForSelector('#view-login:not(.hidden)', { timeout: 3000 });
 check('logout returns to login', await page.isVisible('#view-login'));
 await page.reload();
 await page.waitForTimeout(400);
 check('logout clears stored credentials', await page.isVisible('#view-login'));
+check('theme preference outlives sign-out', (await scheme()) === 'dark', await scheme());
 
 await browser.close();
 srv.close();

@@ -388,6 +388,14 @@ kbd {
   *, ::before, ::after { animation-duration: .001s !important; transition-duration: .001s !important; }
 }
 </style>
+<script>
+  // Runs before the body paints: a stored theme choice would otherwise flash the
+  // wrong palette on every load, since :root defaults to following the system.
+  try {
+    var t = localStorage.getItem("yvpn.theme");
+    if (t === "dark" || t === "light") document.documentElement.style.colorScheme = t;
+  } catch (e) {}
+</script>
 </head>
 <body>
 
@@ -585,6 +593,7 @@ const TAG = "yVPN";
 const POLL_MS = 3000;          // CLI polls every 1s; 3s is kinder to the rate limiter
 const POLL_TIMEOUT_MS = 15 * 60 * 1000;
 const CFG_KEY = "yvpn.cfg";
+const THEME_KEY = "yvpn.theme";   // display preference; survives sign-out
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -1209,7 +1218,16 @@ $("#btn-theme").addEventListener("click", () => {
   const root = document.documentElement;
   const cur = root.style.colorScheme || "light dark";
   const next = cur === "light dark" ? "dark" : cur === "dark" ? "light" : "light dark";
-  root.style.colorScheme = next;
+  // Following the system means no inline override at all, so this state is
+  // byte-identical to a fresh load rather than a second way of spelling it.
+  if (next === "light dark") root.style.removeProperty("color-scheme");
+  else root.style.colorScheme = next;
+  // Deliberately not part of cfg: a display preference should outlive sign-out,
+  // and should stick even when the credentials themselves are session-only.
+  try {
+    if (next === "light dark") localStorage.removeItem(THEME_KEY);
+    else localStorage.setItem(THEME_KEY, next);
+  } catch {}
   toast("Theme: " + (next === "light dark" ? "follow system" : next));
 });
 
