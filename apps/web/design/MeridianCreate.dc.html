@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #0a1020; color: #dbe6f5;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    a { color: #56c8ff; } a:hover { color: #8bdcff; }
+    .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+    .lbl { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #6f83a3; }
+    .btn { font-size: 12.5px; font-weight: 500; padding: 8px 15px; border-radius: 8px;
+      border: 1px solid #24334f; background: #101a2e; color: #dbe6f5; }
+    .fld { width: 100%; box-sizing: border-box; background: #0c1426; border: 1px solid #22314c;
+      border-radius: 8px; color: #dbe6f5; font: 13px ui-monospace, Menlo, monospace; padding: 10px 12px; }
+    .t { color: #6f83a3; }
+    .modal { background: #101a2e; border: 1px solid #22314c; border-radius: 14px;
+      box-shadow: 0 24px 60px rgba(3,7,18,.55); }
+  </style>
+</helmet>
+<div style="width: 860px; height: 900px; box-sizing: border-box; padding: 26px; background: #070d19;
+            display: flex; flex-direction: column; gap: 16px">
+
+  <div class="lbl">1 &mdash; pick a datacenter</div>
+  <div class="modal" style="padding: 22px 24px">
+    <div style="font-size: 17px; font-weight: 650; letter-spacing: -.02em">New exit node</div>
+    <p style="margin: 6px 0 8px; font-size: 12.5px; color: #7d8fae; line-height: 1.55">
+      A droplet is provisioned there, joins your tailnet with a single-use ephemeral key,
+      and is enabled as an exit node.
+    </p>
+    <div class="lbl" style="margin: 14px 0 8px; font-size: 9.5px">position on the meridian &mdash; west to east</div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+      <div style="border: 1px solid #22314c; border-radius: 9px; padding: 10px 12px; background: #0c1426"><b class="mono" style="font-size: 13px; color: #dbe6f5">nyc1</b><div class="t" style="font-size: 11px; margin-top: 2px">New York 1</div><div style="position: relative; height: 9px; margin-top: 9px"><div style="position: absolute; left: 0; right: 0; top: 4px; height: 1px; background: #1e2b45"></div><div style="position: absolute; left: 29.4%; top: 0; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: #54688c; "></div></div></div>
+      <div style="border: 1px solid #22314c; border-radius: 9px; padding: 10px 12px; background: #0c1426"><b class="mono" style="font-size: 13px; color: #dbe6f5">sfo3</b><div class="t" style="font-size: 11px; margin-top: 2px">San Francisco 3</div><div style="position: relative; height: 9px; margin-top: 9px"><div style="position: absolute; left: 0; right: 0; top: 4px; height: 1px; background: #1e2b45"></div><div style="position: absolute; left: 16.0%; top: 0; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: #54688c; "></div></div></div>
+      <div style="border: 1px solid #56c8ff; border-radius: 9px; padding: 10px 12px; background: rgba(86,200,255,.10)"><b class="mono" style="font-size: 13px; color: #56c8ff">fra1</b><div class="t" style="font-size: 11px; margin-top: 2px">Frankfurt 1</div><div style="position: relative; height: 9px; margin-top: 9px"><div style="position: absolute; left: 0; right: 0; top: 4px; height: 1px; background: #1e2b45"></div><div style="position: absolute; left: 52.4%; top: 0; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: #56c8ff; box-shadow: 0 0 8px #56c8ff"></div></div></div>
+      <div style="border: 1px solid #22314c; border-radius: 9px; padding: 10px 12px; background: #0c1426"><b class="mono" style="font-size: 13px; color: #dbe6f5">ams3</b><div class="t" style="font-size: 11px; margin-top: 2px">Amsterdam 3</div><div style="position: relative; height: 9px; margin-top: 9px"><div style="position: absolute; left: 0; right: 0; top: 4px; height: 1px; background: #1e2b45"></div><div style="position: absolute; left: 51.4%; top: 0; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: #54688c; "></div></div></div>
+      <div style="border: 1px solid #22314c; border-radius: 9px; padding: 10px 12px; background: #0c1426"><b class="mono" style="font-size: 13px; color: #dbe6f5">sgp1</b><div class="t" style="font-size: 11px; margin-top: 2px">Singapore 1</div><div style="position: relative; height: 9px; margin-top: 9px"><div style="position: absolute; left: 0; right: 0; top: 4px; height: 1px; background: #1e2b45"></div><div style="position: absolute; left: 78.8%; top: 0; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: #54688c; "></div></div></div>
+      <div style="border: 1px solid #22314c; border-radius: 9px; padding: 10px 12px; background: #0c1426"><b class="mono" style="font-size: 13px; color: #dbe6f5">syd1</b><div class="t" style="font-size: 11px; margin-top: 2px">Sydney 1</div><div style="position: relative; height: 9px; margin-top: 9px"><div style="position: absolute; left: 0; right: 0; top: 4px; height: 1px; background: #1e2b45"></div><div style="position: absolute; left: 92.0%; top: 0; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: #54688c; "></div></div></div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;
+                border-top: 1px solid #1b2942; padding-top: 16px">
+      <span class="btn">Cancel</span>
+      <span class="btn" style="background: #56c8ff; border-color: #56c8ff; color: #06121f; font-weight: 650">Create</span>
+    </div>
+  </div>
+
+  <div class="lbl" style="margin-top: 2px">2 &mdash; provisioning</div>
+  <div class="modal" style="padding: 22px 24px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="font-size: 17px; font-weight: 650; letter-spacing: -.02em">New exit node</span>
+      <span style="font-size: 12.5px; color: #7d8fae">Provisioning in fra1&hellip;</span>
+      <span style="flex-grow: 1"></span>
+      <span class="mono" style="font-size: 12px; color: #4ee0b0; font-weight: 600">3s</span>
+    </div>
+
+    <!-- the target lights up in its true place while it comes online -->
+    <svg viewBox="0 0 812 52" preserveAspectRatio="xMidYMid meet" style="display: block; width: 100%; height: auto; margin: 14px 0 2px">
+      <line x1="0" y1="34" x2="812" y2="34" stroke="#1e2b45" stroke-width="1" stroke-dasharray="2 5"/>
+      <circle cx="130" cy="34" r="3" fill="#54688c"/>
+      <circle cx="239" cy="34" r="3" fill="#54688c"/>
+      <circle cx="425" cy="18" r="13" fill="#4ee0b0" opacity=".14"/>
+      <circle cx="425" cy="18" r="5" fill="#4ee0b0"/>
+      <line x1="425" y1="23" x2="425" y2="34" stroke="#4ee0b0" stroke-width="1" opacity=".45"/>
+      <text x="425" y="10" fill="#dbe6f5" font-size="10.5" font-weight="600" text-anchor="middle"
+            font-family="ui-monospace, Menlo, monospace">fra1</text>
+      <circle cx="640" cy="34" r="3" fill="#54688c"/>
+      <circle cx="747" cy="34" r="3" fill="#54688c"/>
+    </svg>
+
+    <div class="mono" style="border: 1px solid #1b2942; background: #0a1222; border-radius: 9px;
+                padding: 13px 15px; display: flex; flex-direction: column; gap: 5px;
+                font-size: 12px; line-height: 1.5">
+      <div style="display: flex; gap: 12px"><span style="color: #4a5d80">03:58:32</span><span style="color: #a9bcd6">Getting an auth key from Tailscale&hellip;</span></div>
+      <div style="display: flex; gap: 12px"><span style="color: #4a5d80">03:58:32</span><span style="color: #a9bcd6">Provisioning a new droplet in the fra1 datacenter&hellip;</span></div>
+      <div style="display: flex; gap: 12px"><span style="color: #4a5d80">03:58:32</span><span style="color: #a9bcd6">Droplet fra1-yvpn-1788926312 created (id 1001).</span></div>
+      <div style="display: flex; gap: 12px"><span style="color: #4a5d80">03:58:32</span><span style="color: #a9bcd6">Waiting for the new exit node to phone home to Tailscale&hellip;</span></div>
+      <div style="display: flex; gap: 12px"><span style="color: #4a5d80">03:58:35</span><span style="color: #4ee0b0">Node joined as fra1-yvpn-1788926312.tailnet.ts.net &mdash; exit routes approved.</span></div>
+      <div style="display: flex; gap: 12px"><span style="color: #4a5d80">03:58:35</span><span style="color: #a9bcd6">Deleting the Tailscale auth key&hellip;</span></div>
+      <div style="display: flex; gap: 12px"><span style="color: #4a5d80">03:58:35</span><span style="color: #4ee0b0; font-weight: 600">Exit node ready in 3s.</span></div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; margin-top: 15px">
+      <span style="flex-grow: 1; height: 4px; border-radius: 999px; background: #16223a; display: block">
+        <span style="display: block; width: 100%; height: 100%; background: #4ee0b0; border-radius: 999px;
+                     box-shadow: 0 0 10px rgba(78,224,176,.5)"></span>
+      </span>
+      <span class="lbl" style="color: #4ee0b0">Complete</span>
+    </div>
+    <div class="lbl" style="margin-top: 8px; font-size: 9.5px; color: #4a5d80">
+      key &middot; droplet &middot; tailnet &middot; routes &middot; cleanup
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; margin-top: 18px;
+                border-top: 1px solid #1b2942; padding-top: 16px">
+      <span class="btn" style="background: #56c8ff; border-color: #56c8ff; color: #06121f; font-weight: 650">Close</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

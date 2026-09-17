@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #07090b; color: #c8d6cf;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+    a { color: #5ef0a0; } a:hover { color: #8ff7bf; }
+    .lbl { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #5d7068; }
+    .modal { position: relative; border: 1px solid #24313c; background: #0b0f12; }
+    .tick { position: absolute; width: 8px; height: 8px; border: 1px solid #5ef0a0; opacity: .6; }
+    .dc { border: 1px solid #1b2430; padding: 9px 11px; background: #07090b; }
+    .dcs { border-color: #5ef0a0; background: rgba(94,240,160,.09); }
+    .t { color: #4d5f57; }
+    .glow { text-shadow: 0 0 9px rgba(94,240,160,.55); }
+    .btn { font-size: 12px; padding: 8px 14px; border: 1px solid #24313c; color: #c8d6cf; }
+  </style>
+</helmet>
+<div style="position: relative; width: 860px; height: 900px; box-sizing: border-box; padding: 26px; background: #07090b;
+            display: flex; flex-direction: column; gap: 18px">
+
+  <!-- ============ state 1: pick a datacenter ============ -->
+  <div class="lbl">1 &mdash; pick a datacenter</div>
+  <div class="modal" style="padding: 20px 22px">
+    <div class="tick" style="top: -1px; left: -1px; border-right: 0; border-bottom: 0"></div>
+    <div class="tick" style="top: -1px; right: -1px; border-left: 0; border-bottom: 0"></div>
+    <div class="tick" style="bottom: -1px; left: -1px; border-right: 0; border-top: 0"></div>
+    <div class="tick" style="bottom: -1px; right: -1px; border-left: 0; border-top: 0"></div>
+
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="color: #5ef0a0; font-size: 14px; font-weight: 700" class="glow">new exit node</span>
+      <span class="t" style="font-size: 11px">esc to cancel</span>
+    </div>
+    <p style="margin: 7px 0 16px; font-size: 11.5px; color: #6e8279; line-height: 1.6">
+      A droplet is provisioned there, joins your tailnet with a single-use ephemeral key,
+      and is enabled as an exit node.
+    </p>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px">
+      <div class="dc"><b style="font-size: 13px; color: #c8d6cf">nyc1</b><div class="t" style="font-size: 11px; margin-top: 2px">New York 1</div></div>
+      <div class="dc"><b style="font-size: 13px; color: #c8d6cf">sfo3</b><div class="t" style="font-size: 11px; margin-top: 2px">San Francisco 3</div></div>
+      <div class="dc dcs"><b style="font-size: 13px; color: #5ef0a0" class="glow">fra1</b><div style="font-size: 11px; margin-top: 2px; color: #7ea892">Frankfurt 1</div></div>
+      <div class="dc"><b style="font-size: 13px; color: #c8d6cf">ams3</b><div class="t" style="font-size: 11px; margin-top: 2px">Amsterdam 3</div></div>
+      <div class="dc"><b style="font-size: 13px; color: #c8d6cf">sgp1</b><div class="t" style="font-size: 11px; margin-top: 2px">Singapore 1</div></div>
+      <div class="dc"><b style="font-size: 13px; color: #c8d6cf">syd1</b><div class="t" style="font-size: 11px; margin-top: 2px">Sydney 1</div></div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;
+                border-top: 1px solid #1b2430; padding-top: 15px">
+      <span class="btn">cancel</span>
+      <span class="btn" style="background: #5ef0a0; border-color: #5ef0a0; color: #07090b; font-weight: 700">[&#8629;] create</span>
+    </div>
+  </div>
+
+  <!-- ============ state 2: provisioning ============ -->
+  <div class="lbl" style="margin-top: 4px">2 &mdash; provisioning</div>
+  <div class="modal" style="padding: 20px 22px">
+    <div class="tick" style="top: -1px; left: -1px; border-right: 0; border-bottom: 0"></div>
+    <div class="tick" style="top: -1px; right: -1px; border-left: 0; border-bottom: 0"></div>
+    <div class="tick" style="bottom: -1px; left: -1px; border-right: 0; border-top: 0"></div>
+    <div class="tick" style="bottom: -1px; right: -1px; border-left: 0; border-top: 0"></div>
+
+    <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px">
+      <span style="color: #5ef0a0; font-size: 14px; font-weight: 700" class="glow">new exit node</span>
+      <span class="t" style="font-size: 11px">provisioning in fra1</span>
+      <span style="flex-grow: 1"></span>
+      <span style="font-size: 11px; color: #5ef0a0">3s</span>
+    </div>
+
+    <div style="border: 1px solid #141d26; background: #06080a; padding: 13px 15px;
+                display: flex; flex-direction: column; gap: 5px; font-size: 12px; line-height: 1.5">
+      <div style="display: flex; gap: 12px"><span class="t">03:58:32</span><span style="color: #9db3a8">Getting an auth key from Tailscale&hellip;</span></div>
+      <div style="display: flex; gap: 12px"><span class="t">03:58:32</span><span style="color: #9db3a8">Provisioning a new droplet in the fra1 datacenter&hellip;</span></div>
+      <div style="display: flex; gap: 12px"><span class="t">03:58:32</span><span style="color: #9db3a8">Droplet fra1-yvpn-1788926312 created (id 1001).</span></div>
+      <div style="display: flex; gap: 12px"><span class="t">03:58:32</span><span style="color: #9db3a8">Waiting for the new exit node to phone home to Tailscale&hellip;</span></div>
+      <div style="display: flex; gap: 12px"><span class="t">03:58:35</span><span style="color: #5ef0a0" class="glow">Node joined as fra1-yvpn-1788926312.tailnet.ts.net &mdash; exit routes approved.</span></div>
+      <div style="display: flex; gap: 12px"><span class="t">03:58:35</span><span style="color: #9db3a8">Deleting the Tailscale auth key&hellip;</span></div>
+      <div style="display: flex; gap: 12px"><span class="t">03:58:35</span><span style="color: #5ef0a0; font-weight: 700" class="glow">Exit node ready in 3s.</span></div>
+    </div>
+
+    <!-- five-step progress, drawn as segments rather than a bar -->
+    <div style="display: flex; gap: 4px; margin-top: 14px">
+      <span style="flex-grow: 1; height: 3px; background: #5ef0a0" class="glow"></span>
+      <span style="flex-grow: 1; height: 3px; background: #5ef0a0"></span>
+      <span style="flex-grow: 1; height: 3px; background: #5ef0a0"></span>
+      <span style="flex-grow: 1; height: 3px; background: #5ef0a0"></span>
+      <span style="flex-grow: 1; height: 3px; background: #5ef0a0"></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; margin-top: 7px">
+      <span class="t" style="font-size: 10px; letter-spacing: .1em; text-transform: uppercase">key &#183; droplet &#183; tailnet &#183; routes &#183; cleanup</span>
+      <span style="font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #5ef0a0">complete</span>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;
+                border-top: 1px solid #1b2430; padding-top: 15px">
+      <span class="btn" style="background: #5ef0a0; border-color: #5ef0a0; color: #07090b; font-weight: 700">close</span>
+    </div>
+  </div>
+
+  <div style="position: absolute; inset: 0; pointer-events: none;
+              background: repeating-linear-gradient(0deg, rgba(200,255,220,.030) 0 1px, transparent 1px 3px)"></div>
+</div>
+</x-dc>
+</body>
+</html>

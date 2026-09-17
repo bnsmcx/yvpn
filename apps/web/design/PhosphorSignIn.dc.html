@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+:root { color-scheme: dark; }
+    body { margin: 0; background: #07090b; color: #c8d6cf;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+    a { color: #5ef0a0; } a:hover { color: #8ff7bf; }
+    .scan { position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(0deg, rgba(200,255,220,.030) 0 1px, transparent 1px 3px); }
+    .vig { position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(125% 95% at 50% 0%, transparent 42%, rgba(0,0,0,.6) 100%); }
+    .lbl { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #5d7068; }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 10px; letter-spacing: .11em; text-transform: uppercase; color: #5d7068;
+      text-align: left; font-weight: 500; padding: 11px 16px; border-bottom: 1px solid #1b2430; white-space: nowrap; }
+    td { font-size: 13px; padding: 12px 16px; border-bottom: 1px solid #121922; white-space: nowrap; }
+    .dim { color: #6e8279; }
+    .key { display: inline-block; background: #5ef0a0; color: #07090b; padding: 1px 6px; font-weight: 700; }
+    .glow { text-shadow: 0 0 9px rgba(94,240,160,.55); }
+    .tick { position: absolute; width: 9px; height: 9px; border: 1px solid #5ef0a0; opacity: .55; }
+    .fld { width: 100%; box-sizing: border-box; background: #0b0f12; border: 1px solid #1b2430;
+      color: #c8d6cf; font: 13px ui-monospace, Menlo, monospace; padding: 11px 13px; }
+  </style>
+</helmet>
+<div style="position: relative; width: 820px; height: 660px; overflow: hidden; background: #07090b">
+
+  <div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 74px">
+
+    <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px">
+      <span class="glow" style="color: #5ef0a0; font-size: 19px; font-weight: 700; letter-spacing: -.01em">yvpn</span>
+      <span style="width: 8px; height: 15px; background: #5ef0a0; display: inline-block" class="glow"></span>
+    </div>
+    <div class="lbl" style="margin-bottom: 26px">authenticate &mdash; no account, just keys</div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span class="lbl">profile</span>
+        <input class="fld" value="personal" readonly>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span class="lbl">digitalocean token</span>
+          <input class="fld" type="password" value="dop_v1_8c41f9ab" readonly>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span class="lbl">tailscale api key</span>
+          <input class="fld" type="password" value="tskey-api-k7Qd" readonly>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span class="lbl">tailscale proxy url</span>
+        <input class="fld" value="https://yvpn-proxy.you.workers.dev" readonly>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 9px; margin: 20px 0 18px">
+      <span style="width: 13px; height: 13px; border: 1px solid #5ef0a0; background: #5ef0a0; display: grid; place-items: center; color: #07090b; font-size: 10px; line-height: 1; font-weight: 700">&times;</span>
+      <span style="font-size: 12px; color: #8ba396">keep me signed in on this device</span>
+    </div>
+
+    <div style="background: #5ef0a0; color: #07090b; text-align: center; padding: 12px;
+                font-size: 13px; font-weight: 700; letter-spacing: .04em">
+      <span style="opacity: .55">[</span> sign in <span style="opacity: .55">]</span>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 22px; border-left: 1px solid #1b2430; padding-left: 13px">
+      <span style="color: #5ef0a0; font-size: 12px">&#9656;</span>
+      <p style="margin: 0; font-size: 11.5px; line-height: 1.65; color: #6e8279">
+        Your keys <span style="color: #a8bfb4">are</span> the login. They stay in this browser and travel
+        only to DigitalOcean and to the proxy you deployed &mdash; there is no yVPN server to trust.
+        Rotate them in your password manager; nothing here to migrate.
+      </p>
+    </div>
+  </div>
+
+  <div class="tick" style="top: 22px; left: 22px; border-right: 0; border-bottom: 0"></div>
+  <div class="tick" style="top: 22px; right: 22px; border-left: 0; border-bottom: 0"></div>
+  <div class="tick" style="bottom: 22px; left: 22px; border-right: 0; border-top: 0"></div>
+  <div class="tick" style="bottom: 22px; right: 22px; border-left: 0; border-top: 0"></div>
+  <div class="scan"></div><div class="vig"></div>
+</div>
+</x-dc>
+</body>
+</html>
