@@ -1,23 +1,20 @@
 /**
- * yVPN Tailscale proxy — Cloudflare Worker.
+ * yVPN web — Cloudflare Worker.
  *
- * Tailscale's API returns no CORS headers, so a browser cannot call it from a web
- * page. This forwards only the four endpoints yVPN needs, adds the CORS headers
- * the browser demands, and does nothing else.
+ * Serves the app (index.html) and relays its Tailscale API calls from the same
+ * origin. Tailscale's API returns no CORS headers, so a browser cannot call it
+ * from a web page; putting the page and the relay on one origin means the
+ * browser never makes a cross-origin request and users never configure a proxy.
  *
- * It holds no secrets: the caller supplies its own Tailscale key in the
- * Authorization header, which is passed straight through. Someone who finds this
- * URL without a key can do nothing with it.
+ * Only the four endpoints yVPN needs are forwarded. The relay holds no secrets:
+ * the browser supplies its own Tailscale key in the Authorization header, which
+ * is passed straight through. The DigitalOcean token never reaches it.
  *
- * Deploy:
- *   npx wrangler deploy apps/web/proxy/worker.js --name yvpn-proxy --compatibility-date 2026-01-01
- * Or paste it into the Cloudflare dashboard: Workers & Pages -> Create -> Worker.
- *
- * Optional: set ALLOWED_ORIGINS to a comma-separated list to restrict callers,
- * e.g. "https://bnsmcx.github.io,null"   ("null" is what file:// pages send).
- * Unset means any origin, which is safe here only because there are no cookies
- * and no ambient credentials — every request must carry its own bearer token.
+ * Deploy (from apps/web, using wrangler.toml there):
+ *   npx wrangler deploy
  */
+
+import INDEX_HTML from "../index.html";
 
 const UPSTREAM = "https://api.tailscale.com";
 
@@ -28,50 +25,36 @@ const ALLOWED = [
   { re: /^\/api\/v2\/device\/[^/]+\/routes$/,         methods: ["GET", "POST"] },
 ];
 
-function corsHeaders(request, env) {
-  const origin = request.headers.get("Origin") || "*";
-  const allowList = (env && env.ALLOWED_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const allow = allowList.length === 0 ? origin : (allowList.includes(origin) ? origin : null);
-  if (allow === null) return null;
+const permitted = (pathname, method) =>
+  ALLOWED.some((r) => r.re.test(pathname) && r.methods.includes(method));
 
-  return {
-    "Access-Control-Allow-Origin": allow,
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization, Content-Type",
-    "Access-Control-Max-Age": "86400",
-    "Vary": "Origin",
-  };
-}
-
-function permitted(pathname, method) {
-  const m = method === "OPTIONS" ? null : method;
-  return ALLOWED.some((r) => r.re.test(pathname) && (m === null || r.methods.includes(m)));
-}
+const json = (obj, status) =>
+  new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
 
 export default {
-  async fetch(request, env) {
+  async fetch(request) {
     const url = new URL(request.url);
-    const cors = corsHeaders(request, env);
 
-    if (cors === null) {
-      return new Response("Origin not allowed\n", { status: 403 });
+    if (url.pathname === "/" || url.pathname === "/index.html") {
+      if (!["GET", "HEAD"].includes(request.method)) return new Response(null, { status: 405 });
+      return new Response(request.method === "HEAD" ? null : INDEX_HTML, {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-cache",
+          "X-Content-Type-Options": "nosniff",
+          "Referrer-Policy": "no-referrer",
+        },
+      });
     }
 
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: cors });
-    }
+    if (!url.pathname.startsWith("/api/")) return new Response("Not found\n", { status: 404 });
 
     if (!permitted(url.pathname, request.method)) {
-      return new Response(
-        JSON.stringify({ message: `yvpn-proxy: ${request.method} ${url.pathname} is not on the allowlist` }),
-        { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+      return json({ message: `yvpn-proxy: ${request.method} ${url.pathname} is not on the allowlist` }, 403);
     }
 
     const auth = request.headers.get("Authorization");
-    if (!auth) {
-      return new Response(JSON.stringify({ message: "yvpn-proxy: missing Authorization header" }),
-        { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
-    }
+    if (!auth) return json({ message: "yvpn-proxy: missing Authorization header" }, 401);
 
     // Rebuild the request deliberately: forward the bearer token and body, and
     // nothing else. No cookies, no client headers, no origin leakage upstream.
@@ -89,12 +72,12 @@ export default {
     try {
       res = await fetch(upstream);
     } catch (e) {
-      return new Response(JSON.stringify({ message: "yvpn-proxy: upstream unreachable: " + e.message }),
-        { status: 502, headers: { ...cors, "Content-Type": "application/json" } });
+      return json({ message: "yvpn-proxy: upstream unreachable: " + e.message }, 502);
     }
 
-    const out = new Headers(cors);
-    out.set("Content-Type", res.headers.get("Content-Type") || "application/json");
-    return new Response(res.body, { status: res.status, headers: out });
+    return new Response(res.body, {
+      status: res.status,
+      headers: { "Content-Type": res.headers.get("Content-Type") || "application/json" },
+    });
   },
 };

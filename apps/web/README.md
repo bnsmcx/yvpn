@@ -4,7 +4,9 @@ A single-page GUI with the same capabilities as the `yvpn` CLI: create, list,
 inspect, and delete Tailscale exit nodes running on DigitalOcean droplets.
 
 `index.html` is the entire application — no build step, no npm install, no
-framework, no CDN. Open the file and it runs.
+framework, no CDN. It is served, together with a tiny Tailscale relay, by a
+single Cloudflare Worker (or a single Go binary locally), so users never see or
+configure a proxy.
 
 ## What "signing in" means
 
@@ -14,79 +16,81 @@ acts with, and it acts with them:
 | Field | What it is |
 |---|---|
 | Profile | A label so password managers store this as a normal login item |
-| DigitalOcean token | Personal access token, **read + write** |
-| Tailscale API key | An API access token (`tskey-api-…`) |
-| Tailscale proxy URL | Your deployed proxy — see below |
+| Credentials | Both tokens in one string, separated by whitespace, either order |
+
+The two tokens are:
+
+- a DigitalOcean personal access token, **read + write** (`dop_v1_…`)
+- a Tailscale API access token (`tskey-api-…`)
+
+So the Credentials value looks like `dop_v1_… tskey-api-…`. The app splits it on
+whitespace and tells the tokens apart by prefix, and reports a clear error if
+either is missing. First time through, open *Build this from your two tokens* on
+the sign-in form and paste each token separately; it fills Credentials for you.
 
 Credentials live in `sessionStorage` and are wiped when the tab closes. Tick
 *Keep me signed in* to move them to `localStorage` instead. **Sign out** clears
-both. Nothing is ever sent anywhere except DigitalOcean and your own proxy.
+both. Nothing is ever sent anywhere except DigitalOcean and the relay on the site serving the page.
 
 Rotating a credential is a password-manager operation: change it there, sign out,
 sign back in. The app has no state to migrate.
 
 ### Password manager setup (Bitwarden and friends)
 
-The login form is a real `<form>` with stable field names, so a manager can fill
-it as one item:
+Both tokens travel as the single password, so a password manager's ordinary
+"save login" prompt captures everything — no custom fields:
 
 - **Username** → the `Profile` field (`autocomplete="username"`)
-- **Password** → the DigitalOcean token (`autocomplete="current-password"`)
-- **Custom field** named `tailscale-token` → your Tailscale API key
-- **Custom field** named `tailscale-proxy-url` → your proxy URL
+- **Password** → the `Credentials` field (`autocomplete="current-password"`)
 
-Bitwarden matches custom fields by the input's `name`/`id`, both of which are set
-to exactly those strings. Save the item once and it autofills every field after.
+The helper inputs in *Build this from your two tokens* are plain text and marked
+`data-bwignore` / `data-1p-ignore` / `data-lpignore`, so managers save the
+combined field rather than either token alone. When the helper fills Credentials
+it fires `input` and `change` events, which is what makes Bitwarden notice the
+value and offer to save it.
 
-## The proxy, and why it has to exist
+To rotate one token, edit the password in the manager and replace that half.
+
+## Deploying, and why there's a relay
 
 DigitalOcean's API sends `access-control-allow-origin: *` and permits the
-`Authorization` header, so this page calls it **directly** from your browser.
+`Authorization` header, so the page calls it **directly** from your browser.
 
-Tailscale's API sends **no CORS headers at all** — verified against
-`api.tailscale.com` for `https://`, `http://localhost`, and `null` (what a
-`file://` page sends). Every browser therefore refuses those requests. This is
-enforced by the browser, so no amount of client-side code can work around it; a
-web app that talks to Tailscale needs something server-side in the path.
+Tailscale's API sends **no CORS headers at all**, so every browser refuses
+cross-origin requests to it. The fix is to never make one: whatever serves
+`index.html` also answers `/api/…` on the same origin and relays those calls to
+`api.tailscale.com`. The page just calls `/api/v2/…` on its own host, so there
+is nothing for users to configure.
 
-`proxy/` is that something, and it is deliberately tiny:
+The relay is deliberately tiny:
 
 - it forwards **only** the four endpoints yVPN uses, so it can't be repurposed as
   an open relay;
-- it holds **no secrets** — your browser sends its own Tailscale key in the
-  `Authorization` header, which is passed straight through, so someone who finds
-  the URL without a key can do nothing with it;
-- your **DigitalOcean token never reaches it**. That half of the app stays
-  browser-direct.
+- it holds **no secrets** — the browser sends its own Tailscale key in the
+  `Authorization` header, which is passed straight through;
+- it sends **no CORS headers**, so other sites can't drive it from a browser;
+- your **DigitalOcean token never reaches it**.
 
-> Do not substitute a public CORS proxy for this. Those relay your `Authorization`
-> header through a stranger's server, which hands them control of your tailnet.
-
-### Run it locally (one binary, no cloud account)
+### Cloudflare Workers
 
 ```bash
-go run ./apps/web/proxy      # serves the app and the proxy on one origin
+cd apps/web
+npx wrangler deploy
+```
+
+`wrangler.toml` bundles `index.html` into `proxy/worker.js`, so one Worker serves
+the page at `/` and the relay at `/api/`. Open the Worker's URL and sign in.
+
+### Locally (one binary, no cloud account)
+
+```bash
+cd apps/web/proxy
+go run .
 # open http://localhost:8777
 ```
 
-Because the page and the API come from the same origin here, CORS never enters
-the picture. Leave the proxy URL blank, or set it to `http://localhost:8777`.
-
-### Deploy it (Cloudflare Workers)
-
-```bash
-npx wrangler deploy apps/web/proxy/worker.js --name yvpn-proxy \
-  --compatibility-date 2026-01-01
-```
-
-Or paste `worker.js` into the dashboard under *Workers & Pages → Create → Worker*.
-Then host `index.html` anywhere static — GitHub Pages, S3, a CDN, a USB stick —
-and paste the worker URL into the login form.
-
-Optionally set `ALLOWED_ORIGINS` on the worker to restrict callers, e.g.
-`https://bnsmcx.github.io,null` (`null` is what `file://` pages send). Left unset,
-any origin may call it, which is safe here only because there are no cookies and
-no ambient credentials — every request must carry its own bearer token.
+Opening `index.html` directly as a file still loads the page, but Tailscale
+calls will fail — it needs to be served by one of the above.
 
 ## Parity with the CLI
 

@@ -172,6 +172,18 @@ input[type=text], input[type=password], input[type=url], select {
   & strong { color: var(--text); }
 }
 
+details.setup {
+  margin: -6px 0 16px;
+  font-size: 13px;
+
+  & > summary { cursor: pointer; color: var(--accent); width: fit-content; }
+  & > .setup-body {
+    margin-top: 12px; padding: 14px 14px 0;
+    border: 1px dashed var(--line); border-radius: 8px;
+  }
+  & p { color: var(--muted); margin: 0 0 12px; }
+}
+
 .check {
   display: flex; align-items: center; gap: 9px;
   font-size: 13.5px; margin: 4px 0 20px; cursor: pointer;
@@ -396,8 +408,8 @@ kbd {
     <h1>Sign in</h1>
     <p class="lede">
       There is no account here. You "sign in" by supplying the API credentials this app
-      acts with — they stay in your browser and are sent only to DigitalOcean and to your
-      own Tailscale proxy.
+      acts with — they stay in your browser and are sent only to DigitalOcean and, via
+      this site's Tailscale relay, to Tailscale.
     </p>
 
     <form id="login-form">
@@ -409,37 +421,42 @@ kbd {
                placeholder="personal" spellcheck="false">
       </label>
 
+      <!-- Both API tokens travel as ONE password ("dop_v1_… tskey-api-…") so a password
+           manager's ordinary save prompt captures everything — no custom fields. -->
       <label class="field">
-        <span class="lbl">DigitalOcean token <span class="hint">read/write</span></span>
+        <span class="lbl">Credentials <span class="hint">DigitalOcean token + Tailscale key</span></span>
         <span class="secret-wrap">
-          <input type="password" id="do-token" name="digitalocean-token"
+          <input type="password" id="credentials" name="password"
                  autocomplete="current-password" required spellcheck="false"
-                 placeholder="dop_v1_…" aria-describedby="do-help">
-          <button type="button" class="reveal" aria-label="Show token">show</button>
+                 placeholder="dop_v1_…  tskey-api-…" aria-describedby="do-help">
+          <button type="button" class="reveal" aria-label="Show credentials">show</button>
         </span>
       </label>
 
-      <label class="field">
-        <span class="lbl">Tailscale API key <span class="hint">custom field: tailscale-token</span></span>
-        <span class="secret-wrap">
-          <input type="password" id="ts-token" name="tailscale-token"
-                 autocomplete="off" required spellcheck="false"
-                 placeholder="tskey-api-…">
-          <button type="button" class="reveal" aria-label="Show token">show</button>
-        </span>
-      </label>
-
-      <label class="field">
-        <span class="lbl">Tailscale proxy URL <span class="hint">required — see below</span></span>
-        <input type="url" id="proxy" name="tailscale-proxy-url" autocomplete="url" required
-               placeholder="https://yvpn-proxy.you.workers.dev" spellcheck="false">
-      </label>
+      <!-- Helper inputs are plain text and marked ignore so password managers save the
+           combined field above, not these. -->
+      <details class="setup" id="setup">
+        <summary>First time? Build this from your two tokens</summary>
+        <div class="setup-body">
+          <p>Paste each token and the Credentials field fills itself. Sign in, and your
+             password manager will offer to save the combined value as the password.</p>
+          <label class="field">
+            <span class="lbl">DigitalOcean token <span class="hint">read/write</span></span>
+            <input type="text" id="do-token" autocomplete="off" spellcheck="false"
+                   data-bwignore data-1p-ignore data-lpignore="true" placeholder="dop_v1_…">
+          </label>
+          <label class="field">
+            <span class="lbl">Tailscale API key</span>
+            <input type="text" id="ts-token" autocomplete="off" spellcheck="false"
+                   data-bwignore data-1p-ignore data-lpignore="true" placeholder="tskey-api-…">
+          </label>
+        </div>
+      </details>
 
       <div class="notice" id="do-help">
-        <strong>Why a proxy?</strong> DigitalOcean's API sends CORS headers, so this page calls it
-        directly. Tailscale's API sends none, so no browser can reach it from a web page.
-        The proxy in <code>apps/web/proxy/</code> forwards just the four Tailscale endpoints
-        yVPN needs. Deploy it once, paste its URL here.
+        <strong>Where do these go?</strong> Your DigitalOcean token goes straight to DigitalOcean.
+        Tailscale's API can't be called from a web page, so your Tailscale key goes through a small
+        relay on this same site, which passes it to Tailscale and stores nothing.
       </div>
 
       <label class="check">
@@ -558,9 +575,9 @@ kbd {
    `access-control-allow-origin: *` and permits the Authorization header).
 
    Tailscale's API sends no CORS headers at all, so every browser blocks it.
-   Those calls go through the small proxy in apps/web/proxy/, which the user
-   deploys and points this page at. The DigitalOcean token never touches the
-   proxy.
+   Those calls go to /api/ on the page's own origin, where the server that
+   hosts this page (apps/web/proxy/) relays them. The DigitalOcean token
+   never touches the proxy.
    ======================================================================= */
 
 const DO_API = "https://api.digitalocean.com/v2";
@@ -614,8 +631,8 @@ async function req(url, opts = {}) {
   } catch (e) {
     if (e.name === "AbortError") throw e;
     throw new ApiError(
-      "Network request failed. If this is the Tailscale proxy, check the URL is reachable " +
-      "and allows this origin (" + (location.origin === "null" ? "file://" : location.origin) + ").", 0);
+      "Network request failed. Tailscale calls need this page to be served by the yVPN " +
+      "server or Worker (apps/web/proxy/), not opened as a file.", 0);
   }
   const text = await res.text();
   let body = null;
@@ -637,7 +654,8 @@ const doFetch = (path, opts = {}) => req(DO_API + path, {
   },
 });
 
-const tsFetch = (path, opts = {}) => req(cfg.proxy.replace(/\/+$/, "") + path, {
+// Same-origin: whatever serves this page also relays /api/ to Tailscale.
+const tsFetch = (path, opts = {}) => req(path, {
   ...opts,
   headers: {
     "Authorization": "Bearer " + cfg.tsToken,
@@ -1033,14 +1051,56 @@ function showLogin() {
 
 /* ------------------------------- events ------------------------------- */
 
+// The password is both tokens separated by whitespace, in either order. Tokens are
+// told apart by prefix; neither format contains whitespace. A legacy unprefixed DO
+// token is accepted when it's the only other part.
+const joinCredentials = (doToken, tsToken) => [doToken, tsToken].filter(Boolean).join(" ");
+
+function parseCredentials(raw) {
+  const parts = raw.trim().split(/\s+/).filter(Boolean);
+  const ts = parts.filter((p) => p.startsWith("tskey-api-"));
+  const rest = parts.filter((p) => !p.startsWith("tskey-api-"));
+  const dop = rest.filter((p) => /^do[a-z]_v1_/.test(p));
+  const doCands = dop.length ? dop : rest;
+
+  if (ts.length === 0) {
+    const hint = parts.some((p) => p.startsWith("tskey-"))
+      ? " That looks like a different kind of Tailscale key — use an API access token."
+      : "";
+    throw new Error("No Tailscale API key (tskey-api-…) found in Credentials." + hint);
+  }
+  if (doCands.length === 0) throw new Error("No DigitalOcean token (dop_v1_…) found in Credentials.");
+  if (ts.length > 1 || doCands.length > 1 || parts.length > 2) {
+    throw new Error("Credentials should be exactly two tokens: a DigitalOcean token and a Tailscale API key.");
+  }
+  return { doToken: doCands[0], tsToken: ts[0] };
+}
+
+// Password managers learn what to save from input/change events on the password
+// field; a value set from script fires none, so raise them as typing would.
+const syncFromSetup = () => {
+  const el = $("#credentials");
+  el.value = joinCredentials($("#do-token").value.trim(), $("#ts-token").value.trim());
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+};
+$("#do-token").addEventListener("input", syncFromSetup);
+$("#ts-token").addEventListener("input", syncFromSetup);
+
 $("#login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const btn = $("#btn-signin");
+  let tokens;
+  try {
+    tokens = parseCredentials($("#credentials").value);
+  } catch (err) {
+    toast(err.message, "err");
+    $("#credentials").focus();
+    return;
+  }
   const next = {
     profile: $("#profile").value.trim(),
-    doToken: $("#do-token").value.trim(),
-    tsToken: $("#ts-token").value.trim(),
-    proxy: $("#proxy").value.trim(),
+    ...tokens,
     remember: $("#remember").checked,
   };
 
@@ -1069,15 +1129,17 @@ $$(".reveal").forEach((b) => b.addEventListener("click", () => {
   const showing = input.type === "text";
   input.type = showing ? "password" : "text";
   b.textContent = showing ? "show" : "hide";
-  b.setAttribute("aria-label", showing ? "Show token" : "Hide token");
+  b.setAttribute("aria-label", showing ? "Show credentials" : "Hide credentials");
 }));
 
 $("#btn-logout").addEventListener("click", () => {
   clearCfg();
   cfg = null;
   state = { nodes: [], regions: [], devices: [], balance: null, selected: null };
+  $("#credentials").value = "";
   $("#do-token").value = "";
   $("#ts-token").value = "";
+  $("#setup").open = false;
   showLogin();
   toast("Signed out. Credentials cleared from this browser.");
 });
@@ -1181,11 +1243,9 @@ document.addEventListener("keydown", (e) => {
   const saved = loadCfg();
   if (saved) {
     $("#profile").value = saved.profile || "";
-    $("#do-token").value = saved.doToken || "";
-    $("#ts-token").value = saved.tsToken || "";
-    $("#proxy").value = saved.proxy || "";
+    $("#credentials").value = joinCredentials(saved.doToken, saved.tsToken);
     $("#remember").checked = !!saved.remember;
-    if (saved.doToken && saved.tsToken && saved.proxy) {
+    if (saved.doToken && saved.tsToken) {
       cfg = saved;
       showDash();
     }

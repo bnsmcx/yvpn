@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const APP = path.join(HERE, '..', 'index.html');
 const SHOTS = process.env.SP || HERE;
-const PROXY = 'https://proxy.test';
+const ORIGIN = 'http://127.0.0.1:8899';
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-headers': 'Authorization, Content-Type',
@@ -116,8 +116,8 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
   return json({ message: 'unmocked ' + m + ' ' + p }, 404);
 });
 
-// ---------- Tailscale proxy mock ----------
-await page.route(PROXY + '/**', async (route) => {
+// ---------- Tailscale relay mock (same origin as the page) ----------
+await page.route(ORIGIN + '/api/**', async (route) => {
   const req = route.request();
   const url = new URL(req.url());
   const m = req.method();
@@ -177,23 +177,41 @@ await page.route(PROXY + '/**', async (route) => {
 });
 
 // ================= drive the app =================
-await page.goto('http://127.0.0.1:8899/');
+await page.goto(ORIGIN + '/');
+
+check('no proxy URL field', (await page.$('#proxy')) === null);
 
 check('login view shown first', await page.isVisible('#view-login'));
 check('dashboard hidden initially', await page.isHidden('#view-dash'));
 
-// --- bad token path ---
-await page.fill('#do-token', 'wrong');
-await page.fill('#ts-token', 'tskey-api-testtoken');
-await page.fill('#proxy', PROXY);
+// --- one combined credential field for password managers ---
+check('single password input on login form', (await page.$$('#login-form input[type=password]')).length === 1);
+
+const lastErr = async () => { const t = await page.$$('.toast.err'); return t.length ? t[t.length - 1].textContent() : ''; };
+
+// --- malformed credentials are caught before any network call ---
+await page.fill('#credentials', 'dop_v1_testtoken');
 await page.click('#btn-signin');
 await page.waitForSelector('.toast.err', { timeout: 5000 });
-check('bad DO token surfaces a 401 error', (await page.textContent('.toast.err')).includes('401'));
+check('missing Tailscale key is reported', (await lastErr()).includes('No Tailscale API key'));
+
+// --- bad token path ---
+await page.fill('#credentials', 'wrong tskey-api-testtoken');
+await page.click('#btn-signin');
+await page.waitForFunction(() => [...document.querySelectorAll('.toast.err')].some((t) => t.textContent.includes('401')), null, { timeout: 5000 });
+check('bad DO token surfaces a 401 error', true);
 check('stays on login after bad token', await page.isVisible('#view-login'));
 
-// --- good login ---
-await page.fill('#profile', 'personal');
+// --- setup helper composes the combined value ---
+await page.fill('#credentials', '');
+await page.click('#setup summary');
+await page.fill('#ts-token', 'tskey-api-testtoken');
 await page.fill('#do-token', 'dop_v1_testtoken');
+check('setup helper fills Credentials', (await page.inputValue('#credentials')) === 'dop_v1_testtoken tskey-api-testtoken');
+
+// --- good login (order doesn't matter) ---
+await page.fill('#profile', 'personal');
+await page.fill('#credentials', 'tskey-api-testtoken dop_v1_testtoken');
 await page.click('#btn-signin');
 await page.waitForSelector('#view-dash:not(.hidden)', { timeout: 5000 });
 check('signs in with valid credentials', true);

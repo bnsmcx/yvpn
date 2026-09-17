@@ -4,9 +4,10 @@
 //
 // Tailscale's API sends no CORS headers, which means a browser refuses to call
 // it from a web page. Serving the page and the API from the same origin sidesteps
-// CORS entirely; the browser never makes a cross-origin request.
+// CORS entirely; the browser never makes a cross-origin request, and the app
+// needs no proxy URL configured.
 //
-//	go run ./apps/web/proxy            # then open http://localhost:8777
+//	cd apps/web/proxy && go run .      # then open http://localhost:8777
 //
 // The proxy holds no secrets. The browser sends its own Tailscale key in the
 // Authorization header and this passes it straight through.
@@ -44,9 +45,6 @@ func permitted(path, method string) bool {
 		if !a.re.MatchString(path) {
 			continue
 		}
-		if method == http.MethodOptions {
-			return true
-		}
 		for _, m := range a.methods {
 			if m == method {
 				return true
@@ -62,27 +60,8 @@ func writeJSONError(w http.ResponseWriter, status int, msg string) {
 	fmt.Fprintf(w, "{%q:%q}\n", "message", "yvpn-proxy: "+msg)
 }
 
-func setCORS(w http.ResponseWriter, r *http.Request) {
-	origin := r.Header.Get("Origin")
-	if origin == "" {
-		origin = "*"
-	}
-	h := w.Header()
-	h.Set("Access-Control-Allow-Origin", origin)
-	h.Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-	h.Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-	h.Set("Access-Control-Max-Age", "86400")
-	h.Add("Vary", "Origin")
-}
-
 func proxyHandler(client *http.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		setCORS(w, r)
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
 		if !permitted(r.URL.Path, r.Method) {
 			writeJSONError(w, http.StatusForbidden,
 				r.Method+" "+r.URL.Path+" is not on the allowlist")
@@ -162,14 +141,23 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/", proxyHandler(client))
-	mux.Handle("/", http.FileServer(http.Dir(root)))
+	// Serve the app and nothing else from apps/web.
+	index := filepath.Join(root, "index.html")
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" && r.URL.Path != "/index.html" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeFile(w, r, index)
+	})
 
 	url := "http://" + *addr
 	if strings.HasPrefix(*addr, ":") {
 		url = "http://localhost" + *addr
 	}
 	log.Printf("yvpn-proxy serving %s", root)
-	log.Printf("open %s  (use %s as the proxy URL, or leave it blank)", url, url)
+	log.Printf("open %s", url)
 
 	if err := http.ListenAndServe(*addr, mux); err != nil {
 		panic(err)
