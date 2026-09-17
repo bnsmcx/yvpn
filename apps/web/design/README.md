@@ -4,6 +4,9 @@ Source for the visual directions explored for the web app. Each `*.dc.html` is o
 artboard — a self-contained static mockup — and `canvas.json` lays them out as rows,
 one row per direction.
 
+**TVA is the direction that shipped** — `../index.html` is built from the `TVA` boards
+below. The rest are the alternatives it was chosen over, kept for the record.
+
 These are mockups, not shipping code: nothing here is loaded by the app. They live in
 the repo so the exploration survives, since the canvas they were published to is the
 only other copy.

@@ -124,10 +124,31 @@ and month-to-date usage plus account balance pulled from DigitalOcean billing.
 Tailnet columns are best-effort — if the proxy is unreachable the droplet data
 still renders and a warning appears, rather than the page going blank.
 
+## Look
+
+The app is styled as a TVA-style workstation: a beige console housing with the
+working area set into it as an amber-phosphor screen. Colours come from the
+`TVA` boards in [`design/`](design) — amber `#FFB000` as the interactive colour on
+a warm near-black screen, cream text, tan hairlines, with olive and brick-rust
+for healthy and failed states so the four node states stay distinguishable
+instead of collapsing into one hue.
+
+Both themes are real. Dark is the lit console at night; light keeps the same
+housing and turns the screen into a pale readout, with the amber darkened to
+`#8A5200` so it holds contrast on cream. The whole palette is `light-dark()`
+pairs keyed off `color-scheme`, so one property repaints everything.
+
+The **DISPLAY** switch on the lower rail selects between them — three positions,
+`auto` / `dark` / `light`, addressed directly rather than cycled. `auto` follows
+the system and is the default; a choice is kept in `localStorage` under
+`yvpn.theme` and restored from a script in `<head>` so it cannot flash the wrong
+palette on load. It is stored apart from your credentials deliberately: a display
+preference should outlive signing out.
+
 ## Browser support
 
 Uses `<dialog>`, the popover API, view transitions, CSS nesting, `light-dark()`,
-and `color-mix()`. Current Chrome, Edge, Safari, and Firefox all handle these;
+`:has()` and `color-mix()`. Current Chrome, Edge, Safari, and Firefox all handle these;
 view transitions degrade to an instant swap where unsupported.
 
 ## Tests

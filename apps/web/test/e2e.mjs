@@ -293,25 +293,37 @@ await page.reload();
 await page.waitForTimeout(500);
 check('stays signed in across reload', await page.isVisible('#view-dash'));
 
-// --- theme toggle and persistence ---
+// --- DISPLAY selector and theme persistence ---
 const scheme = () => page.evaluate(() => document.documentElement.style.colorScheme || '');
+const pressed = () => page.evaluate(() =>
+  [...document.querySelectorAll('#display-sel .seg')]
+    .find((b) => b.getAttribute('aria-pressed') === 'true')?.dataset.theme || null);
 const reload = async () => { await page.reload(); await page.waitForTimeout(400); };
+const setTheme = (t) => page.click(`#display-sel .seg[data-theme="${t}"]`);
 
-check('starts out following the system', (await scheme()) === '');
-await page.click('#btn-theme');
-check('first click -> dark', (await scheme()) === 'dark', await scheme());
-await reload();
-check('dark survives a reload', (await scheme()) === 'dark', await scheme());
+check('DISPLAY starts on auto', (await scheme()) === '' && (await pressed()) === 'auto',
+      `${await pressed()} / "${await scheme()}"`);
 
-await page.click('#btn-theme');
-check('second click -> light', (await scheme()) === 'light', await scheme());
+await setTheme('dark');
+check('dark position applies dark', (await scheme()) === 'dark' && (await pressed()) === 'dark');
 await reload();
-check('light survives a reload', (await scheme()) === 'light', await scheme());
+check('dark survives a reload', (await scheme()) === 'dark' && (await pressed()) === 'dark',
+      `${await pressed()} / "${await scheme()}"`);
 
-await page.click('#btn-theme');
-check('third click -> follow system', (await scheme()) === '', await scheme());
+await setTheme('light');
+check('light position applies light', (await scheme()) === 'light' && (await pressed()) === 'light');
 await reload();
-check('follow-system survives a reload', (await scheme()) === '', await scheme());
+check('light survives a reload', (await scheme()) === 'light' && (await pressed()) === 'light');
+
+await setTheme('auto');
+check('auto clears the inline override', (await scheme()) === '' && (await pressed()) === 'auto');
+await reload();
+check('auto survives a reload', (await scheme()) === '' && (await pressed()) === 'auto');
+
+// The switch is addressable, not a cycle: re-picking the live position is a no-op.
+await setTheme('dark');
+await setTheme('dark');
+check('re-picking a position is idempotent', (await scheme()) === 'dark' && (await pressed()) === 'dark');
 
 // Restoring in <head> is what stops a stored choice flashing the wrong palette
 // on load; assert it structurally, since a post-load read cannot prove ordering.
@@ -323,7 +335,6 @@ check('follow-system survives a reload', (await scheme()) === '', await scheme()
         restore > 0 && headEnd > 0 && restore < headEnd);
 }
 
-await page.click('#btn-theme');           // back to dark, to check it outlives sign-out
 await page.click('#btn-logout');
 await page.waitForSelector('#view-login:not(.hidden)', { timeout: 3000 });
 check('logout returns to login', await page.isVisible('#view-login'));
@@ -331,6 +342,7 @@ await page.reload();
 await page.waitForTimeout(400);
 check('logout clears stored credentials', await page.isVisible('#view-login'));
 check('theme preference outlives sign-out', (await scheme()) === 'dark', await scheme());
+check('key legends are hidden before sign-in', await page.isHidden('.keys'));
 
 await browser.close();
 srv.close();
