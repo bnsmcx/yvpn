@@ -27,7 +27,7 @@ screen, after the retro-futurist workstations the look is named for.
 | `#17100A` | warm near-black | screen ground — black with brown in it, never neutral |
 | `#EFE2C6` | cream | primary text |
 | `#A08B64` / `#97845F` | tan | secondary data, labels |
-| `#C2AE83` | console beige | housing |
+| `#1B1309` / `#C2AE83` | housing, unlit / lit | the console itself — near-black under dark, beige under light |
 | `#9DA84E` | olive | healthy exit node |
 | `#D9822B` | ochre | joining / route not approved |
 | `#B23A26` | brick rust | offline, negative balance |
@@ -38,8 +38,11 @@ hue, and amber is already carrying every button and the selected row. Olive and
 rust are period-correct indicator-lamp colours, so the states stay legible without
 leaving the world.
 
-Light mode keeps the housing and turns the screen into a pale readout, with amber
-darkened to `#8A5200` to hold contrast on cream. See `../README.md` for how the
+The two themes light the same console rather than recolouring one thing: under dark
+the housing recedes to near-black with its stamped labels inverted to tan, so there
+is no pale frame around a lit screen; under light the cabinet is beige and the
+screen becomes a pale readout, with amber darkened to `#8A5200` to hold contrast on
+cream. The boards here show the dark state. See `../README.md` for how the
 **DISPLAY** switch drives it.
 
 ## What was chosen over

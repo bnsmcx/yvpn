@@ -13,17 +13,17 @@
       font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
     a { color: #FFB000; } a:hover { color: #FFC94D; }
     /* silkscreened labels on the console housing */
-    .stamp { font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: #3B2A12; font-weight: 700; }
-    .stampd { font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: #6B573283; font-weight: 700; }
-    .lamp { width: 9px; height: 9px; border-radius: 50%; border: 1px solid #6B5732; }
-    .cap { display: inline-block; border: 1px solid #6B5732; border-bottom-width: 2px; border-radius: 2px;
-      padding: 0 5px; font-size: 10px; font-weight: 700; color: #3B2A12; background: #D8C69E; }
+    .stamp { font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: #C5B08A; font-weight: 700; }
+    .stampd { font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: #8A755083; font-weight: 700; }
+    .lamp { width: 9px; height: 9px; border-radius: 50%; border: 1px solid #8A7550; }
+    .cap { display: inline-block; border: 1px solid #8A7550; border-bottom-width: 2px; border-radius: 2px;
+      padding: 0 5px; font-size: 10px; font-weight: 700; color: #C5B08A; background: #2A1F13; }
     /* three-position display selector, recessed into the housing */
-    .sel { display: flex; border: 1px solid #8A7449; border-radius: 3px; overflow: hidden;
-      background: #AB9367; box-shadow: inset 0 1px 3px rgba(0,0,0,.34); }
+    .sel { display: flex; border: 1px solid #3A2C1C; border-radius: 3px; overflow: hidden;
+      background: #100B06; box-shadow: inset 0 1px 3px rgba(0,0,0,.34); }
     .seg { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700;
-      color: #6B5732; padding: 4px 10px; }
-    .seg.on { background: linear-gradient(180deg, #4A3418, #33240F); color: #F0E0BC;
+      color: #8A7550; padding: 4px 10px; }
+    .seg.on { background: linear-gradient(180deg, #6A4E26, #4E3819); color: #F0E0BC;
       box-shadow: 0 1px 2px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,235,190,.18); }
     /* the screen */
     .lbl { font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: #97845F; }
@@ -38,14 +38,14 @@
 </helmet>
 <div style="width: 1340px; height: 660px; box-sizing: border-box; background: #120C06;
             display: flex; flex-direction: column;
-            background-image: linear-gradient(180deg, #CDB98F 0%, #C2AE83 46px, #C2AE83 calc(100% - 44px), #B49D72 100%)">
+            background-image: linear-gradient(180deg, #221910 0%, #1B1309 46px, #1B1309 calc(100% - 44px), #140E06 100%)">
 
   <!-- ============ housing: upper rail ============ -->
   <div style="height: 46px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 18px;
-              border-bottom: 1px solid #A68F63">
-    <span style="width: 10px; height: 10px; border-radius: 50%; background: #9A835B;
+              border-bottom: 1px solid #3A2C1C">
+    <span style="width: 10px; height: 10px; border-radius: 50%; background: #2E2216;
                  box-shadow: inset 0 1px 2px rgba(0,0,0,.45)"></span>
-    <span style="font-size: 15px; font-weight: 800; color: #33240F; letter-spacing: .04em">yVPN</span>
+    <span style="font-size: 15px; font-weight: 800; color: #C5B08A; letter-spacing: .04em">yVPN</span>
     <span class="stamp" style="margin-left: 2px">exit node control</span>
     <span style="flex-grow: 1"></span>
     <span class="stampd">tailnet</span>
@@ -53,16 +53,16 @@
     <span style="display: flex; gap: 7px; margin-left: 10px">
       <span class="lamp" style="background: #FFB000; box-shadow: 0 0 7px rgba(255,176,0,.75)"></span>
       <span class="lamp" style="background: #9DA84E"></span>
-      <span class="lamp" style="background: #6E5B37"></span>
+      <span class="lamp" style="background: #33261A"></span>
     </span>
-    <span style="width: 10px; height: 10px; border-radius: 50%; background: #9A835B;
+    <span style="width: 10px; height: 10px; border-radius: 50%; background: #2E2216;
                  box-shadow: inset 0 1px 2px rgba(0,0,0,.45)"></span>
   </div>
 
   <!-- ============ the screen, inset into the housing ============ -->
   <div style="flex-grow: 1; margin: 11px 16px; position: relative; overflow: hidden;
-              background: #17100A; border: 1px solid #6E5B37; border-radius: 5px;
-              box-shadow: inset 0 0 26px rgba(0,0,0,.85), 0 1px 0 rgba(255,245,220,.28)">
+              background: #17100A; border: 1px solid #4A3A24; border-radius: 5px;
+              box-shadow: inset 0 0 26px rgba(0,0,0,.85), 0 1px 0 rgba(255,220,160,.07)">
 
     <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1px solid #3E2F1D">
       <div style="padding: 12px 18px; border-right: 1px solid #3E2F1D">
@@ -142,7 +142,7 @@
 
   <!-- ============ housing: lower rail, printed key legends ============ -->
   <div style="height: 44px; flex: none; display: flex; align-items: center; gap: 18px; padding: 0 18px;
-              border-top: 1px solid #A68F63">
+              border-top: 1px solid #3A2C1C">
     <span style="display: flex; align-items: center; gap: 6px"><span class="cap">N</span><span class="stamp">new</span></span>
     <span style="display: flex; align-items: center; gap: 6px"><span class="cap">D</span><span class="stamp">delete</span></span>
     <span style="display: flex; align-items: center; gap: 6px"><span class="cap">R</span><span class="stamp">refresh</span></span>

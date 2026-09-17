@@ -133,8 +133,11 @@ a warm near-black screen, cream text, tan hairlines, with olive and brick-rust
 for healthy and failed states so the four node states stay distinguishable
 instead of collapsing into one hue.
 
-Both themes are real. Dark is the lit console at night; light keeps the same
-housing and turns the screen into a pale readout, with the amber darkened to
+Both themes are real, and they light the same console differently rather than
+recolouring one thing. In **dark** the room lights are off: the housing recedes
+to near-black and only the screen is lit, its stamped labels inverting to tan --
+no pale frame around a dark screen. In **light** the cabinet sits under full
+light, beige, and the screen becomes a pale readout with amber darkened to
 `#8A5200` so it holds contrast on cream. The whole palette is `light-dark()`
 pairs keyed off `color-scheme`, so one property repaints everything.
 

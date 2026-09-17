@@ -1,16 +1,54 @@
 {
   "artboards": [
-    { "file": "SignIn.dc.html",     "x": 0,    "y": 0, "w": 820,  "h": 660, "title": "Sign in" },
-    { "file": "Main.dc.html",       "x": 900,  "y": 0, "w": 1340, "h": 660, "title": "Dashboard" },
-    { "file": "ScreenOnly.dc.html", "x": 2320, "y": 0, "w": 1340, "h": 660, "title": "Dashboard — screen only (not shipped)" }
+    {
+      "file": "SignIn.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 820,
+      "h": 660,
+      "title": "Sign in"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 900,
+      "y": 0,
+      "w": 1340,
+      "h": 660,
+      "title": "Dashboard"
+    },
+    {
+      "file": "ScreenOnly.dc.html",
+      "x": 2320,
+      "y": 0,
+      "w": 1340,
+      "h": 660,
+      "title": "Dashboard \u2014 screen only (not shipped)"
+    }
   ],
   "annotations": [
-    { "id": "note-shipped", "x": -360, "y": 40, "w": 290,
-      "text": "TVA — SHIPPED\nThis is what apps/web/index.html is built from.\n\nA beige console housing with the working area set into it as an amber-phosphor screen. Amber #FFB000 is the interactive colour; a healthy node reads olive and a failed one brick-rust, so the four node states stay distinguishable instead of collapsing into one hue.\n\nThe DISPLAY switch on the lower rail has three positions — auto, dark, light — addressed directly rather than cycled, because a physical selector shows its own state.\n\nThe alternatives this was chosen over (Phosphor in green, Substrate, Meridian) were deleted once it shipped; they are in the history if they are ever wanted again." },
-    { "id": "note-variant", "x": 2320, "y": -210, "w": 640,
-      "text": "The variant that did not ship: the same palette with no housing, all screen. It gives back the ~110px the rails cost and loses the thing that makes it read as a workstation rather than just an amber terminal. Kept as the record of that choice." },
-    { "id": "note-create", "x": 900, "y": -210, "w": 1340,
-      "text": "Sign-in and dashboard only. There is no create-dialog board in this direction — the create flow was designed directly in the app, so index.html is its source of truth." }
+    {
+      "id": "note-shipped",
+      "x": -360,
+      "y": 40,
+      "w": 290,
+      "text": "TVA \u2014 SHIPPED\nThis is what apps/web/index.html is built from.\n\nA beige console housing with the working area set into it as an amber-phosphor screen. Amber #FFB000 is the interactive colour; a healthy node reads olive and a failed one brick-rust, so the four node states stay distinguishable instead of collapsing into one hue.\n\nDark and light light the same console rather than recolouring one thing: unlit, the housing recedes to near-black with its labels inverted to tan, so no pale frame surrounds a lit screen; under light the cabinet is beige and the screen becomes a pale readout. These boards show the dark state.\n\nThe DISPLAY switch on the lower rail has three positions \u2014 auto, dark, light \u2014 addressed directly rather than cycled, because a physical selector shows its own state.\n\nThe alternatives this was chosen over (Phosphor in green, Substrate, Meridian) were deleted once it shipped; they are in the history if they are ever wanted again."
+    },
+    {
+      "id": "note-variant",
+      "x": 2320,
+      "y": -210,
+      "w": 640,
+      "text": "The variant that did not ship: the same palette with no housing, all screen. It gives back the ~110px the rails cost and loses the thing that makes it read as a workstation rather than just an amber terminal. Kept as the record of that choice."
+    },
+    {
+      "id": "note-create",
+      "x": 900,
+      "y": -210,
+      "w": 1340,
+      "text": "Sign-in and dashboard only. There is no create-dialog board in this direction \u2014 the create flow was designed directly in the app, so index.html is its source of truth."
+    }
   ],
-  "launch": { "view": "canvas" }
+  "launch": {
+    "view": "canvas"
+  }
 }

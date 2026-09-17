@@ -9,19 +9,27 @@
 :root {
   color-scheme: light dark;
 
-  /* ---- the housing: one physical beige console, brighter under light ---- */
-  --house-1:    light-dark(#E4D7BB, #CDB98F);
-  --house-2:    light-dark(#DACBAA, #C2AE83);
-  --house-3:    light-dark(#CBBB96, #B49D72);
-  --house-line: light-dark(#B9A67C, #A68F63);
-  --house-ink:  #33240F;
-  --house-dim:  #6B5732;
-  --screw:      light-dark(#B0996C, #9A835B);
-  --track:      light-dark(#C3B084, #AB9367);
-  --track-line: light-dark(#A18C5F, #8A7449);
+  /* ---- the housing: one console, lit or unlit. Under light it is the beige
+         cabinet; under dark the room lights are off and only the screen is on,
+         so the housing recedes to near-black and its stamped labels invert. ---- */
+  --house-1:    light-dark(#E4D7BB, #221910);
+  --house-2:    light-dark(#DACBAA, #1B1309);
+  --house-3:    light-dark(#CBBB96, #140E06);
+  --house-line: light-dark(#B9A67C, #3A2C1C);
+  --house-ink:  light-dark(#33240F, #C5B08A);
+  --house-dim:  light-dark(#6B5732, #8A7550);
+  --screw:      light-dark(#B0996C, #2E2216);
+  --track:      light-dark(#C3B084, #100B06);
+  --track-line: light-dark(#A18C5F, #3A2C1C);
+  --cap:        light-dark(#EFE4CA, #2A1F13);
+  --knob-1:     light-dark(#4A3418, #6A4E26);
+  --knob-2:     light-dark(#33240F, #4E3819);
+  --knob-fg:    #F0E0BC;
+  --lamp-off:   light-dark(#BCA87C, #33261a);
+  --rim:        light-dark(rgb(255 245 220 / .28), rgb(255 220 160 / .07));
 
   /* ---- the screen set into it: amber phosphor at night, a pale readout by day ---- */
-  --bezel:  light-dark(#9A8459, #6E5B37);
+  --bezel:  light-dark(#9A8459, #4A3A24);
   --screen: light-dark(#F4EAD7, #17100A);
   --panel:  light-dark(#EBDEC6, #1F160D);
   --inset:  light-dark(#FBF5E9, #100A05);
@@ -92,7 +100,7 @@ footer.rail { height: 44px; border-top: 1px solid var(--house-line); }
 
 .lamps { display: flex; gap: 7px; }
 .lamp { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--house-dim);
-  background: light-dark(#BCA87C, #6E5B37); }
+  background: var(--lamp-off); }
 /* the console reports its own state: amber while unauthenticated, olive once live */
 body:has(#view-login:not(.hidden)) .lamp-1 { background: var(--warn); box-shadow: 0 0 7px var(--warn); }
 body:has(#view-dash:not(.hidden)) .lamp-1 { background: var(--ok); box-shadow: 0 0 7px var(--ok-glow); }
@@ -107,7 +115,7 @@ body:has(#view-login:not(.hidden)) .keys { display: none; }
 .cap {
   display: inline-block; border: 1px solid var(--house-dim); border-bottom-width: 2px;
   border-radius: 2px; padding: 0 5px; font-size: 10px; font-weight: 700;
-  color: var(--house-ink); background: light-dark(#EFE4CA, #D8C69E);
+  color: var(--house-ink); background: var(--cap);
 }
 
 /* three-position display selector, recessed into the housing */
@@ -122,7 +130,7 @@ body:has(#view-login:not(.hidden)) .keys { display: none; }
 }
 .seg:focus-visible { outline: 2px solid var(--amber); outline-offset: -2px; }
 .seg[aria-pressed="true"] {
-  background: linear-gradient(180deg, #4A3418, #33240F); color: #F0E0BC;
+  background: linear-gradient(180deg, var(--knob-1), var(--knob-2)); color: var(--knob-fg);
   box-shadow: 0 1px 2px rgb(0 0 0 / .45), inset 0 1px 0 rgb(255 235 190 / .18);
 }
 
@@ -136,7 +144,7 @@ main.screen {
   background: var(--screen);
   border: 1px solid var(--bezel);
   border-radius: 5px;
-  box-shadow: inset 0 0 26px rgb(0 0 0 / .6), 0 1px 0 rgb(255 245 220 / .28);
+  box-shadow: inset 0 0 26px rgb(0 0 0 / .6), 0 1px 0 var(--rim);
 }
 .screen-scroll { position: absolute; inset: 0; overflow: auto; }
 /* overlays sit outside the scroller so the phosphor texture stays put */
