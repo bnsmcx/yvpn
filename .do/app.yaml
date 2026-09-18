@@ -9,9 +9,10 @@ services:
   - name: web
     dockerfile_path: apps/web/Dockerfile
     source_dir: /
-    git:
-      repo_clone_url: https://github.com/bnsmcx/yvpn.git
+    github:
+      repo: bnsmcx/yvpn
       branch: main
+      deploy_on_push: true
     instance_size_slug: apps-s-1vcpu-0.5gb
     instance_count: 1
     http_port: 8080
