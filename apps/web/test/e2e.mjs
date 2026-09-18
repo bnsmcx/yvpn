@@ -283,6 +283,10 @@ check('shows region', rowText.includes('fra1'));
 check('shows public IP', rowText.includes('203.0.113.'));
 check('shows tailnet IP', rowText.includes('100.64.0.'));
 check('shows cost so far, not list price', rowText.includes('$0.01') && !rowText.includes('$6.00'));
+check('table note lines up with the first column', await page.evaluate(() => {
+  const textLeft = (el) => el.getBoundingClientRect().left + parseFloat(getComputedStyle(el).paddingLeft);
+  return Math.abs(textLeft(document.querySelector('.tablenote')) - textLeft(document.querySelector('#nodes thead th'))) < 0.6;
+}));
 check('cost column is right-aligned', await page.evaluate(() => getComputedStyle(document.querySelector('#nodes-body td.num')).textAlign) === 'right');
 check('status pill says exit node', rowText.includes('exit node'));
 check('running cost stat is hourly', (await page.textContent('#stats')).includes('$0.009/hr'));

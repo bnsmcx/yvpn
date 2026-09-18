@@ -296,6 +296,9 @@ details.setup {
   & .v small { font-size: 13px; color: var(--dim); }
 }
 
+/* Lines up with the first column of the table above it, not the screen edge. */
+.tablenote { margin: 14px 0 0; padding: 0 16px; }
+
 .toolbar {
   display: flex; align-items: center; gap: 13px; flex-wrap: wrap;
   padding: 14px 18px 12px;
@@ -458,6 +461,7 @@ code { font-family: var(--mono); color: var(--text); }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .col-wide { display: none; }
   th, td { padding-left: 11px; padding-right: 11px; }
+  .tablenote { padding: 0 11px; }
   .toolbar { flex-wrap: wrap; }
   #toasts { left: 12px; right: 12px; }
   #toasts .toast { max-width: none; }
@@ -467,6 +471,7 @@ code { font-family: var(--mono); color: var(--text); }
 @media (max-width: 560px) {
   .col-mid { display: none; }
   th, td { font-size: 11.5px; padding-left: 9px; padding-right: 9px; }
+  .tablenote { padding: 0 9px; }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -606,7 +611,7 @@ code { font-family: var(--mono); color: var(--text); }
     </div>
   </div>
 
-  <p class="small muted" style="margin-top:14px">
+  <p class="small muted tablenote">
     Nodes are DigitalOcean droplets tagged <code>yVPN</code>. Tailnet columns come through
     this site's Tailscale relay and are matched to droplets by name.
   </p>
