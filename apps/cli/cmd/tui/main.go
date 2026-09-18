@@ -21,7 +21,7 @@ import (
 	"golang.org/x/term"
 )
 
-var VERSION = "0.3.0"
+var VERSION = "0.3.1"
 
 func main() {
 	if _, err := tea.LogToFile("debug.log", "simple"); err != nil {

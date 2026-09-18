@@ -494,7 +494,7 @@ code { font-family: var(--mono); color: var(--text); }
   <span class="screw"></span>
   <span class="brand">yVPN</span>
   <span class="stamp">exit node control</span>
-  <span class="stamp-dim ver" id="ver-header">v0.3.0</span>
+  <span class="stamp-dim ver" id="ver-header">v0.3.1</span>
   <span class="spacer"></span>
   <span id="who" class="stamp-dim hidden"></span>
   <button id="btn-guide" title="Getting started">guide</button>
@@ -630,7 +630,7 @@ code { font-family: var(--mono); color: var(--text); }
     <span><span class="cap">?</span><span class="stamp">help</span></span>
   </span>
   <span class="spacer"></span>
-  <span class="stamp-dim ver" id="ver-footer">v0.3.0</span>
+  <span class="stamp-dim ver" id="ver-footer">v0.3.1</span>
   <span class="display">
     <span class="stamp" id="display-label">display</span>
     <span class="sel" role="group" aria-labelledby="display-label" id="display-sel">
@@ -809,7 +809,7 @@ code { font-family: var(--mono); color: var(--text); }
 
 // Single source of truth for the version stamped on the console. The release
 // workflow checks this against the tag, so a tagged build can't ship stale.
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
 const POLL_MS = 2000;          // a node now joins in ~60-90s; 1s (the CLI) invites Tailscale's rate limiter
