@@ -1,0 +1,1368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>yVPN</title>
+<style>
+:root {
+  color-scheme: light dark;
+
+  /* ---- the housing: one console, lit or unlit. Under light it is the beige
+         cabinet; under dark the room lights are off and only the screen is on,
+         so the housing recedes to near-black and its stamped labels invert. ---- */
+  --house-1:    light-dark(#E4D7BB, #221910);
+  --house-2:    light-dark(#DACBAA, #1B1309);
+  --house-3:    light-dark(#CBBB96, #140E06);
+  --house-line: light-dark(#B9A67C, #3A2C1C);
+  --house-ink:  light-dark(#33240F, #C5B08A);
+  --house-dim:  light-dark(#6B5732, #8A7550);
+  --screw:      light-dark(#B0996C, #2E2216);
+  --track:      light-dark(#C3B084, #100B06);
+  --track-line: light-dark(#A18C5F, #3A2C1C);
+  --cap:        light-dark(#EFE4CA, #2A1F13);
+  --knob-1:     light-dark(#4A3418, #6A4E26);
+  --knob-2:     light-dark(#33240F, #4E3819);
+  --knob-fg:    #F0E0BC;
+  --lamp-off:   light-dark(#BCA87C, #33261a);
+  --rim:        light-dark(rgb(255 245 220 / .28), rgb(255 220 160 / .07));
+
+  /* ---- the screen set into it: amber phosphor at night, a pale readout by day ---- */
+  --bezel:  light-dark(#9A8459, #4A3A24);
+  --screen: light-dark(#F4EAD7, #17100A);
+  --panel:  light-dark(#EBDEC6, #1F160D);
+  --inset:  light-dark(#FBF5E9, #100A05);
+  --line:   light-dark(#CDBE9E, #3E2F1D);
+  --rule:   light-dark(#DCCDAF, #2A1F13);
+  --text:   light-dark(#2A1D0E, #EFE2C6);
+  --muted:  light-dark(#6E5C3C, #97845F);
+  --dim:    light-dark(#7A6845, #A08B64);
+
+  --amber:    light-dark(#8A5200, #FFB000);
+  --amber-fg: light-dark(#FFF6E4, #17100A);
+  --ok:       light-dark(#4F5E1C, #9DA84E);
+  --warn:     light-dark(#8A5A10, #D9822B);
+  --danger:   light-dark(#8E2A1B, #B23A26);
+
+  /* light-dark() only takes colours, so the glow is a colour that disappears */
+  --glow-c: light-dark(transparent, rgba(255,176,0,.5));
+  --ok-glow: light-dark(transparent, rgba(157,168,78,.5));
+  --scan:   light-dark(transparent, rgba(255,205,130,.035));
+  --vig:    light-dark(transparent, rgba(0,0,0,.5));
+  --sel-bg: light-dark(rgba(138,82,0,.10), rgba(255,176,0,.09));
+
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font: 13.5px/1.5 var(--mono);
+  color: var(--text);
+  background: linear-gradient(180deg,
+    var(--house-1) 0%, var(--house-2) 46px,
+    var(--house-2) calc(100% - 44px), var(--house-3) 100%);
+}
+
+h1, h2, h3 { line-height: 1.25; margin: 0; font-weight: 700; }
+a { color: var(--amber); } a:hover { color: var(--amber); text-decoration: underline; }
+.glow { text-shadow: 0 0 9px var(--glow-c); }
+
+/* ================= housing rails ================= */
+
+.rail {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 0 18px;
+}
+header.rail { height: 46px; border-bottom: 1px solid var(--house-line); }
+footer.rail { height: 44px; border-top: 1px solid var(--house-line); }
+
+.brand { font-size: 15px; font-weight: 800; color: var(--house-ink); letter-spacing: .04em; }
+
+.stamp, .stamp-dim {
+  font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; font-weight: 700;
+}
+.stamp { color: var(--house-ink); }
+.stamp-dim { color: var(--house-dim); }
+
+.screw {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--screw);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / .45);
+}
+
+.lamps { display: flex; gap: 7px; }
+.lamp { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--house-dim);
+  background: var(--lamp-off); }
+/* the console reports its own state: amber while unauthenticated, olive once live */
+body:has(#view-login:not(.hidden)) .lamp-1 { background: var(--warn); box-shadow: 0 0 7px var(--warn); }
+body:has(#view-dash:not(.hidden)) .lamp-1 { background: var(--ok); box-shadow: 0 0 7px var(--ok-glow); }
+body:has(#view-dash:not(.hidden)) .lamp-2 { background: var(--amber); box-shadow: 0 0 7px var(--glow-c); }
+
+.spacer { flex-grow: 1; }
+
+/* keyboard legends printed on the lower rail; nothing to drive before sign-in */
+.keys { display: flex; align-items: center; gap: 16px; }
+body:has(#view-login:not(.hidden)) .keys { display: none; }
+.keys > span { display: flex; align-items: center; gap: 6px; }
+.cap {
+  display: inline-block; border: 1px solid var(--house-dim); border-bottom-width: 2px;
+  border-radius: 2px; padding: 0 5px; font-size: 10px; font-weight: 700;
+  color: var(--house-ink); background: var(--cap);
+}
+
+/* three-position display selector, recessed into the housing */
+.display { display: flex; align-items: center; gap: 9px; }
+.sel {
+  display: flex; border: 1px solid var(--track-line); border-radius: 3px; overflow: hidden;
+  background: var(--track); box-shadow: inset 0 1px 3px rgb(0 0 0 / .34);
+}
+.seg {
+  font: 700 9px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+  color: var(--house-dim); padding: 6px 10px; border: 0; background: transparent; cursor: pointer;
+}
+.seg:focus-visible { outline: 2px solid var(--amber); outline-offset: -2px; }
+.seg[aria-pressed="true"] {
+  background: linear-gradient(180deg, var(--knob-1), var(--knob-2)); color: var(--knob-fg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / .45), inset 0 1px 0 rgb(255 235 190 / .18);
+}
+
+/* ================= the screen ================= */
+
+main.screen {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  margin: 11px 16px;
+  background: var(--screen);
+  border: 1px solid var(--bezel);
+  border-radius: 5px;
+  box-shadow: inset 0 0 26px rgb(0 0 0 / .6), 0 1px 0 var(--rim);
+}
+.screen-scroll { position: absolute; inset: 0; overflow: auto; }
+/* overlays sit outside the scroller so the phosphor texture stays put */
+.scan, .vig { position: absolute; inset: 0; pointer-events: none; }
+.scan { background: repeating-linear-gradient(0deg, var(--scan) 0 1px, transparent 1px 3px); }
+.vig  { background: radial-gradient(120% 95% at 50% 40%, transparent 52%, var(--vig) 100%); }
+
+/* ================= controls ================= */
+
+button, .btn {
+  font: 12px/1 var(--mono);
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color .12s, background .12s, opacity .12s;
+
+  &:hover:not(:disabled) { border-color: var(--amber); }
+  &:disabled { color: var(--muted); border-color: var(--rule); cursor: not-allowed; }
+  &:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+}
+button.primary {
+  background: var(--amber); border-color: var(--amber); color: var(--amber-fg);
+  font-weight: 700; text-shadow: 0 0 9px var(--glow-c);
+  &:hover:not(:disabled) { filter: brightness(1.08); }
+}
+button.danger {
+  color: var(--danger); border-color: var(--danger);
+  &:hover:not(:disabled) { background: var(--danger); color: var(--amber-fg); }
+  &:disabled { color: var(--muted); border-color: var(--rule); background: transparent; }
+}
+button.ghost { border-color: var(--line); }
+button.icon { padding: 6px 9px; }
+
+/* rail-mounted buttons are printed on the housing, not on the screen */
+.rail button {
+  border-color: var(--house-dim); color: var(--house-ink);
+  font-size: 10px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700;
+  padding: 5px 9px;
+  &:hover:not(:disabled) { border-color: var(--house-ink); }
+  &:focus-visible { outline-color: var(--house-ink); }
+}
+
+label.field {
+  display: block;
+  margin-bottom: 14px;
+
+  & > .lbl {
+    display: flex; align-items: baseline; gap: 8px;
+    font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  & .hint { letter-spacing: .06em; color: var(--dim); }
+}
+
+input[type=text], input[type=password], input[type=url], select {
+  width: 100%;
+  font: 12.5px var(--mono);
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  background: var(--inset);
+  color: var(--text);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / .35);
+
+  &:focus { outline: 1px solid var(--amber); outline-offset: -1px; }
+  &::placeholder { color: var(--muted); }
+}
+
+.secret-wrap {
+  position: relative; display: block;
+  & input { padding-right: 52px; }
+  & button {
+    position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+    border: 0; padding: 4px 6px; color: var(--muted); font-size: 11px;
+  }
+}
+
+details.setup {
+  border: 1px solid var(--rule); background: var(--panel); margin-bottom: 14px;
+
+  & > summary {
+    cursor: pointer; padding: 9px 12px; font-size: 11.5px; color: var(--text);
+    list-style: none;
+    &::-webkit-details-marker { display: none; }
+    &::before { content: "\25B8"; color: var(--amber); margin-right: 9px; }
+  }
+  &[open] > summary::before { content: "\25BE"; }
+  & > .setup-body {
+    padding: 2px 12px 12px;
+    & p { margin: 0 0 12px; font-size: 11px; color: var(--muted); line-height: 1.6; }
+  }
+}
+
+.check {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 11.5px; margin: 4px 0 16px; cursor: pointer;
+  & input { width: 14px; height: 14px; accent-color: var(--amber); }
+}
+
+.notice {
+  border-left: 2px solid var(--amber);
+  padding: 2px 0 2px 12px;
+  font-size: 11px; line-height: 1.65; color: var(--muted);
+  margin-bottom: 16px;
+  & strong { color: var(--text); font-weight: 700; }
+}
+
+/* ================= login ================= */
+
+#view-login {
+  min-height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+#view-login .card { width: min(560px, 100%); }
+#view-login h1 {
+  color: var(--amber); font-size: 15px; text-shadow: 0 0 9px var(--glow-c);
+  &::after {
+    content: ""; display: inline-block; width: 7px; height: 12px;
+    background: var(--amber); margin-left: 9px; vertical-align: -1px;
+    box-shadow: 0 0 9px var(--glow-c);
+  }
+}
+#view-login .lede { color: var(--dim); font-size: 11.5px; line-height: 1.6; margin: 8px 0 20px; }
+
+/* ================= dashboard ================= */
+
+#view-dash { padding-bottom: 8px; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  border-bottom: 1px solid var(--line);
+}
+.stat {
+  padding: 13px 18px;
+  border-right: 1px solid var(--line);
+  &:last-child { border-right: 0; }
+
+  & .k { font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
+  & .v { font-size: 21px; margin-top: 4px; letter-spacing: -.02em; }
+  & .v small { font-size: 13px; color: var(--dim); }
+}
+
+.toolbar {
+  display: flex; align-items: center; gap: 13px; flex-wrap: wrap;
+  padding: 14px 18px 12px;
+  & h2 { font-size: 11.5px; letter-spacing: .15em; text-transform: uppercase; font-weight: 500; }
+  & .spacer { height: 1px; background: var(--line); }
+}
+
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+
+th {
+  text-align: left; font-weight: 500; white-space: nowrap;
+  font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+  padding: 10px 16px; border-bottom: 1px solid var(--line);
+}
+td { padding: 11px 16px; border-bottom: 1px solid var(--rule); white-space: nowrap; font-size: 12.5px; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--panel); }
+tbody tr[aria-selected=true] { background: var(--sel-bg); box-shadow: inset 2px 0 0 var(--amber); }
+td.name { font-weight: 700; }
+td.dim { color: var(--dim); }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12.5px;
+}
+.pill::before { content: "\25CF"; font-size: 11px; }
+.pill.ok   { color: var(--ok);     text-shadow: 0 0 9px var(--ok-glow); }
+.pill.warn { color: var(--warn); }
+.pill.bad  { color: var(--danger); }
+
+.empty { padding: 44px 20px; text-align: center; color: var(--muted); }
+.empty p { margin: 0 0 14px; font-size: 12.5px; }
+
+/* ================= dialogs ================= */
+
+dialog {
+  position: relative;
+  border: 1px solid var(--bezel);
+  background: var(--panel);
+  color: var(--text);
+  padding: 0;
+  width: min(580px, calc(100vw - 32px));
+  box-shadow: 0 18px 50px rgb(0 0 0 / .5);
+
+  &::backdrop { background: rgb(0 0 0 / .55); }
+  & .dlg-head { padding: 19px 22px 0; }
+  & .dlg-head h2 { font-size: 14px; color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
+  & .dlg-body { padding: 15px 22px; }
+  & .dlg-foot {
+    display: flex; gap: 10px; justify-content: flex-end;
+    padding: 14px 22px 18px; border-top: 1px solid var(--line);
+  }
+  & p.sub { color: var(--muted); font-size: 11.5px; line-height: 1.6; margin: 7px 0 0; }
+}
+
+.regions {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 9px; max-height: 310px; overflow-y: auto; padding: 2px;
+}
+.region {
+  & input { position: absolute; opacity: 0; pointer-events: none; }
+  & span {
+    display: block; border: 1px solid var(--line); background: var(--inset);
+    padding: 9px 11px; cursor: pointer; font-size: 12.5px;
+    transition: border-color .12s, background .12s;
+  }
+  & span b { display: block; font-size: 13px; }
+  & span i { font-style: normal; color: var(--dim); font-size: 11px; }
+  & input:checked + span { border-color: var(--amber); background: var(--sel-bg); }
+  & input:checked + span b { color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
+  & input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: 2px; }
+}
+
+.log {
+  font-size: 12px; line-height: 1.5;
+  background: var(--inset); border: 1px solid var(--rule);
+  padding: 12px 14px; max-height: 250px; overflow-y: auto;
+  white-space: pre-wrap; word-break: break-word;
+
+  & .row { display: flex; gap: 12px; padding: 2px 0; color: var(--muted); }
+  & .row .t { color: var(--dim); flex: none; }
+  & .row.err { color: var(--danger); }
+  & .row.ok { color: var(--ok); text-shadow: 0 0 9px var(--ok-glow); }
+}
+
+progress {
+  width: 100%; height: 4px; margin-top: 13px;
+  accent-color: var(--amber);
+}
+
+/* ================= toasts + help ================= */
+
+#toasts {
+  position: fixed; right: 20px; bottom: 60px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 50; max-width: min(420px, calc(100vw - 40px));
+}
+.toast {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--amber);
+  padding: 11px 14px; font-size: 12px; line-height: 1.5;
+  box-shadow: 0 8px 26px rgb(0 0 0 / .45);
+  animation: slidein .18s ease-out;
+  &.err { border-left-color: var(--danger); }
+  &.ok { border-left-color: var(--ok); }
+}
+@keyframes slidein { from { opacity: 0; transform: translateY(8px); } }
+
+#help {
+  border: 1px solid var(--bezel); background: var(--panel); color: var(--text);
+  padding: 18px 20px; width: min(420px, calc(100vw - 32px));
+  box-shadow: 0 18px 50px rgb(0 0 0 / .5);
+  &::backdrop { background: rgb(0 0 0 / .4); }
+  & h3 { font-size: 13px; color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
+  & dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; margin: 12px 0 0; font-size: 12.5px; }
+  & dt { color: var(--amber); font-weight: 700; }
+  & dd { margin: 0; color: var(--muted); }
+}
+
+kbd {
+  font: 11px var(--mono);
+  border: 1px solid var(--line); border-bottom-width: 2px;
+  padding: 1px 5px; background: var(--inset); color: var(--muted);
+}
+
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+.small { font-size: 11.5px; }
+.mono { font-family: var(--mono); }
+code { font-family: var(--mono); color: var(--text); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation-duration: .001s !important; transition-duration: .001s !important; }
+}
+</style>
+<script>
+  // Runs before the body paints: a stored theme choice would otherwise flash the
+  // wrong palette on every load, since :root defaults to following the system.
+  try {
+    var t = localStorage.getItem("yvpn.theme");
+    if (t === "dark" || t === "light") document.documentElement.style.colorScheme = t;
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<header class="rail">
+  <span class="screw"></span>
+  <span class="brand">yVPN</span>
+  <span class="stamp">exit node control</span>
+  <span class="spacer"></span>
+  <span id="who" class="stamp-dim hidden"></span>
+  <button id="btn-help" popovertarget="help" title="Keyboard shortcuts (?)" aria-label="Help">?</button>
+  <button id="btn-logout" class="hidden">sign out</button>
+  <span class="lamps">
+    <span class="lamp lamp-1"></span><span class="lamp lamp-2"></span><span class="lamp lamp-3"></span>
+  </span>
+  <span class="screw"></span>
+</header>
+
+<main class="screen">
+<div class="screen-scroll">
+
+<!-- ============ LOGIN ============ -->
+<section id="view-login">
+  <div class="card">
+    <h1>Sign in</h1>
+    <p class="lede">
+      There is no account here. You "sign in" by supplying the API credentials this app
+      acts with — they stay in your browser and are sent only to DigitalOcean and, via
+      this site's Tailscale relay, to Tailscale.
+    </p>
+
+    <form id="login-form">
+      <!-- A named profile makes password managers treat this as a normal login item,
+           so the two secrets below can be saved and autofilled as a single entry. -->
+      <label class="field">
+        <span class="lbl">Profile <span class="hint">a label for this credential set</span></span>
+        <input type="text" id="profile" name="username" autocomplete="username"
+               placeholder="personal" spellcheck="false">
+      </label>
+
+      <!-- Both API tokens travel as ONE password ("dop_v1_… tskey-api-…") so a password
+           manager's ordinary save prompt captures everything — no custom fields. -->
+      <label class="field">
+        <span class="lbl">Credentials <span class="hint">DigitalOcean token + Tailscale key</span></span>
+        <span class="secret-wrap">
+          <input type="password" id="credentials" name="password"
+                 autocomplete="current-password" required spellcheck="false"
+                 placeholder="dop_v1_…  tskey-api-…" aria-describedby="do-help">
+          <button type="button" class="reveal" aria-label="Show credentials">show</button>
+        </span>
+      </label>
+
+      <!-- Helper inputs are plain text and marked ignore so password managers save the
+           combined field above, not these. -->
+      <details class="setup" id="setup">
+        <summary>First time? Build this from your two tokens</summary>
+        <div class="setup-body">
+          <p>Paste each token and the Credentials field fills itself. Sign in, and your
+             password manager will offer to save the combined value as the password.</p>
+          <label class="field">
+            <span class="lbl">DigitalOcean token <span class="hint">read/write</span></span>
+            <input type="text" id="do-token" autocomplete="off" spellcheck="false"
+                   data-bwignore data-1p-ignore data-lpignore="true" placeholder="dop_v1_…">
+          </label>
+          <label class="field">
+            <span class="lbl">Tailscale API key</span>
+            <input type="text" id="ts-token" autocomplete="off" spellcheck="false"
+                   data-bwignore data-1p-ignore data-lpignore="true" placeholder="tskey-api-…">
+          </label>
+        </div>
+      </details>
+
+      <div class="notice" id="do-help">
+        <strong>Where do these go?</strong> Your DigitalOcean token goes straight to DigitalOcean.
+        Tailscale's API can't be called from a web page, so your Tailscale key goes through a small
+        relay on this same site, which passes it to Tailscale and stores nothing.
+      </div>
+
+      <label class="check">
+        <input type="checkbox" id="remember">
+        <span>Keep me signed in on this device <span class="muted">(otherwise cleared when the tab closes)</span></span>
+      </label>
+
+      <button type="submit" class="primary" style="width:100%" id="btn-signin">Sign in</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ DASHBOARD ============ -->
+<section id="view-dash" class="hidden">
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <h2>Exit nodes</h2>
+    <span class="spacer"></span>
+    <button id="btn-refresh" class="ghost">Refresh</button>
+    <button id="btn-delete" class="danger" disabled>Delete</button>
+    <button id="btn-new" class="primary">New exit node</button>
+  </div>
+
+  <div class="tablewrap">
+    <table id="nodes">
+      <thead>
+        <tr>
+          <th>Name</th><th>Region</th><th>Public IP</th><th>Tailnet IP</th>
+          <th>Status</th><th>Size</th><th>Cost so far</th><th>Created</th><th>DO ID</th>
+        </tr>
+      </thead>
+      <tbody id="nodes-body"></tbody>
+    </table>
+    <div class="empty hidden" id="nodes-empty">
+      <p>No exit nodes yet.</p>
+      <button class="primary" id="btn-new-empty">Create your first exit node</button>
+    </div>
+  </div>
+
+  <p class="small muted" style="margin-top:14px">
+    Nodes are DigitalOcean droplets tagged <code>yVPN</code>. Tailnet columns come through
+    this site's Tailscale relay and are matched to droplets by name.
+  </p>
+</section>
+
+</div>
+<div class="scan"></div><div class="vig"></div>
+</main>
+
+<footer class="rail">
+  <span class="keys">
+    <span><span class="cap">N</span><span class="stamp">new</span></span>
+    <span><span class="cap">D</span><span class="stamp">delete</span></span>
+    <span><span class="cap">R</span><span class="stamp">refresh</span></span>
+    <span><span class="cap">J K</span><span class="stamp">select</span></span>
+    <span><span class="cap">?</span><span class="stamp">help</span></span>
+  </span>
+  <span class="spacer"></span>
+  <span class="display">
+    <span class="stamp" id="display-label">display</span>
+    <span class="sel" role="group" aria-labelledby="display-label" id="display-sel">
+      <button class="seg" data-theme="auto"  aria-pressed="true">auto</button>
+      <button class="seg" data-theme="dark"  aria-pressed="false">dark</button>
+      <button class="seg" data-theme="light" aria-pressed="false">light</button>
+    </span>
+  </span>
+</footer>
+
+<!-- ============ CREATE ============ -->
+<dialog id="dlg-create">
+  <form method="dialog">
+    <div class="dlg-head">
+      <h2>New exit node</h2>
+      <p class="sub" id="create-sub">Pick a datacenter. A droplet is provisioned there, joins your
+        tailnet with a single-use ephemeral key, and is enabled as an exit node.</p>
+    </div>
+    <div class="dlg-body">
+      <div id="regions" class="regions"></div>
+      <div id="create-progress" class="hidden">
+        <div class="log" id="create-log"></div>
+        <progress id="create-bar" max="5" value="0"></progress>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button value="cancel" id="btn-create-cancel" class="ghost">Cancel</button>
+      <button value="go" id="btn-create-go" class="primary" formmethod="dialog">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ DELETE ============ -->
+<dialog id="dlg-delete">
+  <form method="dialog">
+    <div class="dlg-head">
+      <h2>Delete exit node</h2>
+      <p class="sub" id="delete-sub"></p>
+    </div>
+    <div class="dlg-body">
+      <div class="notice">
+        The droplet is destroyed immediately and billing stops. The matching machine stays in your
+        tailnet until Tailscale reaps it — ephemeral nodes disappear on their own.
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button value="cancel" class="ghost">Cancel</button>
+      <button value="go" class="danger" id="btn-delete-go">Delete node</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="help" popover>
+  <h3>Keyboard shortcuts</h3>
+  <dl>
+    <dt>n</dt><dd>New exit node</dd>
+    <dt>d</dt><dd>Delete selected node</dd>
+    <dt>r</dt><dd>Refresh</dd>
+    <dt>j k / ↓ ↑</dt><dd>Move selection</dd>
+    <dt>?</dt><dd>This panel</dd>
+    <dt>Esc</dt><dd>Close</dd>
+  </dl>
+  <p class="small muted" style="margin-top:14px">
+    Mirrors the <code>yvpn tui</code> keymap.
+  </p>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+"use strict";
+
+/* =======================================================================
+   yVPN web — a static, dependency-free front end for the yvpn CLI.
+
+   DigitalOcean is called directly from the browser (its API sends
+   `access-control-allow-origin: *` and permits the Authorization header).
+
+   Tailscale's API sends no CORS headers at all, so every browser blocks it.
+   Those calls go to /api/ on the page's own origin, where the server that
+   hosts this page (apps/web/proxy/) relays them. The DigitalOcean token
+   never touches the proxy.
+   ======================================================================= */
+
+const DO_API = "https://api.digitalocean.com/v2";
+const TAG = "yVPN";
+const POLL_MS = 3000;          // CLI polls every 1s; 3s is kinder to the rate limiter
+const POLL_TIMEOUT_MS = 15 * 60 * 1000;
+const CFG_KEY = "yvpn.cfg";
+const THEME_KEY = "yvpn.theme";   // display preference; survives sign-out
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => [...document.querySelectorAll(sel)];
+
+let cfg = null;
+let state = { nodes: [], regions: [], devices: [], selected: null };
+let creating = null;           // AbortController while a create is in flight
+
+/* ------------------------------ storage ------------------------------ */
+
+function saveCfg(c) {
+  const target = c.remember ? localStorage : sessionStorage;
+  const other = c.remember ? sessionStorage : localStorage;
+  try { other.removeItem(CFG_KEY); } catch {}
+  try { target.setItem(CFG_KEY, JSON.stringify(c)); } catch {}
+}
+
+function loadCfg() {
+  for (const s of [sessionStorage, localStorage]) {
+    try {
+      const raw = s.getItem(CFG_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+  }
+  return null;
+}
+
+function clearCfg() {
+  for (const s of [sessionStorage, localStorage]) {
+    try { s.removeItem(CFG_KEY); } catch {}
+  }
+}
+
+/* ------------------------------- http -------------------------------- */
+
+class ApiError extends Error {
+  constructor(msg, status) { super(msg); this.status = status; }
+}
+
+async function req(url, opts = {}) {
+  let res;
+  try {
+    res = await fetch(url, opts);
+  } catch (e) {
+    if (e.name === "AbortError") throw e;
+    throw new ApiError(
+      "Network request failed. Tailscale calls need this page to be served by the yVPN " +
+      "server or Worker (apps/web/proxy/), not opened as a file.", 0);
+  }
+  const text = await res.text();
+  let body = null;
+  if (text) { try { body = JSON.parse(text); } catch { body = null; } }
+
+  if (!res.ok) {
+    const msg = (body && (body.message || body.error)) || text.slice(0, 300) || res.statusText;
+    throw new ApiError(msg, res.status);
+  }
+  return body;
+}
+
+const doFetch = (path, opts = {}) => req(DO_API + path, {
+  ...opts,
+  headers: {
+    "Authorization": "Bearer " + cfg.doToken,
+    "Content-Type": "application/json",
+    ...(opts.headers || {}),
+  },
+});
+
+// Same-origin: whatever serves this page also relays /api/ to Tailscale.
+const tsFetch = (path, opts = {}) => req(path, {
+  ...opts,
+  headers: {
+    "Authorization": "Bearer " + cfg.tsToken,
+    "Content-Type": "application/json",
+    ...(opts.headers || {}),
+  },
+});
+
+/* -------------------------- DigitalOcean ops -------------------------- */
+/* Mirrors apps/cli/pkg/digital_ocean/digital_ocean.go */
+
+async function fetchExitNodes() {
+  const r = await doFetch("/droplets?tag_name=" + encodeURIComponent(TAG) + "&per_page=200");
+  return r.droplets || [];
+}
+
+async function fetchDatacenters() {
+  const r = await doFetch("/regions?per_page=200");
+  return (r.regions || [])
+    .filter((x) => x.available)
+    .sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
+function cloudInit(authKey) {
+  // Byte-for-byte the script the CLI writes, so both front ends make identical nodes.
+  return `#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - curl
+
+runcmd:
+  # Install Tailscale
+  - curl -fsSL https://tailscale.com/install.sh | sh
+  
+  # Authenticate and join the Tailscale network using your auth key
+  - sudo tailscale up --authkey ${authKey} --advertise-exit-node
+
+  # Optional: Enable IP forwarding for proper routing
+  - echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
+  - echo "net.ipv6.conf.all.forwarding=1" | sudo tee -a /etc/sysctl.conf
+  - sudo sysctl -p
+
+  # Optional: Set up firewall rules to allow traffic forwarding
+  - sudo iptables -A FORWARD -i tailscale0 -j ACCEPT
+  - sudo iptables -A FORWARD -o tailscale0 -j ACCEPT
+  - sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+final_message: "Tailscale exit node setup complete."
+`;
+}
+
+async function createDroplet(authKey, datacenter, signal) {
+  const name = `${datacenter}-yvpn-${Math.floor(Date.now() / 1000)}`;
+  const r = await doFetch("/droplets", {
+    method: "POST",
+    signal,
+    body: JSON.stringify({
+      name,
+      region: datacenter,
+      size: "s-1vcpu-1gb",
+      image: "ubuntu-24-04-x64",
+      tags: [TAG],
+      user_data: cloudInit(authKey),
+    }),
+  });
+  return { name, id: r.droplet.id };
+}
+
+const deleteDroplet = (id) => doFetch("/droplets/" + id, { method: "DELETE" });
+
+/* ---------------------------- Tailscale ops --------------------------- */
+/* Mirrors apps/cli/pkg/tailscale/tailscale.go */
+
+async function getAuthKey(signal) {
+  const r = await tsFetch("/api/v2/tailnet/-/keys?all=true", {
+    method: "POST",
+    signal,
+    body: JSON.stringify({
+      capabilities: { devices: { create: {
+        reusable: false, ephemeral: true, preauthorized: true, tags: [],
+      } } },
+      expirySeconds: 3600,
+      description: "yVPN endpoint auth key",
+    }),
+  });
+  return { key: r.key, id: r.id };
+}
+
+const deleteAuthKey = (id) => tsFetch("/api/v2/tailnet/-/keys/" + encodeURIComponent(id), { method: "DELETE" });
+
+async function getDevices(signal) {
+  const r = await tsFetch("/api/v2/tailnet/-/devices", { signal });
+  return r.devices || [];
+}
+
+const getRoutes = (deviceId, signal) =>
+  tsFetch("/api/v2/device/" + encodeURIComponent(deviceId) + "/routes", { signal });
+
+const setRoutes = (deviceId, routes, signal) =>
+  tsFetch("/api/v2/device/" + encodeURIComponent(deviceId) + "/routes", {
+    method: "POST", signal, body: JSON.stringify({ routes }),
+  });
+
+/** Wait for the droplet to appear on the tailnet, then approve its advertised routes. */
+async function enableExit(name, signal, onTick) {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  let attempt = 0;
+  while (Date.now() < deadline) {
+    if (signal.aborted) throw new DOMException("aborted", "AbortError");
+    const devices = await getDevices(signal);
+    const match = devices.find((d) => (d.name || "").includes(name) || (d.hostname || "").includes(name));
+    if (match) {
+      const routes = await getRoutes(match.id, signal);
+      await setRoutes(match.id, routes.advertisedRoutes || [], signal);
+      return match;
+    }
+    attempt++;
+    if (onTick) onTick(attempt);
+    await sleep(POLL_MS, signal);
+  }
+  throw new Error("Exit node did not appear on the tailnet within " + (POLL_TIMEOUT_MS / 60000) + " minutes.");
+}
+
+function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => {
+      clearTimeout(t);
+      reject(new DOMException("aborted", "AbortError"));
+    }, { once: true });
+  });
+}
+
+/* ------------------------------ helpers ------------------------------ */
+
+const fmtMoney = (n) => (n == null ? "—" : "$" + Number(n).toFixed(2));
+
+// DigitalOcean bills Droplets per second at price_hourly, with a 60 s / $0.01
+// minimum, and caps each calendar month at 672 hours (so never more than
+// price_monthly). Billing lives with the droplet, so this only covers nodes that
+// still exist — which is what the table shows.
+const MONTHLY_CAP_HOURS = 672;
+const hourlyRate = (d) => d.size?.price_hourly ?? (d.size?.price_monthly ?? 0) / MONTHLY_CAP_HOURS;
+
+function costSoFar(d, now = Date.now()) {
+  const rate = hourlyRate(d);
+  const created = new Date(d.created_at).getTime();
+  if (!rate || !(created < now)) return 0;
+  let total = 0;
+  // Walk calendar months (UTC), capping the billable hours in each.
+  for (let start = created; start < now; ) {
+    const s = new Date(start);
+    const monthEnd = Date.UTC(s.getUTCFullYear(), s.getUTCMonth() + 1, 1);
+    const end = Math.min(monthEnd, now);
+    total += Math.min((end - start) / 3.6e6, MONTHLY_CAP_HOURS) * rate;
+    start = end;
+  }
+  return Math.max(total, 0.01);
+}
+
+function fmtAge(iso) {
+  if (!iso) return "—";
+  const secs = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (secs < 60) return Math.floor(secs) + "s ago";
+  if (secs < 3600) return Math.floor(secs / 60) + "m ago";
+  if (secs < 86400) return Math.floor(secs / 3600) + "h ago";
+  return Math.floor(secs / 86400) + "d ago";
+}
+
+const publicIP = (d) =>
+  (d.networks?.v4 || []).find((n) => n.type === "public")?.ip_address || "—";
+
+function toast(msg, kind = "") {
+  const el = document.createElement("div");
+  el.className = "toast " + kind;
+  el.role = "status";
+  el.textContent = msg;
+  $("#toasts").append(el);
+  setTimeout(() => el.remove(), kind === "err" ? 9000 : 4500);
+}
+
+function swapView(fn) {
+  if (document.startViewTransition) document.startViewTransition(fn);
+  else fn();
+}
+
+/* ------------------------------ rendering ----------------------------- */
+
+function renderStats() {
+  const nodes = state.nodes;
+  const perHour = nodes.reduce((s, d) => s + hourlyRate(d), 0);
+  const spent = nodes.reduce((s, d) => s + costSoFar(d), 0);
+  const online = nodes.filter((d) => d._device && isOnline(d._device)).length;
+
+  const cards = [
+    { k: "Exit nodes", v: String(nodes.length) },
+    { k: "On tailnet", v: `${online}<small> / ${nodes.length}</small>` },
+    { k: "Running cost", v: `$${perHour.toFixed(3)}<small>/hr</small>` },
+    { k: "Spent so far", v: fmtMoney(spent) },
+  ];
+
+  $("#stats").innerHTML = cards
+    .map((c) => `<div class="stat"><div class="k">${c.k}</div><div class="v">${c.v}</div></div>`)
+    .join("");
+}
+
+const isOnline = (dev) =>
+  dev.lastSeen ? (Date.now() - new Date(dev.lastSeen).getTime()) < 5 * 60 * 1000 : false;
+
+function statusPill(d) {
+  if (d.status !== "active") return `<span class="pill warn">${esc(d.status)}</span>`;
+  const dev = d._device;
+  if (!dev) return `<span class="pill warn">joining tailnet</span>`;
+  if (!isOnline(dev)) return `<span class="pill bad">offline</span>`;
+  if (d._exit === false) return `<span class="pill warn">route not approved</span>`;
+  return `<span class="pill ok">exit node</span>`;
+}
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function renderNodes() {
+  const body = $("#nodes-body");
+  const empty = $("#nodes-empty");
+  const table = $("#nodes");
+
+  if (!state.nodes.length) {
+    body.innerHTML = "";
+    table.classList.add("hidden");
+    empty.classList.remove("hidden");
+    return;
+  }
+  table.classList.remove("hidden");
+  empty.classList.add("hidden");
+
+  body.innerHTML = state.nodes.map((d) => `
+    <tr data-id="${d.id}" aria-selected="${state.selected === d.id}" tabindex="0">
+      <td class="name">${esc(d.name)}</td>
+      <td class="dim">${esc(d.region?.slug || "—")}</td>
+      <td class="dim">${esc(publicIP(d))}</td>
+      <td class="dim">${esc(d._device?.addresses?.[0] || "—")}</td>
+      <td>${statusPill(d)}</td>
+      <td class="dim">${esc(d.size?.slug || "—")}</td>
+      <td class="dim" title="${esc(fmtMoney(hourlyRate(d) * MONTHLY_CAP_HOURS))}/mo cap">${fmtMoney(costSoFar(d))}</td>
+      <td class="dim">${esc(fmtAge(d.created_at))}</td>
+      <td class="dim">${d.id}</td>
+    </tr>`).join("");
+
+  $("#btn-delete").disabled = state.selected == null;
+}
+
+/* ------------------------------- loading ------------------------------ */
+
+async function refresh() {
+  const btn = $("#btn-refresh");
+  btn.disabled = true;
+  btn.textContent = "Refreshing…";
+  try {
+    const nodes = await fetchExitNodes();
+    state.nodes = nodes;
+
+    // Tailnet enrichment is best-effort: a bad proxy shouldn't blank the droplet list.
+    try {
+      state.devices = await getDevices();
+      for (const d of state.nodes) {
+        d._device = state.devices.find(
+          (dev) => (dev.name || "").includes(d.name) || (dev.hostname || "").includes(d.name));
+      }
+      await Promise.all(state.nodes.filter((d) => d._device).map(async (d) => {
+        try {
+          const r = await getRoutes(d._device.id);
+          d._exit = (r.enabledRoutes || []).some((x) => x === "0.0.0.0/0" || x === "::/0");
+        } catch { d._exit = undefined; }
+      }));
+    } catch (e) {
+      toast("Tailscale proxy unreachable — showing DigitalOcean data only. " + e.message, "err");
+    }
+
+    if (state.selected != null && !state.nodes.some((n) => n.id === state.selected)) {
+      state.selected = null;
+    }
+    renderStats();
+    renderNodes();
+  } catch (e) {
+    toast("Could not load exit nodes: " + e.message, "err");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Refresh";
+  }
+}
+
+async function loadRegions() {
+  try {
+    state.regions = await fetchDatacenters();
+  } catch (e) {
+    toast("Could not load datacenters: " + e.message, "err");
+    state.regions = [];
+  }
+  $("#regions").innerHTML = state.regions.map((r, i) => `
+    <label class="region">
+      <input type="radio" name="region" value="${esc(r.slug)}" ${i === 0 ? "checked" : ""}>
+      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i></span>
+    </label>`).join("") || `<p class="muted small">No datacenters available.</p>`;
+}
+
+/* ------------------------------- create ------------------------------- */
+
+function logLine(msg, kind = "") {
+  const row = document.createElement("div");
+  row.className = "row " + kind;
+  const t = new Date().toLocaleTimeString([], { hour12: false });
+  row.innerHTML = `<span class="t">${t}</span><span>${esc(msg)}</span>`;
+  $("#create-log").append(row);
+  $("#create-log").scrollTop = $("#create-log").scrollHeight;
+}
+
+async function runCreate(datacenter) {
+  const bar = $("#create-bar");
+  const step = (n) => { bar.value = n; };
+  creating = new AbortController();
+  const signal = creating.signal;
+  const started = Date.now();
+
+  $("#regions").classList.add("hidden");
+  $("#create-progress").classList.remove("hidden");
+  $("#create-log").innerHTML = "";
+  $("#create-sub").textContent = "Provisioning in " + datacenter + "…";
+  $("#btn-create-go").disabled = true;
+  $("#btn-create-cancel").textContent = "Cancel";
+
+  let keyId = null, dropletId = null;
+
+  try {
+    logLine("Getting an auth key from Tailscale…");
+    const key = await getAuthKey(signal);
+    keyId = key.id;
+    step(1);
+
+    logLine(`Provisioning a new droplet in the ${datacenter} datacenter…`);
+    const droplet = await createDroplet(key.key, datacenter, signal);
+    dropletId = droplet.id;
+    logLine(`Droplet ${droplet.name} created (id ${droplet.id}).`);
+    step(2);
+
+    logLine("Waiting for the new exit node to phone home to Tailscale…");
+    const dev = await enableExit(droplet.name, signal,
+      (n) => { if (n % 5 === 0) logLine(`  …still waiting (${n * POLL_MS / 1000}s)`); });
+    logLine(`Node joined as ${dev.name} — exit routes approved.`, "ok");
+    step(4);
+
+    logLine("Deleting the Tailscale auth key…");
+    await deleteAuthKey(keyId).catch(() => logLine("  (auth key cleanup failed; it expires in 1h)", "err"));
+    keyId = null;
+    step(5);
+
+    const secs = Math.round((Date.now() - started) / 1000);
+    logLine(`Exit node ready in ${secs}s.`, "ok");
+    toast(`Exit node ${droplet.name} is ready.`, "ok");
+    $("#btn-create-cancel").textContent = "Close";
+    await refresh();
+  } catch (e) {
+    const aborted = e.name === "AbortError";
+    logLine(aborted ? "Cancelled." : "ERROR: " + e.message, "err");
+
+    // Same cleanup the CLI does when it can't bring a node up.
+    if (dropletId != null) {
+      logLine("Rolling back: deleting droplet " + dropletId + "…");
+      try { await deleteDroplet(dropletId); logLine("  droplet deleted.", "ok"); }
+      catch (err) { logLine("  could not delete droplet " + dropletId + ": " + err.message, "err"); }
+    }
+    if (keyId != null) {
+      try { await deleteAuthKey(keyId); } catch {}
+    }
+    if (!aborted) toast("Create failed: " + e.message, "err");
+    $("#btn-create-cancel").textContent = "Close";
+    await refresh();
+  } finally {
+    creating = null;
+    // Deliberately leave Create disabled: the region picker is hidden and a
+    // second click here would silently provision another node. openCreate()
+    // re-arms it for the next run.
+  }
+}
+
+/* -------------------------------- views ------------------------------- */
+
+function showDash() {
+  swapView(() => {
+    $("#view-login").classList.add("hidden");
+    $("#view-dash").classList.remove("hidden");
+    $("#btn-logout").classList.remove("hidden");
+    const who = $("#who");
+    who.textContent = cfg.profile ? cfg.profile : "signed in";
+    who.classList.remove("hidden");
+  });
+  refresh();
+  loadRegions();
+}
+
+function showLogin() {
+  swapView(() => {
+    $("#view-dash").classList.add("hidden");
+    $("#view-login").classList.remove("hidden");
+    $("#btn-logout").classList.add("hidden");
+    $("#who").classList.add("hidden");
+  });
+}
+
+/* ------------------------------- events ------------------------------- */
+
+// The password is both tokens separated by whitespace, in either order. Tokens are
+// told apart by prefix; neither format contains whitespace. A legacy unprefixed DO
+// token is accepted when it's the only other part.
+const joinCredentials = (doToken, tsToken) => [doToken, tsToken].filter(Boolean).join(" ");
+
+function parseCredentials(raw) {
+  const parts = raw.trim().split(/\s+/).filter(Boolean);
+  const ts = parts.filter((p) => p.startsWith("tskey-api-"));
+  const rest = parts.filter((p) => !p.startsWith("tskey-api-"));
+  const dop = rest.filter((p) => /^do[a-z]_v1_/.test(p));
+  const doCands = dop.length ? dop : rest;
+
+  if (ts.length === 0) {
+    const hint = parts.some((p) => p.startsWith("tskey-"))
+      ? " That looks like a different kind of Tailscale key — use an API access token."
+      : "";
+    throw new Error("No Tailscale API key (tskey-api-…) found in Credentials." + hint);
+  }
+  if (doCands.length === 0) throw new Error("No DigitalOcean token (dop_v1_…) found in Credentials.");
+  if (ts.length > 1 || doCands.length > 1 || parts.length > 2) {
+    throw new Error("Credentials should be exactly two tokens: a DigitalOcean token and a Tailscale API key.");
+  }
+  return { doToken: doCands[0], tsToken: ts[0] };
+}
+
+// Password managers learn what to save from input/change events on the password
+// field; a value set from script fires none, so raise them as typing would.
+const syncFromSetup = () => {
+  const el = $("#credentials");
+  el.value = joinCredentials($("#do-token").value.trim(), $("#ts-token").value.trim());
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+};
+$("#do-token").addEventListener("input", syncFromSetup);
+$("#ts-token").addEventListener("input", syncFromSetup);
+
+$("#login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = $("#btn-signin");
+  let tokens;
+  try {
+    tokens = parseCredentials($("#credentials").value);
+  } catch (err) {
+    toast(err.message, "err");
+    $("#credentials").focus();
+    return;
+  }
+  const next = {
+    profile: $("#profile").value.trim(),
+    ...tokens,
+    remember: $("#remember").checked,
+  };
+
+  btn.disabled = true;
+  btn.textContent = "Checking credentials…";
+  cfg = next;
+  try {
+    // Verify the DigitalOcean token before committing; a bad token here is the
+    // most common mistake and the error is much clearer at sign-in.
+    await doFetch("/account");
+    saveCfg(next);
+    showDash();
+  } catch (err) {
+    cfg = null;
+    toast(err.status === 401
+      ? "DigitalOcean rejected that token (401). Check it has read/write scope."
+      : "Sign-in failed: " + err.message, "err");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Sign in";
+  }
+});
+
+$$(".reveal").forEach((b) => b.addEventListener("click", () => {
+  const input = b.previousElementSibling;
+  const showing = input.type === "text";
+  input.type = showing ? "password" : "text";
+  b.textContent = showing ? "show" : "hide";
+  b.setAttribute("aria-label", showing ? "Show credentials" : "Hide credentials");
+}));
+
+$("#btn-logout").addEventListener("click", () => {
+  clearCfg();
+  cfg = null;
+  state = { nodes: [], regions: [], devices: [], selected: null };
+  $("#credentials").value = "";
+  $("#do-token").value = "";
+  $("#ts-token").value = "";
+  $("#setup").open = false;
+  showLogin();
+  toast("Signed out. Credentials cleared from this browser.");
+});
+
+$("#btn-refresh").addEventListener("click", refresh);
+
+$("#nodes-body").addEventListener("click", (e) => {
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+  state.selected = state.selected === +tr.dataset.id ? null : +tr.dataset.id;
+  renderNodes();
+});
+
+function openCreate() {
+  $("#regions").classList.remove("hidden");
+  $("#create-progress").classList.add("hidden");
+  $("#create-sub").textContent =
+    "Pick a datacenter. A droplet is provisioned there, joins your tailnet with a " +
+    "single-use ephemeral key, and is enabled as an exit node.";
+  $("#btn-create-go").disabled = false;
+  $("#btn-create-cancel").textContent = "Cancel";
+  $("#create-bar").value = 0;
+  $("#dlg-create").showModal();
+}
+
+$("#btn-new").addEventListener("click", openCreate);
+$("#btn-new-empty").addEventListener("click", openCreate);
+
+$("#btn-create-go").addEventListener("click", (e) => {
+  const picked = $("#regions input:checked");
+  if (!picked) { e.preventDefault(); toast("Pick a datacenter first.", "err"); return; }
+  e.preventDefault();               // keep the dialog open to show progress
+  runCreate(picked.value);
+});
+
+$("#btn-create-cancel").addEventListener("click", () => {
+  if (creating) creating.abort();   // dialog stays open so rollback stays visible
+});
+
+$("#dlg-create").addEventListener("cancel", (e) => {
+  if (creating) { e.preventDefault(); toast("Creation in progress — use Cancel to roll back."); }
+});
+
+$("#btn-delete").addEventListener("click", () => {
+  const node = state.nodes.find((n) => n.id === state.selected);
+  if (!node) return;
+  $("#delete-sub").innerHTML =
+    `Destroy <code>${esc(node.name)}</code> in ${esc(node.region?.slug || "?")} (DO id ${node.id})?`;
+  $("#dlg-delete").showModal();
+});
+
+$("#dlg-delete").addEventListener("close", async (e) => {
+  if ($("#dlg-delete").returnValue !== "go") return;
+  const id = state.selected;
+  const node = state.nodes.find((n) => n.id === id);
+  try {
+    await deleteDroplet(id);
+    toast(`Exit node ${node ? node.name : id} deleted.`, "ok");
+    state.selected = null;
+    await refresh();
+  } catch (err) {
+    toast("Delete failed: " + err.message, "err");
+  }
+});
+
+/* DISPLAY is a three-position switch, so each position is addressed directly
+   rather than cycled through -- the control shows its own state, which is also
+   why this no longer raises a toast. "auto" means no inline override at all,
+   leaving it byte-identical to a fresh load rather than a second spelling of it. */
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === "auto") root.style.removeProperty("color-scheme");
+  else root.style.colorScheme = theme;
+  // Deliberately not part of cfg: a display preference should outlive sign-out,
+  // and should stick even when the credentials themselves are session-only.
+  try {
+    if (theme === "auto") localStorage.removeItem(THEME_KEY);
+    else localStorage.setItem(THEME_KEY, theme);
+  } catch {}
+  $$("#display-sel .seg").forEach((b) =>
+    b.setAttribute("aria-pressed", String(b.dataset.theme === theme)));
+}
+
+$$("#display-sel .seg").forEach((b) =>
+  b.addEventListener("click", () => applyTheme(b.dataset.theme)));
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.matches("input, textarea, select")) return;
+  // Leave browser shortcuts alone (Ctrl+K, Ctrl+R, …) now that j/k call preventDefault.
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if ($("#view-dash").classList.contains("hidden")) return;
+  if (document.querySelector("dialog[open]")) return;
+
+  const rows = state.nodes;
+  const idx = rows.findIndex((n) => n.id === state.selected);
+
+  switch (e.key) {
+    case "n": openCreate(); break;
+    case "d": if (state.selected != null) $("#btn-delete").click(); break;
+    case "r": refresh(); break;
+    case "?": $("#help").togglePopover(); break;
+    case "j":
+    case "ArrowDown":
+      e.preventDefault();
+      if (rows.length) { state.selected = rows[Math.min(idx + 1, rows.length - 1)].id; renderNodes(); }
+      break;
+    case "k":
+    case "ArrowUp":
+      e.preventDefault();
+      if (rows.length) { state.selected = rows[Math.max(idx - 1, 0)].id; renderNodes(); }
+      break;
+  }
+});
+
+/* -------------------------------- boot -------------------------------- */
+
+(function boot() {
+  let storedTheme = null;
+  try { storedTheme = localStorage.getItem(THEME_KEY); } catch {}
+  applyTheme(storedTheme === "dark" || storedTheme === "light" ? storedTheme : "auto");
+
+  const saved = loadCfg();
+  if (saved) {
+    $("#profile").value = saved.profile || "";
+    $("#credentials").value = joinCredentials(saved.doToken, saved.tsToken);
+    $("#remember").checked = !!saved.remember;
+    if (saved.doToken && saved.tsToken) {
+      cfg = saved;
+      showDash();
+    }
+  }
+})();
+</script>
+</body>
+</html>

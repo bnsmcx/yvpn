@@ -1,10 +1,25 @@
 # yVPN
 
-A terminal user interface (TUI) application for managing VPN exit nodes on a Tailscale network using DigitalOcean droplets.
+Manage VPN exit nodes on a Tailscale network using DigitalOcean droplets — from a
+terminal or a browser.
 
 ## Overview
 
 yVPN simplifies the creation and management of distributed VPN exit nodes. It provisions DigitalOcean droplets preconfigured as Tailscale exit nodes, giving you on-demand VPN endpoints in various geographic locations.
+
+Two front ends share one workflow:
+
+| App | Path | What it is |
+|---|---|---|
+| CLI / TUI | [`apps/cli`](apps/cli) | Go binary — interactive TUI, scriptable CLI, SSH server mode |
+| Web | [`apps/web`](apps/web) | Single static HTML file — no build, no npm, no framework |
+
+The web app is documented in [apps/web/README.md](apps/web/README.md). It is
+deployed as one Cloudflare Worker (or run locally as one Go binary) that serves
+the page and relays its Tailscale API calls from the same origin, so users only
+enter their two API credentials. DigitalOcean is called straight from the page.
+
+The rest of this document covers the CLI.
 
 ## Features
 
@@ -47,7 +62,7 @@ sudo mv yvpn-darwin-amd64 /usr/local/bin/yvpn
 
 ```bash
 git clone https://github.com/bnsmcx/yvpn.git
-cd yvpn
+cd yvpn/apps/cli
 go build -o yvpn ./cmd/tui
 ```
 
@@ -137,21 +152,27 @@ Pass credentials via SSH environment variables.
 
 ```
 yvpn/
-├── cmd/
-│   └── tui/           # Main application
-│       ├── main.go    # Entry point, SSH server
-│       ├── cli.go     # CLI commands
-│       ├── dash.go    # Dashboard view
-│       ├── add.go     # Create exit node screen
-│       ├── delete.go  # Delete exit node screen
-│       ├── onboard.go # Credential input
-│       └── style.go   # UI styling
-├── pkg/
-│   ├── digital_ocean/ # DigitalOcean API wrapper
-│   └── tailscale/     # Tailscale API wrapper
-├── Dockerfile
-├── go.mod
-└── shell.nix          # Nix development environment
+├── apps/
+│   ├── cli/               # Go TUI + CLI
+│   │   ├── cmd/tui/
+│   │   │   ├── main.go    # Entry point, SSH server
+│   │   │   ├── cli.go     # CLI commands
+│   │   │   ├── dash.go    # Dashboard view
+│   │   │   ├── add.go     # Create exit node screen
+│   │   │   ├── delete.go  # Delete exit node screen
+│   │   │   ├── onboard.go # Credential input
+│   │   │   └── style.go   # UI styling
+│   │   ├── pkg/
+│   │   │   ├── digital_ocean/
+│   │   │   └── tailscale/
+│   │   ├── Dockerfile
+│   │   ├── go.mod
+│   │   └── shell.nix      # Nix development environment
+│   └── web/               # Single-page web app
+│       ├── index.html     # The entire application
+│       ├── proxy/         # Serves the page + Tailscale relay (Worker + Go)
+│       └── test/          # Playwright end-to-end test
+└── README.md
 ```
 
 ## Development
@@ -159,7 +180,7 @@ yvpn/
 ### Using Nix
 
 ```bash
-nix-shell
+cd apps/cli && nix-shell
 ```
 
 This provides Go, Git, gopls, and development tools.

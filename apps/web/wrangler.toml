@@ -1,0 +1,11 @@
+# Deploys the whole web app as one Cloudflare Worker: the page and its
+# Tailscale relay on a single origin. Run `npx wrangler deploy` from apps/web.
+name = "yvpn"
+main = "proxy/worker.js"
+compatibility_date = "2026-01-01"
+
+# Bundle index.html into the Worker as a string.
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = false

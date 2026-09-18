@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #120C06; color: #EFE2C6;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+    a { color: #FFB000; } a:hover { color: #FFC94D; }
+    .stamp { font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: #C5B08A; font-weight: 700; }
+    .stampd { font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: #8A7550; font-weight: 700; }
+    .lamp { width: 9px; height: 9px; border-radius: 50%; border: 1px solid #8A7550; }
+    .sel { display: flex; border: 1px solid #3A2C1C; border-radius: 3px; overflow: hidden;
+      background: #100B06; box-shadow: inset 0 1px 3px rgba(0,0,0,.34); }
+    .seg { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700;
+      color: #8A7550; padding: 4px 10px; }
+    .seg.on { background: linear-gradient(180deg, #6A4E26, #4E3819); color: #F0E0BC;
+      box-shadow: 0 1px 2px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,235,190,.18); }
+    .lbl { font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: #97845F; }
+    .hint { color: #7A6844; letter-spacing: .06em; }
+    .fld { width: 100%; box-sizing: border-box; background: #100A05; border: 1px solid #3E2F1D;
+      color: #EFE2C6; font: 12.5px ui-monospace, Menlo, monospace; padding: 9px 11px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.6); }
+    .glow { text-shadow: 0 0 9px rgba(255,176,0,.5); }
+  </style>
+</helmet>
+<div style="width: 820px; height: 660px; box-sizing: border-box; display: flex; flex-direction: column;
+            background-image: linear-gradient(180deg, #221910 0%, #1B1309 46px, #1B1309 calc(100% - 44px), #140E06 100%)">
+
+  <!-- housing: upper rail -->
+  <div style="height: 46px; flex: none; display: flex; align-items: center; gap: 13px; padding: 0 18px;
+              border-bottom: 1px solid #3A2C1C">
+    <span style="width: 10px; height: 10px; border-radius: 50%; background: #2E2216;
+                 box-shadow: inset 0 1px 2px rgba(0,0,0,.45)"></span>
+    <span style="font-size: 15px; font-weight: 800; color: #C5B08A; letter-spacing: .04em">yVPN</span>
+    <span class="stamp">exit node control</span>
+    <span style="flex-grow: 1"></span>
+    <span class="stampd">auth required</span>
+    <span style="display: flex; gap: 7px">
+      <span class="lamp" style="background: #D9822B; box-shadow: 0 0 7px rgba(217,130,43,.6)"></span>
+      <span class="lamp" style="background: #33261A"></span>
+      <span class="lamp" style="background: #33261A"></span>
+    </span>
+    <span style="width: 10px; height: 10px; border-radius: 50%; background: #2E2216;
+                 box-shadow: inset 0 1px 2px rgba(0,0,0,.45)"></span>
+  </div>
+
+  <!-- the screen -->
+  <div style="flex-grow: 1; margin: 11px 16px; position: relative; overflow: hidden;
+              display: flex; flex-direction: column; justify-content: center;
+              background: #17100A; border: 1px solid #4A3A24; border-radius: 5px;
+              box-shadow: inset 0 0 26px rgba(0,0,0,.85), 0 1px 0 rgba(255,220,160,.07)">
+    <div style="padding: 20px 22px; display: flex; flex-direction: column; gap: 13px">
+
+      <div>
+        <div style="display: flex; align-items: baseline; gap: 9px">
+          <span class="glow" style="color: #FFB000; font-size: 15px; font-weight: 700">sign in</span>
+          <span style="width: 7px; height: 12px; background: #FFB000; display: inline-block" class="glow"></span>
+        </div>
+        <p style="margin: 7px 0 0; font-size: 11.5px; line-height: 1.6; color: #A08B64">
+          No account here. You sign in with the credentials this app acts with &mdash; they stay in
+          this browser and go only to DigitalOcean and, through this site's relay, to Tailscale.
+        </p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 5px">
+        <span class="lbl">profile <span class="hint">a label for this credential set</span></span>
+        <input class="fld" value="personal" readonly>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 5px">
+        <span class="lbl">credentials <span class="hint">digitalocean token + tailscale key</span></span>
+        <span style="position: relative; display: block">
+          <input class="fld" style="padding-right: 52px" readonly
+                 value="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;">
+          <span style="position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+                       font-size: 11px; color: #97845F">show</span>
+        </span>
+      </div>
+
+      <div style="border: 1px solid #2A1F13; background: #130D07; padding: 9px 12px;
+                  display: flex; align-items: center; gap: 9px">
+        <span style="color: #FFB000; font-size: 11px">&#9656;</span>
+        <span style="font-size: 11.5px; color: #C7B08B">First time? Build this from your two tokens</span>
+      </div>
+
+      <div style="display: flex; gap: 10px; border-left: 2px solid #FFB000; padding: 2px 0 2px 12px">
+        <p style="margin: 0; font-size: 11px; line-height: 1.65; color: #A08B64">
+          <span style="color: #EFE2C6">Where do these go?</span> Your DigitalOcean token goes straight
+          to DigitalOcean. Tailscale's API can't be called from a web page, so your Tailscale key goes
+          through a small relay on this same site, which passes it on and stores nothing.
+        </p>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 9px; margin-top: 2px">
+        <span style="width: 13px; height: 13px; border: 1px solid #FFB000; background: #FFB000;
+                     display: grid; place-items: center; color: #17100A; font-size: 10px;
+                     line-height: 1; font-weight: 700">&times;</span>
+        <span style="font-size: 11.5px; color: #C7B08B">keep me signed in on this device</span>
+      </div>
+
+      <div class="glow" style="background: #FFB000; color: #17100A; text-align: center; padding: 11px;
+                  font-size: 12.5px; font-weight: 700; letter-spacing: .05em">
+        <span style="opacity: .5">[</span> sign in <span style="opacity: .5">]</span>
+      </div>
+    </div>
+
+    <div style="position: absolute; inset: 0; pointer-events: none;
+                background: repeating-linear-gradient(0deg, rgba(255,205,130,.035) 0 1px, transparent 1px 3px)"></div>
+    <div style="position: absolute; inset: 0; pointer-events: none;
+                background: radial-gradient(120% 95% at 50% 40%, transparent 52%, rgba(0,0,0,.5) 100%)"></div>
+  </div>
+
+  <!-- housing: lower rail -->
+  <div style="height: 44px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 18px;
+              border-top: 1px solid #3A2C1C">
+    <span class="stampd">unit 616</span>
+    <span style="flex-grow: 1"></span>
+    <span style="display: flex; align-items: center; gap: 9px">
+      <span class="stamp">display</span>
+      <span class="sel">
+        <span class="seg">auto</span>
+        <span class="seg on">dark</span>
+        <span class="seg">light</span>
+      </span>
+    </span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
