@@ -360,8 +360,20 @@ dialog {
    knows what an API token is, and each section below assumes less. */
 #dlg-guide {
   width: min(680px, calc(100vw - 32px));
+  max-height: 88vh;
 
-  & .dlg-body { max-height: min(68vh, 620px); overflow-y: auto; }
+  /* Only when open: a bare `display: flex` here would override the closed
+     dialog's `display: none` and leave it covering the page. */
+  &[open] { display: flex; flex-direction: column; }
+  & form { display: flex; flex-direction: column; min-height: 0; }
+  /* The body scrolls, so it needs to look scrollable: a visible track, and a fade
+     at the bottom edge rather than a paragraph that appears to stop mid-sentence. */
+  & .dlg-body {
+    flex: 1; min-height: 0; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: var(--amber) transparent;
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent);
+  }
+  & .dlg-body:not(:hover) { scrollbar-color: var(--dim) transparent; }
   & .lede { font-size: 13px; line-height: 1.7; margin: 0 0 4px; }
   & h3 {
     font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--amber);
@@ -373,6 +385,7 @@ dialog {
   & b { color: var(--text); font-weight: 600; }
   & code { color: var(--amber); }
   & a { color: var(--amber); }
+  & .disclosure { color: var(--dim); }
 }
 
 .regions {
@@ -494,7 +507,7 @@ code { font-family: var(--mono); color: var(--text); }
   <span class="screw"></span>
   <span class="brand">yVPN</span>
   <span class="stamp">exit node control</span>
-  <span class="stamp-dim ver" id="ver-header">v0.3.1</span>
+  <span class="stamp-dim ver" id="ver-header">v0.3.2</span>
   <span class="spacer"></span>
   <span id="who" class="stamp-dim hidden"></span>
   <button id="btn-guide" title="Getting started">guide</button>
@@ -630,7 +643,7 @@ code { font-family: var(--mono); color: var(--text); }
     <span><span class="cap">?</span><span class="stamp">help</span></span>
   </span>
   <span class="spacer"></span>
-  <span class="stamp-dim ver" id="ver-footer">v0.3.1</span>
+  <span class="stamp-dim ver" id="ver-footer">v0.3.2</span>
   <span class="display">
     <span class="stamp" id="display-label">display</span>
     <span class="sel" role="group" aria-labelledby="display-label" id="display-sel">
@@ -668,79 +681,93 @@ code { font-family: var(--mono); color: var(--text); }
   <form method="dialog">
     <div class="dlg-head">
       <h2>Getting started</h2>
-      <p class="sub">Read as far down as you need. The first paragraph is the whole thing.</p>
     </div>
     <div class="dlg-body">
       <p class="lede">
-        yVPN runs your own VPN exit nodes. You need two API tokens &mdash; a <b>DigitalOcean</b>
-        personal access token with read and write scope, and a <b>Tailscale</b> API access token.
-        Paste both into <b>Credentials</b>, press <b>New exit node</b>, pick a datacenter, and about
-        a minute later it appears in your Tailscale app as an exit node you can select. Delete it
-        when you are done; you pay for the hours it existed.
+        <b>You need two tokens:</b> a DigitalOcean personal access token with read and write scope,
+        and a Tailscale API access token.
       </p>
 
-      <h3>Getting the two tokens</h3>
+      <h3>Where the two tokens come from</h3>
       <ul>
         <li><b>DigitalOcean</b> &mdash; control panel &rarr; <b>API</b> &rarr; <b>Tokens</b> &rarr;
           <b>Generate New Token</b>, with <b>read and write</b> scope. It starts with
-          <code>dop_v1_</code>. This is what creates and destroys droplets, so it spends money.</li>
+          <code>dop_v1_</code> and is shown once.</li>
         <li><b>Tailscale</b> &mdash; admin console &rarr; <b>Settings</b> &rarr; <b>Keys</b> &rarr;
-          <b>Generate access token</b>. It starts with <code>tskey-api-</code>. This is what lets a
-          new node join your tailnet and be approved as an exit node.</li>
+          <b>Generate access token</b>. It starts with <code>tskey-api-</code>.</li>
       </ul>
       <p>
         Paste them into <b>Credentials</b> as one line, separated by a space, in either order. Your
-        password manager then stores both as one ordinary login. Nothing is sent anywhere except
+        password manager then keeps both as a single ordinary login. They are sent only to
         DigitalOcean and Tailscale, and nothing is stored on this site.
       </p>
 
-      <h3>What happens when you create a node</h3>
-      <ol>
-        <li>A <b>single-use, ephemeral</b> Tailscale auth key is issued.</li>
-        <li>A $6/month droplet is provisioned in the datacenter you picked. It installs Tailscale on
-          first boot and joins your tailnet with that key.</li>
-        <li>Its exit routes are approved automatically, and the auth key is revoked.</li>
-      </ol>
+      <h3>No accounts yet?</h3>
+      <ul>
+        <li><a href="https://m.do.co/c/2606e10dfcb8" target="_blank" rel="noreferrer">Sign up for
+          DigitalOcean</a> <span class="disclosure">(referral link)</span> &mdash; this is what the
+          exit nodes run on, so it needs a card.</li>
+        <li><a href="https://login.tailscale.com/start" target="_blank" rel="noreferrer">Sign up for
+          Tailscale</a> &mdash; the private network your devices and nodes join. Free for personal
+          use, no card.</li>
+      </ul>
+
+      <h3>Making a node</h3>
       <p>
-        If any step fails, the droplet and the key are deleted again, so a failed attempt leaves
-        nothing behind. The node is ephemeral, so deleting the droplet also removes the machine from
-        your tailnet on its own.
+        Press <b>New exit node</b> and pick a datacenter &mdash; whichever country you want your
+        traffic to appear from. About a minute later it is listed here as an exit node, running and
+        already on your tailnet.
       </p>
 
-      <h3>Using the exit node on your devices</h3>
+      <h3>Connecting a device to it</h3>
       <p>
-        Install Tailscale on any device you want protected and sign in to the same account, then
-        select the node. Every device sees the same exit nodes.
+        Install Tailscale on whatever you want protected and sign in to <b>the same Tailscale
+        account</b> the API token came from. Then pick the node:
       </p>
       <ul>
-        <li><b>iPhone / iPad</b> &mdash; install Tailscale from the App Store, sign in, then tap the
-          three-dot menu &rarr; <b>Exit Node</b> &rarr; pick your node.</li>
-        <li><b>Android</b> &mdash; install from Google Play, sign in, then the three-dot menu &rarr;
-          <b>Exit Node</b>.</li>
-        <li><b>macOS / Windows</b> &mdash; install from <a href="https://tailscale.com/download"
-          target="_blank" rel="noreferrer">tailscale.com/download</a>, sign in, then the menu bar or
-          tray icon &rarr; <b>Exit Node</b>.</li>
+        <li><b>iPhone / iPad</b> &mdash; App Store &rarr; Tailscale &rarr; sign in &rarr; the
+          three-dot menu &rarr; <b>Exit Node</b> &rarr; your node.</li>
+        <li><b>Android</b> &mdash; Google Play &rarr; Tailscale &rarr; sign in &rarr; the three-dot
+          menu &rarr; <b>Exit Node</b>.</li>
+        <li><b>macOS / Windows</b> &mdash; <a href="https://tailscale.com/download" target="_blank"
+          rel="noreferrer">tailscale.com/download</a>, sign in, then the menu bar or tray icon
+          &rarr; <b>Exit Node</b>.</li>
         <li><b>Linux</b> &mdash; <code>curl -fsSL https://tailscale.com/install.sh | sh</code>, then
           <code>sudo tailscale up --exit-node=&lt;node name&gt;</code>.</li>
       </ul>
       <p>
-        To stop using it, choose <b>None</b> in the same menu, or on Linux
-        <code>sudo tailscale up --exit-node=</code>. Your traffic then leaves your device normally
-        again.
+        <b>Check it worked:</b> open <a href="https://ifconfig.me" target="_blank"
+        rel="noreferrer">ifconfig.me</a> on that device. It should show the node's <b>public IP</b>
+        &mdash; the one in the table here &mdash; and not your own. To stop using it, set
+        <b>Exit Node</b> back to <b>None</b>, or on Linux run
+        <code>sudo tailscale up --exit-node=</code>.
+      </p>
+
+      <h3>What "New exit node" actually does</h3>
+      <ol>
+        <li>Issues a <b>single-use, ephemeral</b> Tailscale auth key.</li>
+        <li>Provisions a droplet in the datacenter you picked, which installs Tailscale on first
+          boot and joins your tailnet with that key.</li>
+        <li>Approves its exit routes, then revokes the auth key.</li>
+      </ol>
+      <p>
+        If any step fails, the droplet and the key are deleted again, so a failed attempt leaves
+        nothing behind. Because the node is ephemeral, deleting the droplet also drops the machine
+        from your tailnet on its own.
       </p>
 
       <h3>What it costs, and cleaning up</h3>
       <p>
-        A node costs about <b>$0.009 per hour</b> ($6/month if you leave it up), billed by the second
-        with a one cent minimum. The <b>Cost so far</b> column is what each node has run up, and
-        <b>Spent so far</b> totals the nodes you still have. Deleting a node stops its billing
-        immediately, and it drops out of that total.
+        A node costs about <b>$0.009 per hour</b> &mdash; $6 a month if you leave it running &mdash;
+        billed by the second with a one cent minimum. <b>Cost so far</b> is what each node has run
+        up, and <b>Spent so far</b> totals the nodes you still have. Deleting a node stops its
+        billing immediately. Nothing else here costs anything.
       </p>
 
       <h3>When something looks wrong</h3>
       <ul>
-        <li><b>Stuck on "joining tailnet"</b> &mdash; the node is still booting. It normally takes
-          under two minutes; if it never appears, delete it and create another.</li>
+        <li><b>Stuck on "joining tailnet"</b> &mdash; the node is still booting. It is normally
+          ready inside two minutes; if it never appears, delete it and create another.</li>
         <li><b>"DigitalOcean rejected that token"</b> &mdash; the token is wrong, expired, or lacks
           write scope.</li>
         <li><b>"Tailscale relay unreachable"</b> &mdash; droplet data still loads, but the tailnet
@@ -748,6 +775,8 @@ code { font-family: var(--mono); color: var(--text); }
         <li><b>"route not approved"</b> &mdash; the node joined but its exit routes were not
           approved. Approve it in the Tailscale admin console under <b>Machines</b>, or delete the
           node and create another.</li>
+        <li><b>The node is listed but traffic still leaves from your own IP</b> &mdash; the device
+          has Tailscale running but no exit node selected, or it is set to a different one.</li>
       </ul>
     </div>
     <div class="dlg-foot">
@@ -809,7 +838,7 @@ code { font-family: var(--mono); color: var(--text); }
 
 // Single source of truth for the version stamped on the console. The release
 // workflow checks this against the tag, so a tagged build can't ship stale.
-const VERSION = "0.3.1";
+const VERSION = "0.3.2";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
 const POLL_MS = 2000;          // a node now joins in ~60-90s; 1s (the CLI) invites Tailscale's rate limiter

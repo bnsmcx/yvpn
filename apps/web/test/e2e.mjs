@@ -195,8 +195,14 @@ check('version stamped on the footer rail too', (await page.textContent('#ver-fo
 // --- getting-started guide, reachable before you have any credentials ---
 await page.click('#btn-guide-login');
 await page.waitForSelector('#dlg-guide[open]');
-const guide = await page.textContent('#dlg-guide');
-check('guide opens from the sign-in card', /two API tokens/.test(guide));
+const guide = (await page.textContent('#dlg-guide')).replace(/\s+/g, ' ');  // copy wraps mid-link
+check('guide opens from the sign-in card', /You need two tokens/.test(guide));
+check('guide points at signups for both services', /Sign up for DigitalOcean/.test(guide) && /Sign up for Tailscale/.test(guide));
+check('the DigitalOcean signup is the referral link', await page.getAttribute('#dlg-guide a[href*="m.do.co"]', 'href') === 'https://m.do.co/c/2606e10dfcb8');
+check('the referral link is disclosed as one', /\(referral link\)/.test(guide));
+check('guide says how to check it worked', /ifconfig\.me/.test(guide));
+check('guide ends with troubleshooting', /When something looks wrong/.test(guide) &&
+  guide.indexOf('When something looks wrong') > guide.indexOf('Connecting a device to it'));
 check('guide covers both tokens', guide.includes('dop_v1_') && guide.includes('tskey-api-'));
 check('guide covers using a node on devices', /Exit Node/.test(guide));
 check('guide covers cost and cleanup', /per hour/.test(guide));
