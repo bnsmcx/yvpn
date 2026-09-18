@@ -540,7 +540,7 @@ code { font-family: var(--mono); color: var(--text); }
       <thead>
         <tr>
           <th>Name</th><th>Region</th><th>Public IP</th><th>Tailnet IP</th>
-          <th>Status</th><th>Size</th><th>Cost/mo</th><th>Created</th><th>DO ID</th>
+          <th>Status</th><th>Size</th><th>Cost so far</th><th>Created</th><th>DO ID</th>
         </tr>
       </thead>
       <tbody id="nodes-body"></tbody>
@@ -566,7 +566,7 @@ code { font-family: var(--mono); color: var(--text); }
     <span><span class="cap">N</span><span class="stamp">new</span></span>
     <span><span class="cap">D</span><span class="stamp">delete</span></span>
     <span><span class="cap">R</span><span class="stamp">refresh</span></span>
-    <span><span class="cap">&#8593;&#8595;</span><span class="stamp">select</span></span>
+    <span><span class="cap">J K</span><span class="stamp">select</span></span>
     <span><span class="cap">?</span><span class="stamp">help</span></span>
   </span>
   <span class="spacer"></span>
@@ -628,7 +628,7 @@ code { font-family: var(--mono); color: var(--text); }
     <dt>n</dt><dd>New exit node</dd>
     <dt>d</dt><dd>Delete selected node</dd>
     <dt>r</dt><dd>Refresh</dd>
-    <dt>↑ ↓</dt><dd>Move selection</dd>
+    <dt>j k / ↓ ↑</dt><dd>Move selection</dd>
     <dt>?</dt><dd>This panel</dd>
     <dt>Esc</dt><dd>Close</dd>
   </dl>
@@ -665,7 +665,7 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 let cfg = null;
-let state = { nodes: [], regions: [], devices: [], balance: null, selected: null };
+let state = { nodes: [], regions: [], devices: [], selected: null };
 let creating = null;           // AbortController while a create is in flight
 
 /* ------------------------------ storage ------------------------------ */
@@ -752,11 +752,6 @@ async function fetchDatacenters() {
   return (r.regions || [])
     .filter((x) => x.available)
     .sort((a, b) => a.slug.localeCompare(b.slug));
-}
-
-async function fetchBalance() {
-  try { return await doFetch("/customers/my/balance"); }
-  catch { return null; }   // some tokens lack billing scope; not fatal
 }
 
 function cloudInit(authKey) {
@@ -874,6 +869,29 @@ function sleep(ms, signal) {
 
 const fmtMoney = (n) => (n == null ? "—" : "$" + Number(n).toFixed(2));
 
+// DigitalOcean bills Droplets per second at price_hourly, with a 60 s / $0.01
+// minimum, and caps each calendar month at 672 hours (so never more than
+// price_monthly). Billing lives with the droplet, so this only covers nodes that
+// still exist — which is what the table shows.
+const MONTHLY_CAP_HOURS = 672;
+const hourlyRate = (d) => d.size?.price_hourly ?? (d.size?.price_monthly ?? 0) / MONTHLY_CAP_HOURS;
+
+function costSoFar(d, now = Date.now()) {
+  const rate = hourlyRate(d);
+  const created = new Date(d.created_at).getTime();
+  if (!rate || !(created < now)) return 0;
+  let total = 0;
+  // Walk calendar months (UTC), capping the billable hours in each.
+  for (let start = created; start < now; ) {
+    const s = new Date(start);
+    const monthEnd = Date.UTC(s.getUTCFullYear(), s.getUTCMonth() + 1, 1);
+    const end = Math.min(monthEnd, now);
+    total += Math.min((end - start) / 3.6e6, MONTHLY_CAP_HOURS) * rate;
+    start = end;
+  }
+  return Math.max(total, 0.01);
+}
+
 function fmtAge(iso) {
   if (!iso) return "—";
   const secs = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -904,16 +922,15 @@ function swapView(fn) {
 
 function renderStats() {
   const nodes = state.nodes;
-  const monthly = nodes.reduce((s, d) => s + (d.size?.price_monthly || 0), 0);
+  const perHour = nodes.reduce((s, d) => s + hourlyRate(d), 0);
+  const spent = nodes.reduce((s, d) => s + costSoFar(d), 0);
   const online = nodes.filter((d) => d._device && isOnline(d._device)).length;
-  const b = state.balance;
 
   const cards = [
     { k: "Exit nodes", v: String(nodes.length) },
     { k: "On tailnet", v: `${online}<small> / ${nodes.length}</small>` },
-    { k: "Burn rate", v: `${fmtMoney(monthly)}<small>/mo</small>` },
-    { k: "Month to date", v: b ? fmtMoney(b.month_to_date_usage) : "—" },
-    { k: "Account balance", v: b ? fmtMoney(b.account_balance) : "—" },
+    { k: "Running cost", v: `$${perHour.toFixed(3)}<small>/hr</small>` },
+    { k: "Spent so far", v: fmtMoney(spent) },
   ];
 
   $("#stats").innerHTML = cards
@@ -958,7 +975,7 @@ function renderNodes() {
       <td class="dim">${esc(d._device?.addresses?.[0] || "—")}</td>
       <td>${statusPill(d)}</td>
       <td class="dim">${esc(d.size?.slug || "—")}</td>
-      <td class="dim">${fmtMoney(d.size?.price_monthly)}</td>
+      <td class="dim" title="${esc(fmtMoney(hourlyRate(d) * MONTHLY_CAP_HOURS))}/mo cap">${fmtMoney(costSoFar(d))}</td>
       <td class="dim">${esc(fmtAge(d.created_at))}</td>
       <td class="dim">${d.id}</td>
     </tr>`).join("");
@@ -973,9 +990,8 @@ async function refresh() {
   btn.disabled = true;
   btn.textContent = "Refreshing…";
   try {
-    const [nodes, balance] = await Promise.all([fetchExitNodes(), fetchBalance()]);
+    const nodes = await fetchExitNodes();
     state.nodes = nodes;
-    state.balance = balance;
 
     // Tailnet enrichment is best-effort: a bad proxy shouldn't blank the droplet list.
     try {
@@ -1210,7 +1226,7 @@ $$(".reveal").forEach((b) => b.addEventListener("click", () => {
 $("#btn-logout").addEventListener("click", () => {
   clearCfg();
   cfg = null;
-  state = { nodes: [], regions: [], devices: [], balance: null, selected: null };
+  state = { nodes: [], regions: [], devices: [], selected: null };
   $("#credentials").value = "";
   $("#do-token").value = "";
   $("#ts-token").value = "";
@@ -1303,6 +1319,8 @@ $$("#display-sel .seg").forEach((b) =>
 
 document.addEventListener("keydown", (e) => {
   if (e.target.matches("input, textarea, select")) return;
+  // Leave browser shortcuts alone (Ctrl+K, Ctrl+R, …) now that j/k call preventDefault.
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if ($("#view-dash").classList.contains("hidden")) return;
   if (document.querySelector("dialog[open]")) return;
 
@@ -1314,10 +1332,12 @@ document.addEventListener("keydown", (e) => {
     case "d": if (state.selected != null) $("#btn-delete").click(); break;
     case "r": refresh(); break;
     case "?": $("#help").togglePopover(); break;
+    case "j":
     case "ArrowDown":
       e.preventDefault();
       if (rows.length) { state.selected = rows[Math.min(idx + 1, rows.length - 1)].id; renderNodes(); }
       break;
+    case "k":
     case "ArrowUp":
       e.preventDefault();
       if (rows.length) { state.selected = rows[Math.max(idx - 1, 0)].id; renderNodes(); }

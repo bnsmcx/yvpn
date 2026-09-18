@@ -96,11 +96,11 @@ calls will fail — it needs to be served by one of the above.
 
 | CLI | Web |
 |---|---|
-| `yvpn list` | The node table, plus tailnet status and cost columns |
+| `yvpn list` | The node table, plus tailnet status and what each node has cost so far |
 | `yvpn datacenters` | The datacenter picker in the create dialog |
 | `yvpn create <dc>` | **New exit node** — same cloud-init, same droplet spec, live progress log |
 | `yvpn delete <id>` | **Delete**, with a confirmation dialog |
-| TUI keymap | `n` new · `d` delete · `r` refresh · `↑`/`↓` select · `?` help · `Esc` close |
+| TUI keymap | `n` new · `d` delete · `r` refresh · `j`/`k` or `↓`/`↑` select · `?` help · `Esc` close |
 
 Create runs the identical sequence to `cmd/tui/cli.go`: request an ephemeral
 single-use auth key → provision the droplet with the same cloud-init → wait for
@@ -117,9 +117,16 @@ Two deliberate differences:
 ## Stats
 
 Per node: region, public IP, tailnet IP, droplet status, tailnet reachability,
-whether exit routes are actually approved, size, monthly cost, and age.
-Across the fleet: node count, how many are live on the tailnet, total burn rate,
-and month-to-date usage plus account balance pulled from DigitalOcean billing.
+whether exit routes are actually approved, size, cost so far, and age.
+Across the fleet: node count, how many are live on the tailnet, running cost per
+hour, and total spent so far on the nodes that exist.
+
+Costs are worked out from each droplet's own `price_hourly` and `created_at`,
+the way DigitalOcean bills Droplets: per second, with a $0.01 minimum, capped at
+672 hours per calendar month. No billing API is called, so the token doesn't
+need billing access and nothing account-wide (other droplets, volumes, credits)
+is mixed in. Deleted nodes drop out of the total, because their billing record
+goes with the droplet.
 
 Tailnet columns are best-effort — if the proxy is unreachable the droplet data
 still renders and a warning appears, rather than the page going blank.

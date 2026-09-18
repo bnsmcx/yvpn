@@ -1,0 +1,23 @@
+# DigitalOcean App Platform spec for the yVPN web app.
+#   doctl apps create --spec .do/app.yaml
+#   doctl apps update <app-id> --spec .do/app.yaml
+name: yvpn-web
+region: nyc
+features:
+  - buildpack-stack=ubuntu-22
+services:
+  - name: web
+    dockerfile_path: apps/web/Dockerfile
+    source_dir: /
+    git:
+      repo_clone_url: https://github.com/bnsmcx/yvpn.git
+      branch: main
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    instance_count: 1
+    http_port: 8080
+    health_check:
+      http_path: /
+domains:
+  - domain: yvpn.gordi.us
+    type: PRIMARY
+    zone: gordi.us

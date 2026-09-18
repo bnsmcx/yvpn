@@ -111,8 +111,17 @@ func proxyHandler(client *http.Client) http.HandlerFunc {
 	}
 }
 
+// PORT is how App Platform (and most container hosts) name the port to serve on;
+// in a container the app must also bind every interface, not just loopback.
+func defaultAddr() string {
+	if p := os.Getenv("PORT"); p != "" {
+		return ":" + p
+	}
+	return "127.0.0.1:8777"
+}
+
 func main() {
-	addr := flag.String("addr", "127.0.0.1:8777", "listen address")
+	addr := flag.String("addr", defaultAddr(), "listen address")
 	dir := flag.String("dir", "", "directory to serve the app from (default: the directory above this one)")
 	flag.Parse()
 

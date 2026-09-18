@@ -30,7 +30,7 @@ screen, after the retro-futurist workstations the look is named for.
 | `#1B1309` / `#C2AE83` | housing, unlit / lit | the console itself — near-black under dark, beige under light |
 | `#9DA84E` | olive | healthy exit node |
 | `#D9822B` | ochre | joining / route not approved |
-| `#B23A26` | brick rust | offline, negative balance |
+| `#B23A26` | brick rust | offline |
 
 Healthy nodes read **olive rather than amber** on purpose. A strict monochrome
 amber screen would be more faithful, but it collapses the four node states into one

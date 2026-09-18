@@ -38,13 +38,12 @@
   </div>
 
   <!-- fleet stats -->
-  <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
               border-bottom: 1px solid #3E2F1D; background: #1F160D">
     <div style="padding: 14px 20px; border-right: 1px solid #3E2F1D"><div class="lbl">exit nodes</div><div style="font-size: 23px; margin-top: 5px; color: #EFE2C6; letter-spacing: -.02em" class="">3</div></div>
     <div style="padding: 14px 20px; border-right: 1px solid #3E2F1D"><div class="lbl">on tailnet</div><div style="font-size: 23px; margin-top: 5px; color: #FFB000; letter-spacing: -.02em" class="glow">2<span style="color: #A08B64; font-size: 15px"> / 3</span></div></div>
-    <div style="padding: 14px 20px; border-right: 1px solid #3E2F1D"><div class="lbl">burn rate</div><div style="font-size: 23px; margin-top: 5px; color: #EFE2C6; letter-spacing: -.02em" class="">$18.00<span style="color: #A08B64; font-size: 13px">/mo</span></div></div>
-    <div style="padding: 14px 20px; border-right: 1px solid #3E2F1D"><div class="lbl">month to date</div><div style="font-size: 23px; margin-top: 5px; color: #EFE2C6; letter-spacing: -.02em" class="">$12.34</div></div>
-    <div style="padding: 14px 20px; "><div class="lbl">account balance</div><div style="font-size: 23px; margin-top: 5px; color: #B23A26; letter-spacing: -.02em" class="">-$5.00</div></div>
+    <div style="padding: 14px 20px; border-right: 1px solid #3E2F1D"><div class="lbl">running cost</div><div style="font-size: 23px; margin-top: 5px; color: #EFE2C6; letter-spacing: -.02em" class="">$0.027<span style="color: #A08B64; font-size: 13px">/hr</span></div></div>
+    <div style="padding: 14px 20px; "><div class="lbl">spent so far</div><div style="font-size: 23px; margin-top: 5px; color: #EFE2C6; letter-spacing: -.02em" class="">$0.04</div></div>
   </div>
 
   <!-- section head -->
@@ -60,7 +59,7 @@
     <thead>
       <tr>
         <th>name</th><th>region</th><th>public ip</th><th>tailnet ip</th><th>status</th>
-        <th>size</th><th style="text-align: right">cost/mo</th><th>created</th><th style="text-align: right">do id</th>
+        <th>size</th><th style="text-align: right">cost so far</th><th>created</th><th style="text-align: right">do id</th>
       </tr>
     </thead>
     <tbody>
@@ -71,7 +70,7 @@
         <td class="dim">100.64.0.10</td>
         <td><span style="color: #9DA84E; text-shadow: 0 0 9px rgba(157,168,78,.5)">&#9679; exit node</span></td>
         <td class="dim">s-1vcpu-1gb</td>
-        <td class="dim" style="text-align: right">$6.00</td>
+        <td class="dim" style="text-align: right">$0.01</td>
         <td class="dim">3m ago</td>
         <td class="dim" style="text-align: right">1001</td>
       </tr>
@@ -82,7 +81,7 @@
         <td class="dim">100.64.0.11</td>
         <td><span style="color: #9DA84E; text-shadow: 0 0 9px rgba(157,168,78,.5)">&#9679; exit node</span></td>
         <td class="dim">s-1vcpu-1gb</td>
-        <td class="dim" style="text-align: right">$6.00</td>
+        <td class="dim" style="text-align: right">$0.02</td>
         <td class="dim">2h ago</td>
         <td class="dim" style="text-align: right">1002</td>
       </tr>
@@ -93,7 +92,7 @@
         <td class="dim">&mdash;</td>
         <td><span style="color: #D9822B" class="">&#9679; joining tailnet</span></td>
         <td class="dim">s-1vcpu-1gb</td>
-        <td class="dim" style="text-align: right">$6.00</td>
+        <td class="dim" style="text-align: right">$0.01</td>
         <td class="dim">41s ago</td>
         <td class="dim" style="text-align: right">1003</td>
       </tr>
@@ -107,7 +106,7 @@
     <span style="display: flex; align-items: center; gap: 6px"><span class="key">n</span><span style="font-size: 11px; color: #A08B64">new</span></span>
     <span style="display: flex; align-items: center; gap: 6px"><span class="key">d</span><span style="font-size: 11px; color: #A08B64">delete</span></span>
     <span style="display: flex; align-items: center; gap: 6px"><span class="key">r</span><span style="font-size: 11px; color: #A08B64">refresh</span></span>
-    <span style="display: flex; align-items: center; gap: 6px"><span class="key">&#8593;&#8595;</span><span style="font-size: 11px; color: #A08B64">select</span></span>
+    <span style="display: flex; align-items: center; gap: 6px"><span class="key">J K</span><span style="font-size: 11px; color: #A08B64">select</span></span>
     <span style="flex-grow: 1"></span>
     <span style="display: flex; align-items: center; gap: 13px; font-size: 11px">
       <span style="color: #9DA84E">&#9679; exit node</span>

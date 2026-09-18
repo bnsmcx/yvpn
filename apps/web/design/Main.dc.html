@@ -64,7 +64,7 @@
               background: #17100A; border: 1px solid #4A3A24; border-radius: 5px;
               box-shadow: inset 0 0 26px rgba(0,0,0,.85), 0 1px 0 rgba(255,220,160,.07)">
 
-    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1px solid #3E2F1D">
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid #3E2F1D">
       <div style="padding: 12px 18px; border-right: 1px solid #3E2F1D">
         <div class="lbl">exit nodes</div>
         <div style="font-size: 21px; margin-top: 4px; color: #EFE2C6; letter-spacing: -.02em">3</div></div>
@@ -72,14 +72,11 @@
         <div class="lbl">on tailnet</div>
         <div class="glow" style="font-size: 21px; margin-top: 4px; color: #FFB000; letter-spacing: -.02em">2<span style="color: #A08B64; font-size: 14px"> / 3</span></div></div>
       <div style="padding: 12px 18px; border-right: 1px solid #3E2F1D">
-        <div class="lbl">burn rate</div>
-        <div style="font-size: 21px; margin-top: 4px; color: #EFE2C6; letter-spacing: -.02em">$18.00<span style="color: #A08B64; font-size: 12px">/mo</span></div></div>
-      <div style="padding: 12px 18px; border-right: 1px solid #3E2F1D">
-        <div class="lbl">month to date</div>
-        <div style="font-size: 21px; margin-top: 4px; color: #EFE2C6; letter-spacing: -.02em">$12.34</div></div>
+        <div class="lbl">running cost</div>
+        <div style="font-size: 21px; margin-top: 4px; color: #EFE2C6; letter-spacing: -.02em">$0.027<span style="color: #A08B64; font-size: 12px">/hr</span></div></div>
       <div style="padding: 12px 18px">
-        <div class="lbl">account balance</div>
-        <div style="font-size: 21px; margin-top: 4px; color: #B23A26; letter-spacing: -.02em">-$5.00</div></div>
+        <div class="lbl">spent so far</div>
+        <div style="font-size: 21px; margin-top: 4px; color: #EFE2C6; letter-spacing: -.02em">$0.04</div></div>
     </div>
 
     <div style="display: flex; align-items: center; gap: 13px; padding: 13px 18px 11px">
@@ -93,28 +90,28 @@
     <table>
       <thead><tr>
         <th>name</th><th>region</th><th>public ip</th><th>tailnet ip</th><th>status</th>
-        <th>size</th><th style="text-align: right">cost/mo</th><th>created</th><th style="text-align: right">do id</th>
+        <th>size</th><th style="text-align: right">cost so far</th><th>created</th><th style="text-align: right">do id</th>
       </tr></thead>
       <tbody>
         <tr>
           <td style="color: #EFE2C6; font-weight: 600">fra1-yvpn-1788926312</td>
           <td class="dim">fra1</td><td class="dim">203.0.113.41</td><td class="dim">100.64.0.10</td>
           <td><span style="color: #9DA84E; text-shadow: 0 0 9px rgba(157,168,78,.5)">&#9679; exit node</span></td>
-          <td class="dim">s-1vcpu-1gb</td><td class="dim" style="text-align: right">$6.00</td>
+          <td class="dim">s-1vcpu-1gb</td><td class="dim" style="text-align: right">$0.01</td>
           <td class="dim">3m ago</td><td class="dim" style="text-align: right">1001</td>
         </tr>
         <tr style="background: rgba(255,176,0,.09); box-shadow: inset 2px 0 0 #FFB000">
           <td style="color: #EFE2C6; font-weight: 600">nyc1-yvpn-1788923001</td>
           <td class="dim">nyc1</td><td class="dim">203.0.113.88</td><td class="dim">100.64.0.11</td>
           <td><span style="color: #9DA84E; text-shadow: 0 0 9px rgba(157,168,78,.5)">&#9679; exit node</span></td>
-          <td class="dim">s-1vcpu-1gb</td><td class="dim" style="text-align: right">$6.00</td>
+          <td class="dim">s-1vcpu-1gb</td><td class="dim" style="text-align: right">$0.02</td>
           <td class="dim">2h ago</td><td class="dim" style="text-align: right">1002</td>
         </tr>
         <tr>
           <td style="color: #EFE2C6; font-weight: 600">sfo3-yvpn-1788901442</td>
           <td class="dim">sfo3</td><td class="dim">203.0.113.12</td><td class="dim">&mdash;</td>
           <td><span style="color: #D9822B">&#9679; joining tailnet</span></td>
-          <td class="dim">s-1vcpu-1gb</td><td class="dim" style="text-align: right">$6.00</td>
+          <td class="dim">s-1vcpu-1gb</td><td class="dim" style="text-align: right">$0.01</td>
           <td class="dim">41s ago</td><td class="dim" style="text-align: right">1003</td>
         </tr>
       </tbody>
@@ -146,7 +143,7 @@
     <span style="display: flex; align-items: center; gap: 6px"><span class="cap">N</span><span class="stamp">new</span></span>
     <span style="display: flex; align-items: center; gap: 6px"><span class="cap">D</span><span class="stamp">delete</span></span>
     <span style="display: flex; align-items: center; gap: 6px"><span class="cap">R</span><span class="stamp">refresh</span></span>
-    <span style="display: flex; align-items: center; gap: 6px"><span class="cap">&#8593;&#8595;</span><span class="stamp">select</span></span>
+    <span style="display: flex; align-items: center; gap: 6px"><span class="cap">J K</span><span class="stamp">select</span></span>
     <span style="display: flex; align-items: center; gap: 6px"><span class="cap">?</span><span class="stamp">help</span></span>
     <span style="flex-grow: 1"></span>
     <span class="stampd">unit 616 &#183; auth: personal</span>

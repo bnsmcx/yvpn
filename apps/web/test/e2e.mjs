@@ -79,8 +79,10 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
   const json = (o, status = 200) => route.fulfill({ status, headers: CORS, body: JSON.stringify(o) });
 
   if (p === '/v2/account') return json({ account: { email: 'ben@example.com', status: 'active' } });
-  if (p === '/v2/customers/my/balance')
+  if (p === '/v2/customers/my/balance') {
+    state.balanceCalls = (state.balanceCalls || 0) + 1;
     return json({ month_to_date_balance: '12.34', account_balance: '-5.00', month_to_date_usage: '12.34' });
+  }
   if (p === '/v2/regions') return json({ regions: REGIONS });
 
   if (p === '/v2/droplets' && m === 'GET') {
@@ -99,7 +101,7 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
     const d = {
       id: ++nextId, name: b.name, status: 'active',
       region: { slug: b.region, name: b.region },
-      size: { slug: 's-1vcpu-1gb', price_monthly: 6 },
+      size: { slug: 's-1vcpu-1gb', price_monthly: 6, price_hourly: 0.00893 },
       created_at: new Date().toISOString(),
       networks: { v4: [{ type: 'public', ip_address: '203.0.113.' + (nextId % 250) }] },
     };
@@ -218,8 +220,18 @@ check('signs in with valid credentials', true);
 await page.waitForTimeout(600);
 
 check('empty state shown with no nodes', await page.isVisible('#nodes-empty'));
-check('stats rendered', (await page.$$('#stats .stat')).length === 5);
-check('balance from DO shown', (await page.textContent('#stats')).includes('12.34'));
+check('stats rendered', (await page.$$('#stats .stat')).length === 4);
+check('no account-wide billing figures', !/balance|month to date/i.test(await page.textContent('#stats')));
+check('billing endpoint never called', !state.balanceCalls);
+
+// --- cost so far: per-second at price_hourly, $0.01 minimum, 672 h cap per calendar month ---
+const cost = (d) => page.evaluate((d) => costSoFar(d, Date.UTC(2026, 8, 17, 12)), d);
+const size = { price_hourly: 0.00893, price_monthly: 6 };
+check('brand-new node bills the $0.01 minimum', (await cost({ size, created_at: '2026-09-17T11:59:30Z' })) === 0.01);
+check('10 h node costs 10 x hourly', Math.abs((await cost({ size, created_at: '2026-09-17T02:00:00Z' })) - 0.0893) < 1e-9);
+// Aug (744 h) caps at 672 h; Sep 1 -> Sep 17 12:00 is 396 h, under the cap.
+check('each calendar month capped at 672 h', Math.abs((await cost({ size, created_at: '2026-08-01T00:00:00Z' })) - 0.00893 * (672 + 396)) < 1e-9);
+check('falls back to monthly/672 without price_hourly', Math.abs((await cost({ size: { price_monthly: 6.72 }, created_at: '2026-09-17T10:00:00Z' })) - 0.02) < 1e-9);
 
 // --- create a node ---
 await page.click('#btn-new');
@@ -252,9 +264,9 @@ const rowText = await page.textContent('#nodes-body');
 check('shows region', rowText.includes('fra1'));
 check('shows public IP', rowText.includes('203.0.113.'));
 check('shows tailnet IP', rowText.includes('100.64.0.'));
-check('shows monthly cost', rowText.includes('$6.00'));
+check('shows cost so far, not list price', rowText.includes('$0.01') && !rowText.includes('$6.00'));
 check('status pill says exit node', rowText.includes('exit node'));
-check('burn rate stat updated', (await page.textContent('#stats')).includes('$6.00'));
+check('running cost stat is hourly', (await page.textContent('#stats')).includes('$0.009/hr'));
 
 // --- reopening the dialog re-arms Create ---
 await page.click('#btn-new');
@@ -264,9 +276,19 @@ check('region picker visible again', await page.isVisible('#regions'));
 await page.click('#btn-create-cancel');
 await page.waitForTimeout(300);
 
-// --- keyboard: n / arrows / d ---
+// --- keyboard: j/k and arrows / d ---
+const selected = async () => (await page.getAttribute('#nodes-body tr', 'aria-selected')) === 'true';
+await page.keyboard.press('j');
+check('j selects a row', await selected());
+await page.click('#nodes-body tr td.name');
+check('clicking the selected row deselects it', !(await selected()));
+await page.keyboard.press('Control+k');
+check('Ctrl+K is left to the browser', !(await selected()));
+await page.keyboard.press('k');
+check('k selects a row', await selected());
+await page.click('#nodes-body tr td.name');
 await page.keyboard.press('ArrowDown');
-check('arrow key selects a row', await page.getAttribute('#nodes-body tr', 'aria-selected') === 'true');
+check('arrow key selects a row', await selected());
 check('delete button enabled on selection', !(await page.isDisabled('#btn-delete')));
 
 await page.keyboard.press('d');
