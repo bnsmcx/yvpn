@@ -22,6 +22,16 @@ jobs:
           go-version: '1.21'
           cache-dependency-path: apps/cli/go.sum
 
+      - name: Check the tag matches the versions in the tree
+        working-directory: .
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          fail=0
+          grep -q "var VERSION = \"$VERSION\"" apps/cli/cmd/tui/main.go || { echo "apps/cli/cmd/tui/main.go is not $VERSION"; fail=1; }
+          grep -q "const VERSION = \"$VERSION\";" apps/web/index.html || { echo "apps/web/index.html is not $VERSION"; fail=1; }
+          grep -q ">v$VERSION<" apps/web/index.html || { echo "apps/web/index.html console stamps are not v$VERSION"; fail=1; }
+          exit $fail
+
       - name: Build binaries
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}

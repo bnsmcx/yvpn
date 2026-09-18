@@ -98,6 +98,11 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
     check('create sends s-1vcpu-1gb', b.size === 's-1vcpu-1gb');
     check('cloud-init carries the auth key', b.user_data?.includes('tskey-auth-FAKE'));
     check('cloud-init advertises exit node', b.user_data?.includes('--advertise-exit-node'));
+    // The slow parts, removed deliberately: an apt upgrade on first boot cost ~145 s
+    // and DigitalOcean's vendor script another ~60 s.
+    check('cloud-init does not apt-upgrade on boot', !/^\s*package_upgrade:/m.test(b.user_data || ''));
+    check('cloud-init skips DO vendor data', /vendor_data:\s*\n\s*enabled: false/.test(b.user_data || ''));
+    check('cloud-init installs the static tailscale build', b.user_data?.includes('pkgs.tailscale.com'));
     const d = {
       id: ++nextId, name: b.name, status: 'active',
       region: { slug: b.region, name: b.region },
@@ -184,6 +189,19 @@ await page.goto(ORIGIN + '/');
 check('no proxy URL field', (await page.$('#proxy')) === null);
 
 check('login view shown first', await page.isVisible('#view-login'));
+check('version stamped on the console', (await page.textContent('#ver-header')).trim() === 'v' + (await page.evaluate(() => VERSION)));
+check('version stamped on the footer rail too', (await page.textContent('#ver-footer')).trim() === (await page.textContent('#ver-header')).trim());
+
+// --- getting-started guide, reachable before you have any credentials ---
+await page.click('#btn-guide-login');
+await page.waitForSelector('#dlg-guide[open]');
+const guide = await page.textContent('#dlg-guide');
+check('guide opens from the sign-in card', /two API tokens/.test(guide));
+check('guide covers both tokens', guide.includes('dop_v1_') && guide.includes('tskey-api-'));
+check('guide covers using a node on devices', /Exit Node/.test(guide));
+check('guide covers cost and cleanup', /per hour/.test(guide));
+await page.keyboard.press('Escape');
+await page.waitForTimeout(200);
 check('dashboard hidden initially', await page.isHidden('#view-dash'));
 
 // --- one combined credential field for password managers ---
@@ -265,6 +283,7 @@ check('shows region', rowText.includes('fra1'));
 check('shows public IP', rowText.includes('203.0.113.'));
 check('shows tailnet IP', rowText.includes('100.64.0.'));
 check('shows cost so far, not list price', rowText.includes('$0.01') && !rowText.includes('$6.00'));
+check('cost column is right-aligned', await page.evaluate(() => getComputedStyle(document.querySelector('#nodes-body td.num')).textAlign) === 'right');
 check('status pill says exit node', rowText.includes('exit node'));
 check('running cost stat is hourly', (await page.textContent('#stats')).includes('$0.009/hr'));
 

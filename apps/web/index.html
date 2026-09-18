@@ -239,6 +239,12 @@ details.setup {
   }
 }
 
+.linkish {
+  border: 0; background: none; padding: 0; font: inherit; font-size: 12px;
+  color: var(--amber); text-decoration: underline; cursor: pointer;
+}
+.start-here { font-size: 12px; color: var(--muted); margin: 14px 0 0; text-align: center; line-height: 1.6; }
+
 .check {
   display: flex; align-items: center; gap: 9px;
   font-size: 11.5px; margin: 4px 0 16px; cursor: pointer;
@@ -305,6 +311,7 @@ th {
   font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
   padding: 10px 16px; border-bottom: 1px solid var(--line);
 }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 td { padding: 11px 16px; border-bottom: 1px solid var(--rule); white-space: nowrap; font-size: 12.5px; }
 tbody tr { cursor: pointer; }
 tbody tr:hover { background: var(--panel); }
@@ -344,6 +351,25 @@ dialog {
     padding: 14px 22px 18px; border-top: 1px solid var(--line);
   }
   & p.sub { color: var(--muted); font-size: 11.5px; line-height: 1.6; margin: 7px 0 0; }
+}
+
+/* The guide reads top-down: the first line is enough for someone who already
+   knows what an API token is, and each section below assumes less. */
+#dlg-guide {
+  width: min(680px, calc(100vw - 32px));
+
+  & .dlg-body { max-height: min(68vh, 620px); overflow-y: auto; }
+  & .lede { font-size: 13px; line-height: 1.7; margin: 0 0 4px; }
+  & h3 {
+    font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--amber);
+    margin: 22px 0 8px; padding-top: 14px; border-top: 1px solid var(--line);
+  }
+  & p, & li { font-size: 12.5px; line-height: 1.7; color: var(--muted); margin: 0 0 8px; }
+  & ol, & ul { margin: 0 0 8px; padding-left: 20px; }
+  & li { margin-bottom: 4px; }
+  & b { color: var(--text); font-weight: 600; }
+  & code { color: var(--amber); }
+  & a { color: var(--amber); }
 }
 
 .regions {
@@ -423,6 +449,27 @@ kbd {
 .mono { font-family: var(--mono); }
 code { font-family: var(--mono); color: var(--text); }
 
+/* Phones: the console rails and the wide table have to give way. Name, region,
+   tailnet IP, status, cost and age are what a small screen needs; the rest can go. */
+@media (max-width: 760px) {
+  header.rail, footer.rail { height: auto; padding: 8px 12px; gap: 8px; flex-wrap: wrap; }
+  header.rail .screw, footer.rail .keys { display: none; }
+  .rail .stamp { font-size: 9px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .col-wide { display: none; }
+  th, td { padding-left: 11px; padding-right: 11px; }
+  .toolbar { flex-wrap: wrap; }
+  #toasts { left: 12px; right: 12px; }
+  #toasts .toast { max-width: none; }
+}
+
+/* Narrow phones: name, region, status and cost are the four that matter. */
+@media (max-width: 560px) {
+  .col-mid { display: none; }
+  th, td { font-size: 11.5px; padding-left: 9px; padding-right: 9px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after { animation-duration: .001s !important; transition-duration: .001s !important; }
 }
@@ -442,8 +489,10 @@ code { font-family: var(--mono); color: var(--text); }
   <span class="screw"></span>
   <span class="brand">yVPN</span>
   <span class="stamp">exit node control</span>
+  <span class="stamp-dim ver" id="ver-header">v0.3.0</span>
   <span class="spacer"></span>
   <span id="who" class="stamp-dim hidden"></span>
+  <button id="btn-guide" title="Getting started">guide</button>
   <button id="btn-help" popovertarget="help" title="Keyboard shortcuts (?)" aria-label="Help">?</button>
   <button id="btn-logout" class="hidden">sign out</button>
   <span class="lamps">
@@ -518,6 +567,11 @@ code { font-family: var(--mono); color: var(--text); }
       </label>
 
       <button type="submit" class="primary" style="width:100%" id="btn-signin">Sign in</button>
+      <p class="start-here">
+        First time here? <button type="button" class="linkish" id="btn-guide-login">Read the
+        two-minute guide</button> &mdash; what the tokens are, where to get them, and how to use a
+        node once it is up.
+      </p>
     </form>
   </div>
 </section>
@@ -539,8 +593,9 @@ code { font-family: var(--mono); color: var(--text); }
     <table id="nodes">
       <thead>
         <tr>
-          <th>Name</th><th>Region</th><th>Public IP</th><th>Tailnet IP</th>
-          <th>Status</th><th>Size</th><th>Cost so far</th><th>Created</th><th>DO ID</th>
+          <th>Name</th><th>Region</th><th class="col-wide">Public IP</th><th class="col-mid">Tailnet IP</th>
+          <th>Status</th><th class="col-wide">Size</th><th class="num">Cost so far</th>
+          <th class="col-mid">Created</th><th class="num col-wide">DO ID</th>
         </tr>
       </thead>
       <tbody id="nodes-body"></tbody>
@@ -570,6 +625,7 @@ code { font-family: var(--mono); color: var(--text); }
     <span><span class="cap">?</span><span class="stamp">help</span></span>
   </span>
   <span class="spacer"></span>
+  <span class="stamp-dim ver" id="ver-footer">v0.3.0</span>
   <span class="display">
     <span class="stamp" id="display-label">display</span>
     <span class="sel" role="group" aria-labelledby="display-label" id="display-sel">
@@ -603,6 +659,98 @@ code { font-family: var(--mono); color: var(--text); }
 </dialog>
 
 <!-- ============ DELETE ============ -->
+<dialog id="dlg-guide">
+  <form method="dialog">
+    <div class="dlg-head">
+      <h2>Getting started</h2>
+      <p class="sub">Read as far down as you need. The first paragraph is the whole thing.</p>
+    </div>
+    <div class="dlg-body">
+      <p class="lede">
+        yVPN runs your own VPN exit nodes. You need two API tokens &mdash; a <b>DigitalOcean</b>
+        personal access token with read and write scope, and a <b>Tailscale</b> API access token.
+        Paste both into <b>Credentials</b>, press <b>New exit node</b>, pick a datacenter, and about
+        a minute later it appears in your Tailscale app as an exit node you can select. Delete it
+        when you are done; you pay for the hours it existed.
+      </p>
+
+      <h3>Getting the two tokens</h3>
+      <ul>
+        <li><b>DigitalOcean</b> &mdash; control panel &rarr; <b>API</b> &rarr; <b>Tokens</b> &rarr;
+          <b>Generate New Token</b>, with <b>read and write</b> scope. It starts with
+          <code>dop_v1_</code>. This is what creates and destroys droplets, so it spends money.</li>
+        <li><b>Tailscale</b> &mdash; admin console &rarr; <b>Settings</b> &rarr; <b>Keys</b> &rarr;
+          <b>Generate access token</b>. It starts with <code>tskey-api-</code>. This is what lets a
+          new node join your tailnet and be approved as an exit node.</li>
+      </ul>
+      <p>
+        Paste them into <b>Credentials</b> as one line, separated by a space, in either order. Your
+        password manager then stores both as one ordinary login. Nothing is sent anywhere except
+        DigitalOcean and Tailscale, and nothing is stored on this site.
+      </p>
+
+      <h3>What happens when you create a node</h3>
+      <ol>
+        <li>A <b>single-use, ephemeral</b> Tailscale auth key is issued.</li>
+        <li>A $6/month droplet is provisioned in the datacenter you picked. It installs Tailscale on
+          first boot and joins your tailnet with that key.</li>
+        <li>Its exit routes are approved automatically, and the auth key is revoked.</li>
+      </ol>
+      <p>
+        If any step fails, the droplet and the key are deleted again, so a failed attempt leaves
+        nothing behind. The node is ephemeral, so deleting the droplet also removes the machine from
+        your tailnet on its own.
+      </p>
+
+      <h3>Using the exit node on your devices</h3>
+      <p>
+        Install Tailscale on any device you want protected and sign in to the same account, then
+        select the node. Every device sees the same exit nodes.
+      </p>
+      <ul>
+        <li><b>iPhone / iPad</b> &mdash; install Tailscale from the App Store, sign in, then tap the
+          three-dot menu &rarr; <b>Exit Node</b> &rarr; pick your node.</li>
+        <li><b>Android</b> &mdash; install from Google Play, sign in, then the three-dot menu &rarr;
+          <b>Exit Node</b>.</li>
+        <li><b>macOS / Windows</b> &mdash; install from <a href="https://tailscale.com/download"
+          target="_blank" rel="noreferrer">tailscale.com/download</a>, sign in, then the menu bar or
+          tray icon &rarr; <b>Exit Node</b>.</li>
+        <li><b>Linux</b> &mdash; <code>curl -fsSL https://tailscale.com/install.sh | sh</code>, then
+          <code>sudo tailscale up --exit-node=&lt;node name&gt;</code>.</li>
+      </ul>
+      <p>
+        To stop using it, choose <b>None</b> in the same menu, or on Linux
+        <code>sudo tailscale up --exit-node=</code>. Your traffic then leaves your device normally
+        again.
+      </p>
+
+      <h3>What it costs, and cleaning up</h3>
+      <p>
+        A node costs about <b>$0.009 per hour</b> ($6/month if you leave it up), billed by the second
+        with a one cent minimum. The <b>Cost so far</b> column is what each node has run up, and
+        <b>Spent so far</b> totals the nodes you still have. Deleting a node stops its billing
+        immediately, and it drops out of that total.
+      </p>
+
+      <h3>When something looks wrong</h3>
+      <ul>
+        <li><b>Stuck on "joining tailnet"</b> &mdash; the node is still booting. It normally takes
+          under two minutes; if it never appears, delete it and create another.</li>
+        <li><b>"DigitalOcean rejected that token"</b> &mdash; the token is wrong, expired, or lacks
+          write scope.</li>
+        <li><b>"Tailscale relay unreachable"</b> &mdash; droplet data still loads, but the tailnet
+          columns stay blank. Usually a network problem between you and this site.</li>
+        <li><b>"route not approved"</b> &mdash; the node joined but its exit routes were not
+          approved. Approve it in the Tailscale admin console under <b>Machines</b>, or delete the
+          node and create another.</li>
+      </ul>
+    </div>
+    <div class="dlg-foot">
+      <button value="close" class="primary">Got it</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlg-delete">
   <form method="dialog">
     <div class="dlg-head">
@@ -654,9 +802,12 @@ code { font-family: var(--mono); color: var(--text); }
    never touches the proxy.
    ======================================================================= */
 
+// Single source of truth for the version stamped on the console. The release
+// workflow checks this against the tag, so a tagged build can't ship stale.
+const VERSION = "0.3.0";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
-const POLL_MS = 3000;          // CLI polls every 1s; 3s is kinder to the rate limiter
+const POLL_MS = 2000;          // a node now joins in ~60-90s; 1s (the CLI) invites Tailscale's rate limiter
 const POLL_TIMEOUT_MS = 15 * 60 * 1000;
 const CFG_KEY = "yvpn.cfg";
 const THEME_KEY = "yvpn.theme";   // display preference; survives sign-out
@@ -757,29 +908,37 @@ async function fetchDatacenters() {
 function cloudInit(authKey) {
   // Byte-for-byte the script the CLI writes, so both front ends make identical nodes.
   return `#cloud-config
-package_update: true
-package_upgrade: true
-packages:
-  - curl
+
+# DigitalOcean's vendor data runs a ~60 s agent install before any of this, and
+# these nodes are disposable, so it is skipped. Consequence: the image's default
+# user stays "ubuntu" rather than root, and no DO monitoring agent is installed.
+vendor_data:
+  enabled: false
+
+write_files:
+  - path: /etc/sysctl.d/99-tailscale.conf
+    content: |
+      net.ipv4.ip_forward = 1
+      net.ipv6.conf.all.forwarding = 1
 
 runcmd:
-  # Install Tailscale
-  - curl -fsSL https://tailscale.com/install.sh | sh
-  
-  # Authenticate and join the Tailscale network using your auth key
-  - sudo tailscale up --authkey ${authKey} --advertise-exit-node
+  - sysctl --system
+  # The static tarball, rather than install.sh: no apt repo, no apt-get update,
+  # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches the
+  # droplet size below. No package_update/package_upgrade either -- an apt
+  # upgrade on first boot cost ~145 s and these nodes live for hours.
+  - mkdir -p /tmp/tailscale
+  - curl -fsSL https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz | tar xz -C /tmp/tailscale --strip-components=1
+  - install -m 0755 /tmp/tailscale/tailscale /usr/bin/tailscale
+  - install -m 0755 /tmp/tailscale/tailscaled /usr/sbin/tailscaled
+  - install -m 0644 /tmp/tailscale/systemd/tailscaled.service /etc/systemd/system/tailscaled.service
+  - install -m 0644 /tmp/tailscale/systemd/tailscaled.defaults /etc/default/tailscaled
+  - systemctl enable --now tailscaled
+  # Tailscale installs its own netfilter rules for an exit node, so the manual
+  # iptables FORWARD/MASQUERADE rules that used to be here are not needed.
+  - tailscale up --authkey ${authKey} --advertise-exit-node
 
-  # Optional: Enable IP forwarding for proper routing
-  - echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
-  - echo "net.ipv6.conf.all.forwarding=1" | sudo tee -a /etc/sysctl.conf
-  - sudo sysctl -p
-
-  # Optional: Set up firewall rules to allow traffic forwarding
-  - sudo iptables -A FORWARD -i tailscale0 -j ACCEPT
-  - sudo iptables -A FORWARD -o tailscale0 -j ACCEPT
-  - sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-
-final_message: "Tailscale exit node setup complete."
+final_message: "yVPN exit node ready."
 `;
 }
 
@@ -837,8 +996,8 @@ const setRoutes = (deviceId, routes, signal) =>
 
 /** Wait for the droplet to appear on the tailnet, then approve its advertised routes. */
 async function enableExit(name, signal, onTick) {
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
-  let attempt = 0;
+  const started = Date.now();
+  const deadline = started + POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
     if (signal.aborted) throw new DOMException("aborted", "AbortError");
     const devices = await getDevices(signal);
@@ -848,8 +1007,7 @@ async function enableExit(name, signal, onTick) {
       await setRoutes(match.id, routes.advertisedRoutes || [], signal);
       return match;
     }
-    attempt++;
-    if (onTick) onTick(attempt);
+    if (onTick) onTick(Math.round((Date.now() - started) / 1000));
     await sleep(POLL_MS, signal);
   }
   throw new Error("Exit node did not appear on the tailnet within " + (POLL_TIMEOUT_MS / 60000) + " minutes.");
@@ -941,8 +1099,11 @@ function renderStats() {
 const isOnline = (dev) =>
   dev.lastSeen ? (Date.now() - new Date(dev.lastSeen).getTime()) < 5 * 60 * 1000 : false;
 
+const DROPLET_STATE = { new: "provisioning", off: "powered off", archive: "archived" };
+
 function statusPill(d) {
-  if (d.status !== "active") return `<span class="pill warn">${esc(d.status)}</span>`;
+  if (d.status !== "active")
+    return `<span class="pill warn">${esc(DROPLET_STATE[d.status] || d.status)}</span>`;
   const dev = d._device;
   if (!dev) return `<span class="pill warn">joining tailnet</span>`;
   if (!isOnline(dev)) return `<span class="pill bad">offline</span>`;
@@ -971,13 +1132,13 @@ function renderNodes() {
     <tr data-id="${d.id}" aria-selected="${state.selected === d.id}" tabindex="0">
       <td class="name">${esc(d.name)}</td>
       <td class="dim">${esc(d.region?.slug || "—")}</td>
-      <td class="dim">${esc(publicIP(d))}</td>
-      <td class="dim">${esc(d._device?.addresses?.[0] || "—")}</td>
+      <td class="dim col-wide">${esc(publicIP(d))}</td>
+      <td class="dim col-mid">${esc(d._device?.addresses?.[0] || "—")}</td>
       <td>${statusPill(d)}</td>
-      <td class="dim">${esc(d.size?.slug || "—")}</td>
-      <td class="dim" title="${esc(fmtMoney(hourlyRate(d) * MONTHLY_CAP_HOURS))}/mo cap">${fmtMoney(costSoFar(d))}</td>
-      <td class="dim">${esc(fmtAge(d.created_at))}</td>
-      <td class="dim">${d.id}</td>
+      <td class="dim col-wide">${esc(d.size?.slug || "—")}</td>
+      <td class="dim num" title="${esc(fmtMoney(hourlyRate(d) * MONTHLY_CAP_HOURS))}/mo cap">${fmtMoney(costSoFar(d))}</td>
+      <td class="dim col-mid">${esc(fmtAge(d.created_at))}</td>
+      <td class="dim num col-wide">${d.id}</td>
     </tr>`).join("");
 
   $("#btn-delete").disabled = state.selected == null;
@@ -1077,8 +1238,11 @@ async function runCreate(datacenter) {
     step(2);
 
     logLine("Waiting for the new exit node to phone home to Tailscale…");
-    const dev = await enableExit(droplet.name, signal,
-      (n) => { if (n % 5 === 0) logLine(`  …still waiting (${n * POLL_MS / 1000}s)`); });
+    // One line every ~15s: enough to show progress without burying the log.
+    let nextTick = 15;
+    const dev = await enableExit(droplet.name, signal, (secs) => {
+      if (secs >= nextTick) { logLine(`  …still waiting (${secs}s)`); nextTick = secs + 15; }
+    });
     logLine(`Node joined as ${dev.name} — exit routes approved.`, "ok");
     step(4);
 
@@ -1314,6 +1478,9 @@ function applyTheme(theme) {
     b.setAttribute("aria-pressed", String(b.dataset.theme === theme)));
 }
 
+for (const id of ["#btn-guide", "#btn-guide-login"])
+  $(id).addEventListener("click", () => $("#dlg-guide").showModal());
+
 $$("#display-sel .seg").forEach((b) =>
   b.addEventListener("click", () => applyTheme(b.dataset.theme)));
 
@@ -1348,6 +1515,7 @@ document.addEventListener("keydown", (e) => {
 /* -------------------------------- boot -------------------------------- */
 
 (function boot() {
+  for (const el of $$(".ver")) el.textContent = "v" + VERSION;
   let storedTheme = null;
   try { storedTheme = localStorage.getItem(THEME_KEY); } catch {}
   applyTheme(storedTheme === "dark" || storedTheme === "light" ? storedTheme : "auto");

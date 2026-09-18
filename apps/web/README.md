@@ -109,10 +109,26 @@ step fails the droplet and key are rolled back, exactly as the CLI does.
 
 Two deliberate differences:
 
-- The tailnet poll runs every **3s** rather than 1s, and gives up after **15
+- The tailnet poll runs every **2s** rather than 1s, and gives up after **15
   minutes** rather than 60. Browser tabs are a worse place to hold an hour-long
   loop, and 1s polling from a browser invites Tailscale's rate limiter.
 - The wait is **cancellable**. Cancel aborts in flight and rolls back.
+
+## Getting started, in the app
+
+**Guide** in the header rail (and a link under the sign-in button) opens a
+getting-started dialog written widest-first: the opening paragraph is the whole
+thing for anyone who already has API tokens, and each section below it assumes
+less — where the two tokens come from, what creating a node actually does, how to
+select an exit node on a phone or laptop, what it costs, and what the error
+messages mean.
+
+## Version
+
+The version is stamped on both console rails and lives in one constant,
+`VERSION`, in `index.html`. The release workflow refuses to build a tag whose
+version does not match that constant, `apps/cli/cmd/tui/main.go`, and the stamps
+in the markup.
 
 ## Stats
 

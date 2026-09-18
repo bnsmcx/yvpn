@@ -71,29 +71,37 @@ func Create(token, tailscaleAuth, datacenter string) (string, int, error) {
 
 	// Cloud-init script for setting up Tailscale as an exit node
 	cloudInit := fmt.Sprintf(`#cloud-config
-package_update: true
-package_upgrade: true
-packages:
-  - curl
+
+# DigitalOcean's vendor data runs a ~60 s agent install before any of this, and
+# these nodes are disposable, so it is skipped. Consequence: the image's default
+# user stays "ubuntu" rather than root, and no DO monitoring agent is installed.
+vendor_data:
+  enabled: false
+
+write_files:
+  - path: /etc/sysctl.d/99-tailscale.conf
+    content: |
+      net.ipv4.ip_forward = 1
+      net.ipv6.conf.all.forwarding = 1
 
 runcmd:
-  # Install Tailscale
-  - curl -fsSL https://tailscale.com/install.sh | sh
-  
-  # Authenticate and join the Tailscale network using your auth key
-  - sudo tailscale up --authkey %s --advertise-exit-node
+  - sysctl --system
+  # The static tarball, rather than install.sh: no apt repo, no apt-get update,
+  # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches the
+  # droplet size below. No package_update/package_upgrade either -- an apt
+  # upgrade on first boot cost ~145 s and these nodes live for hours.
+  - mkdir -p /tmp/tailscale
+  - curl -fsSL https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz | tar xz -C /tmp/tailscale --strip-components=1
+  - install -m 0755 /tmp/tailscale/tailscale /usr/bin/tailscale
+  - install -m 0755 /tmp/tailscale/tailscaled /usr/sbin/tailscaled
+  - install -m 0644 /tmp/tailscale/systemd/tailscaled.service /etc/systemd/system/tailscaled.service
+  - install -m 0644 /tmp/tailscale/systemd/tailscaled.defaults /etc/default/tailscaled
+  - systemctl enable --now tailscaled
+  # Tailscale installs its own netfilter rules for an exit node, so the manual
+  # iptables FORWARD/MASQUERADE rules that used to be here are not needed.
+  - tailscale up --authkey %s --advertise-exit-node
 
-  # Optional: Enable IP forwarding for proper routing
-  - echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
-  - echo "net.ipv6.conf.all.forwarding=1" | sudo tee -a /etc/sysctl.conf
-  - sudo sysctl -p
-
-  # Optional: Set up firewall rules to allow traffic forwarding
-  - sudo iptables -A FORWARD -i tailscale0 -j ACCEPT
-  - sudo iptables -A FORWARD -o tailscale0 -j ACCEPT
-  - sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-
-final_message: "Tailscale exit node setup complete."
+final_message: "yVPN exit node ready."
 `, tailscaleAuth)
 
 	createRequest := &godo.DropletCreateRequest{

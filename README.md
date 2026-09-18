@@ -26,7 +26,7 @@ The rest of this document covers the CLI.
 - **Interactive TUI** - Clean terminal interface with keyboard navigation
 - **Scriptable CLI** - JSON output for automation and scripting
 - **One-click provisioning** - Create exit nodes in any DigitalOcean datacenter
-- **Automated setup** - Droplets are fully configured via cloud-init (Tailscale installation, IP forwarding, NAT rules)
+- **Automated setup** - Droplets are fully configured via cloud-init (Tailscale installation, IP forwarding) and reach your tailnet in about a minute
 - **SSH access** - Run as an SSH server for remote management without local installation
 - **Exit node management** - View, create, and delete exit nodes from a unified dashboard
 
@@ -142,7 +142,7 @@ Pass credentials via SSH environment variables.
 
 1. **Create**: Select a DigitalOcean datacenter. yVPN generates a temporary Tailscale auth key, provisions a droplet with cloud-init configuration, and waits for the node to appear on your tailnet.
 
-2. **Configure**: The droplet automatically installs Tailscale, enables IP forwarding, configures iptables rules, and advertises itself as an exit node.
+2. **Configure**: The droplet installs Tailscale from the static tarball, enables IP forwarding, and advertises itself as an exit node. It is ready in about a minute; see [Boot time](#boot-time) for why.
 
 3. **Enable**: Once the droplet joins your tailnet, yVPN enables it as an exit node via the Tailscale API.
 
@@ -191,6 +191,34 @@ Exit nodes are created with:
 - **OS**: Ubuntu 24.04 x64
 - **Size**: s-1vcpu-1gb (1 vCPU, 1GB RAM)
 - **Tag**: `yVPN`
+
+### Boot time
+
+A node used to take about 4.5 minutes to reach the tailnet. It now takes roughly
+a minute. Measured on identical nyc1 droplets, seconds from kernel boot to the
+node being ready:
+
+| cloud-init | ready at |
+|---|---|
+| `package_update` + `package_upgrade` + `install.sh` (old) | 266 s |
+| without the apt upgrade | 99 s |
+| plus the static Tailscale tarball instead of `install.sh` | 89 s |
+| plus skipping DigitalOcean's vendor data (current) | **31 s** |
+
+Three changes, in order of what they saved:
+
+- **No `package_upgrade` on first boot** (~145 s). Upgrading every package on a
+  machine that lives for hours buys nothing.
+- **`vendor_data: enabled: false`** (~57 s). DigitalOcean's vendor script installs
+  its monitoring agent before user scripts run. Two consequences worth knowing:
+  the image's default login is `ubuntu` rather than `root`, and no DO agent is
+  installed, so the droplet does not report metrics.
+- **The static tarball instead of `install.sh`** (~22 s). No apt repository to
+  add, no `apt-get update`, and no waiting on unattended-upgrades for the dpkg
+  lock. The URL pins `amd64`, which matches the droplet size above.
+
+Tailscale installs its own netfilter rules for an exit node, so the manual
+iptables rules the cloud-init used to write are gone.
 
 ## Dependencies
 
