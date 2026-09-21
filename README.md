@@ -29,6 +29,7 @@ The rest of this document covers the CLI.
 - **Automated setup** - Droplets are fully configured via cloud-init (Tailscale installation, IP forwarding) and reach your tailnet in about a minute
 - **SSH access** - Run as an SSH server for remote management without local installation
 - **Exit node management** - View, create, and delete exit nodes from a unified dashboard
+- **Full node detail** (web) - Open any row for everything DigitalOcean and Tailscale report about that node
 
 ## Prerequisites
 
