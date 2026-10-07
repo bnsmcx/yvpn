@@ -189,7 +189,11 @@ This provides Go, Git, gopls, and development tools.
 
 Exit nodes are created with:
 - **OS**: Ubuntu 24.04 x64
-- **Size**: s-1vcpu-1gb (1 vCPU, 1GB RAM)
+- **Size**: the cheapest droplet the region sells with at least 512 MB of RAM,
+  enough disk for the image, and no GPU. Usually `s-1vcpu-512mb-10gb`; regions
+  that don't sell it get the next cheapest instead of failing. Regions with no
+  such size, or without the Ubuntu image, aren't offered. `yvpn datacenters`
+  and the web picker show each region's size and hourly price.
 - **Tag**: `yVPN`
 
 ### Boot time
@@ -215,7 +219,7 @@ Three changes, in order of what they saved:
   installed, so the droplet does not report metrics.
 - **The static tarball instead of `install.sh`** (~22 s). No apt repository to
   add, no `apt-get update`, and no waiting on unattended-upgrades for the dpkg
-  lock. The URL pins `amd64`, which matches the droplet size above.
+  lock. The URL pins `amd64`, which matches every non-GPU droplet size.
 
 Tailscale installs its own netfilter rules for an exit node, so the manual
 iptables rules the cloud-init used to write are gone.

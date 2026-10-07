@@ -401,6 +401,7 @@ dialog {
   }
   & span b { display: block; font-size: 13px; }
   & span i { font-style: normal; color: var(--dim); font-size: 11px; }
+  & span em { display: block; font-style: normal; color: var(--muted); font-size: 11px; margin-top: 3px; }
   & input:checked + span { border-color: var(--amber); background: var(--sel-bg); }
   & input:checked + span b { color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
   & input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: 2px; }
@@ -758,7 +759,8 @@ code { font-family: var(--mono); color: var(--text); }
 
       <h3>What it costs, and cleaning up</h3>
       <p>
-        A node costs about <b>$0.009 per hour</b> &mdash; $6 a month if you leave it running &mdash;
+        Each node is the cheapest droplet its datacenter sells, and the picker shows that price
+        per hour &mdash; usually <b>about $0.006</b>, $4 a month if you leave it running &mdash;
         billed by the second with a one cent minimum. <b>Cost so far</b> is what each node has run
         up, and <b>Spent so far</b> totals the nodes you still have. Deleting a node stops its
         billing immediately. Nothing else here costs anything.
@@ -841,8 +843,11 @@ code { font-family: var(--mono); color: var(--text); }
 const VERSION = "0.3.2";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
-// Droplet size every node gets. Regions that don't offer it are not offered.
-const SIZE = "s-1vcpu-1gb";
+// What every node boots. Not every region carries it, and it sets a floor on disk.
+const IMAGE = "ubuntu-24-04-x64";
+// The least memory a node may have. Tailscale needs far less; 512 MB is the
+// smallest droplet DigitalOcean sells.
+const MIN_MEMORY_MB = 512;
 const POLL_MS = 2000;          // a node now joins in ~60-90s; 1s (the CLI) invites Tailscale's rate limiter
 const POLL_TIMEOUT_MS = 15 * 60 * 1000;
 const CFG_KEY = "yvpn.cfg";
@@ -934,10 +939,32 @@ async function fetchExitNodes() {
   return r.droplets || [];
 }
 
+// A size can run a node if it's big enough and a plain CPU droplet: GPU
+// droplets need their own images and cost dollars an hour.
+const usableSize = (s, minDisk) =>
+  s.available && s.memory >= MIN_MEMORY_MB && s.disk >= minDisk &&
+  !s.slug.startsWith("gpu-") && !/gpu/i.test(s.description || "");
+
+// Every region a node can be created in, each with the cheapest usable size it
+// offers. Regions without one (no usable size, or no Ubuntu image) are left
+// out rather than failing at create time. Same rules as the CLI.
 async function fetchDatacenters() {
-  const r = await doFetch("/regions?per_page=200");
+  const [r, s, i] = await Promise.all([
+    doFetch("/regions?per_page=200"),
+    doFetch("/sizes?per_page=200"),
+    doFetch("/images/" + IMAGE),
+  ]);
+  const img = i.image || {};
+  const sizes = (s.sizes || []).filter((x) => usableSize(x, img.min_disk_size || 0));
   return (r.regions || [])
-    .filter((x) => x.available && (x.sizes || []).includes(SIZE))
+    .filter((x) => x.available && (img.regions || []).includes(x.slug))
+    .map((x) => {
+      const best = sizes
+        .filter((z) => (z.regions || []).includes(x.slug))
+        .reduce((a, z) => (!a || z.price_hourly < a.price_hourly ? z : a), null);
+      return best && { slug: x.slug, name: x.name, size: best.slug, price_hourly: best.price_hourly };
+    })
+    .filter(Boolean)
     .sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
@@ -960,8 +987,8 @@ write_files:
 runcmd:
   - sysctl --system
   # The static tarball, rather than install.sh: no apt repo, no apt-get update,
-  # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches the
-  # droplet size below. No package_update/package_upgrade either -- an apt
+  # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches every
+  # non-GPU droplet size. No package_update/package_upgrade either -- an apt
   # upgrade on first boot cost ~145 s and these nodes live for hours.
   - mkdir -p /tmp/tailscale
   - curl -fsSL https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz | tar xz -C /tmp/tailscale --strip-components=1
@@ -978,16 +1005,16 @@ final_message: "yVPN exit node ready."
 `;
 }
 
-async function createDroplet(authKey, datacenter, signal) {
-  const name = `${datacenter}-yvpn-${Math.floor(Date.now() / 1000)}`;
+async function createDroplet(authKey, dc, signal) {
+  const name = `${dc.slug}-yvpn-${Math.floor(Date.now() / 1000)}`;
   const r = await doFetch("/droplets", {
     method: "POST",
     signal,
     body: JSON.stringify({
       name,
-      region: datacenter,
-      size: SIZE,
-      image: "ubuntu-24-04-x64",
+      region: dc.slug,
+      size: dc.size,
+      image: IMAGE,
       tags: [TAG],
       user_data: cloudInit(authKey),
     }),
@@ -1230,7 +1257,7 @@ async function loadRegions() {
   $("#regions").innerHTML = state.regions.map((r, i) => `
     <label class="region">
       <input type="radio" name="region" value="${esc(r.slug)}" ${i === 0 ? "checked" : ""}>
-      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i></span>
+      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><em>$${r.price_hourly.toFixed(3)}/hr</em></span>
     </label>`).join("") || `<p class="muted small">No datacenters available.</p>`;
 }
 
@@ -1245,7 +1272,7 @@ function logLine(msg, kind = "") {
   $("#create-log").scrollTop = $("#create-log").scrollHeight;
 }
 
-async function runCreate(datacenter) {
+async function runCreate(dc) {
   const bar = $("#create-bar");
   const step = (n) => { bar.value = n; };
   creating = new AbortController();
@@ -1255,7 +1282,7 @@ async function runCreate(datacenter) {
   $("#regions").classList.add("hidden");
   $("#create-progress").classList.remove("hidden");
   $("#create-log").innerHTML = "";
-  $("#create-sub").textContent = "Provisioning in " + datacenter + "…";
+  $("#create-sub").textContent = "Provisioning in " + dc.slug + "…";
   $("#btn-create-go").disabled = true;
   $("#btn-create-cancel").textContent = "Cancel";
 
@@ -1267,8 +1294,8 @@ async function runCreate(datacenter) {
     keyId = key.id;
     step(1);
 
-    logLine(`Provisioning a new droplet in the ${datacenter} datacenter…`);
-    const droplet = await createDroplet(key.key, datacenter, signal);
+    logLine(`Provisioning a ${dc.size} droplet in the ${dc.slug} datacenter…`);
+    const droplet = await createDroplet(key.key, dc, signal);
     dropletId = droplet.id;
     logLine(`Droplet ${droplet.name} created (id ${droplet.id}).`);
     step(2);
@@ -1463,7 +1490,7 @@ $("#btn-create-go").addEventListener("click", (e) => {
   const picked = $("#regions input:checked");
   if (!picked) { e.preventDefault(); toast("Pick a datacenter first.", "err"); return; }
   e.preventDefault();               // keep the dialog open to show progress
-  runCreate(picked.value);
+  runCreate(state.regions.find((r) => r.slug === picked.value));
 });
 
 $("#btn-create-cancel").addEventListener("click", () => {

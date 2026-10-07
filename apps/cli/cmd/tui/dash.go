@@ -19,7 +19,7 @@ type Dash struct {
 		digitalOcean string
 		tailscale    string
 	}
-	Datacenters []string
+	Datacenters []digital_ocean.Datacenter
 	table       table.Model
 	endpoints   map[string]int //  name to digital ocean id
 }

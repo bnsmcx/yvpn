@@ -46,13 +46,34 @@ const state = {
   pollCount: 0,
 };
 const REGIONS = [
-  { slug: 'nyc1', name: 'New York 1', available: true, sizes: ['s-1vcpu-1gb', 's-2vcpu-2gb'] },
-  { slug: 'sfo3', name: 'San Francisco 3', available: true, sizes: ['s-1vcpu-1gb'] },
-  { slug: 'fra1', name: 'Frankfurt 1', available: true, sizes: ['s-1vcpu-1gb'] },
-  { slug: 'lon1', name: 'London 1', available: false, sizes: ['s-1vcpu-1gb'] },
-  // Available, but doesn't offer the size yVPN uses -- like mem1.
-  { slug: 'mem1', name: 'Memphis 1', available: true, sizes: ['s-2vcpu-4gb'] },
+  { slug: 'nyc1', name: 'New York 1', available: true },
+  { slug: 'sfo3', name: 'San Francisco 3', available: true },
+  { slug: 'fra1', name: 'Frankfurt 1', available: true },
+  { slug: 'lon1', name: 'London 1', available: false },
+  // Doesn't sell the small sizes -- like the real mem1. Gets a pricier one.
+  { slug: 'mem1', name: 'Memphis 1', available: true },
+  // Sells only GPU droplets.
+  { slug: 'atl1', name: 'Atlanta 1', available: true },
+  // Sells small sizes but doesn't carry the Ubuntu image.
+  { slug: 'syd9', name: 'Sydney 9', available: true },
 ];
+const SIZES = [
+  { slug: 's-1vcpu-512mb-10gb', memory: 512, disk: 10, price_hourly: 0.00595, available: true,
+    regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'syd9'] },
+  { slug: 's-1vcpu-1gb', memory: 1024, disk: 25, price_hourly: 0.00893, available: true,
+    regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'syd9'] },
+  { slug: 's-2vcpu-4gb', memory: 4096, disk: 80, price_hourly: 0.03571, available: true,
+    regions: ['nyc1', 'fra1', 'mem1'] },
+  { slug: 's-1vcpu-2gb', memory: 2048, disk: 50, price_hourly: 0.01786, available: true,
+    regions: ['nyc1', 'fra1', 'mem1'] },
+  // Cheaper than everything, but too little disk for the image.
+  { slug: 'tiny', memory: 512, disk: 5, price_hourly: 0.001, available: true, regions: ['fra1', 'mem1'] },
+  // Cheaper than everything, but not for sale.
+  { slug: 'gone', memory: 1024, disk: 25, price_hourly: 0.002, available: false, regions: ['fra1', 'mem1'] },
+  { slug: 'gpu-h100x1-80gb', memory: 245760, disk: 720, price_hourly: 3.39, available: true,
+    description: 'GPU', regions: ['atl1'] },
+];
+const IMAGE = { slug: 'ubuntu-24-04-x64', min_disk_size: 7, regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'mem1', 'atl1'] };
 
 const log = [];
 const results = [];
@@ -86,6 +107,8 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
     return json({ month_to_date_balance: '12.34', account_balance: '-5.00', month_to_date_usage: '12.34' });
   }
   if (p === '/v2/regions') return json({ regions: REGIONS });
+  if (p === '/v2/sizes') return json({ sizes: SIZES });
+  if (p === '/v2/images/ubuntu-24-04-x64') return json({ image: IMAGE });
 
   if (p === '/v2/droplets' && m === 'GET') {
     if (url.searchParams.get('tag_name') !== 'yVPN')
@@ -97,7 +120,7 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
     const b = JSON.parse(req.postData());
     check('create sends yVPN tag', b.tags?.includes('yVPN'));
     check('create sends ubuntu-24-04-x64', b.image === 'ubuntu-24-04-x64');
-    check('create sends s-1vcpu-1gb', b.size === 's-1vcpu-1gb');
+    check('create sends the cheapest usable size in the region', b.size === 's-1vcpu-512mb-10gb', b.size);
     check('cloud-init carries the auth key', b.user_data?.includes('tskey-auth-FAKE'));
     check('cloud-init advertises exit node', b.user_data?.includes('--advertise-exit-node'));
     // The slow parts, removed deliberately: an apt upgrade on first boot cost ~145 s
@@ -108,7 +131,7 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
     const d = {
       id: ++nextId, name: b.name, status: 'active',
       region: { slug: b.region, name: b.region },
-      size: { slug: 's-1vcpu-1gb', price_monthly: 6, price_hourly: 0.00893 },
+      size: SIZES.find((z) => z.slug === b.size),
       created_at: new Date().toISOString(),
       networks: { v4: [{ type: 'public', ip_address: '203.0.113.' + (nextId % 250) }] },
     };
@@ -264,7 +287,11 @@ await page.click('#btn-new');
 await page.waitForSelector('#dlg-create[open]');
 await page.waitForTimeout(300);
 const regionCount = (await page.$$('#regions .region')).length;
-check('only available regions with the node size offered', regionCount === 3, `got ${regionCount}`);
+check('only regions that can run a node offered', regionCount === 4, `got ${regionCount}`);
+const regionText = await page.textContent('#regions');
+check('no GPU-only, image-less or unavailable regions', !/atl1|syd9|lon1/.test(regionText));
+check('region shows its cheapest hourly price', (await page.textContent('#regions .region:has-text("fra1")')).includes('$0.006/hr'));
+check('region without small sizes falls back to the next cheapest', (await page.textContent('#regions .region:has-text("mem1")')).includes('$0.018/hr'));
 check('regions sorted by slug', (await page.textContent('#regions')).indexOf('fra1') < (await page.textContent('#regions')).indexOf('nyc1'));
 
 await page.click('#regions .region:has-text("fra1") span');
@@ -297,7 +324,7 @@ check('table note lines up with the first column', await page.evaluate(() => {
 }));
 check('cost column is right-aligned', await page.evaluate(() => getComputedStyle(document.querySelector('#nodes-body td.num')).textAlign) === 'right');
 check('status pill says exit node', rowText.includes('exit node'));
-check('running cost stat is hourly', (await page.textContent('#stats')).includes('$0.009/hr'));
+check('running cost stat is hourly', (await page.textContent('#stats')).includes('$0.006/hr'));
 
 // --- reopening the dialog re-arms Create ---
 await page.click('#btn-new');

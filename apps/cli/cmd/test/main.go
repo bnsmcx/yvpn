@@ -58,7 +58,7 @@ func handleFetchDatacenters(digitalOceanToken string) {
 
 	fmt.Println("Available datacenters:")
 	for _, dc := range datacenters {
-		fmt.Printf("\t%s\n", dc)
+		fmt.Printf("\t%s\t%s\t$%.4f/hr\n", dc.Slug, dc.Size, dc.PriceHourly)
 	}
 }
 
