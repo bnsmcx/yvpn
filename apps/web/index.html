@@ -841,6 +841,8 @@ code { font-family: var(--mono); color: var(--text); }
 const VERSION = "0.3.2";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
+// Droplet size every node gets. Regions that don't offer it are not offered.
+const SIZE = "s-1vcpu-1gb";
 const POLL_MS = 2000;          // a node now joins in ~60-90s; 1s (the CLI) invites Tailscale's rate limiter
 const POLL_TIMEOUT_MS = 15 * 60 * 1000;
 const CFG_KEY = "yvpn.cfg";
@@ -935,7 +937,7 @@ async function fetchExitNodes() {
 async function fetchDatacenters() {
   const r = await doFetch("/regions?per_page=200");
   return (r.regions || [])
-    .filter((x) => x.available)
+    .filter((x) => x.available && (x.sizes || []).includes(SIZE))
     .sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
@@ -984,7 +986,7 @@ async function createDroplet(authKey, datacenter, signal) {
     body: JSON.stringify({
       name,
       region: datacenter,
-      size: "s-1vcpu-1gb",
+      size: SIZE,
       image: "ubuntu-24-04-x64",
       tags: [TAG],
       user_data: cloudInit(authKey),

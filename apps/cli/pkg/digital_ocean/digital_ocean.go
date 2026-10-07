@@ -39,6 +39,10 @@ func FetchExitNodes(token string) (nodes []ExitNode, err error) {
 	return nodes, nil
 }
 
+// dropletSize is the size every node gets. Regions that don't offer it are
+// left out of FetchDatacenters, so they're never offered.
+const dropletSize = "s-1vcpu-1gb"
+
 func FetchDatacenters(token string) ([]string, error) {
 	var datacenters []string
 	client := godo.NewFromToken(token)
@@ -55,7 +59,7 @@ func FetchDatacenters(token string) ([]string, error) {
 	}
 
 	for _, r := range regions {
-		if r.Available {
+		if r.Available && slices.Contains(r.Sizes, dropletSize) {
 			datacenters = append(datacenters, r.Slug)
 		}
 	}
@@ -108,7 +112,7 @@ final_message: "yVPN exit node ready."
 		Tags:   []string{"yVPN"},
 		Name:   fmt.Sprintf("%s-yvpn-%d", datacenter, time.Now().Unix()),
 		Region: datacenter,
-		Size:   "s-1vcpu-1gb",
+		Size:   dropletSize,
 		Image: godo.DropletCreateImage{
 			Slug: "ubuntu-24-04-x64",
 		},

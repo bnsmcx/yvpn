@@ -46,10 +46,12 @@ const state = {
   pollCount: 0,
 };
 const REGIONS = [
-  { slug: 'nyc1', name: 'New York 1', available: true },
-  { slug: 'sfo3', name: 'San Francisco 3', available: true },
-  { slug: 'fra1', name: 'Frankfurt 1', available: true },
-  { slug: 'lon1', name: 'London 1', available: false },
+  { slug: 'nyc1', name: 'New York 1', available: true, sizes: ['s-1vcpu-1gb', 's-2vcpu-2gb'] },
+  { slug: 'sfo3', name: 'San Francisco 3', available: true, sizes: ['s-1vcpu-1gb'] },
+  { slug: 'fra1', name: 'Frankfurt 1', available: true, sizes: ['s-1vcpu-1gb'] },
+  { slug: 'lon1', name: 'London 1', available: false, sizes: ['s-1vcpu-1gb'] },
+  // Available, but doesn't offer the size yVPN uses -- like mem1.
+  { slug: 'mem1', name: 'Memphis 1', available: true, sizes: ['s-2vcpu-4gb'] },
 ];
 
 const log = [];
@@ -262,7 +264,7 @@ await page.click('#btn-new');
 await page.waitForSelector('#dlg-create[open]');
 await page.waitForTimeout(300);
 const regionCount = (await page.$$('#regions .region')).length;
-check('only available regions offered', regionCount === 3, `got ${regionCount}`);
+check('only available regions with the node size offered', regionCount === 3, `got ${regionCount}`);
 check('regions sorted by slug', (await page.textContent('#regions')).indexOf('fra1') < (await page.textContent('#regions')).indexOf('nyc1'));
 
 await page.click('#regions .region:has-text("fra1") span');
