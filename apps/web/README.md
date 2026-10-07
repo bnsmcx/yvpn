@@ -96,23 +96,46 @@ calls will fail — it needs to be served by one of the above.
 
 | CLI | Web |
 |---|---|
-| `yvpn list` | The node table, plus tailnet status and what each node has cost so far |
+| `yvpn list` | The node table; open a row for everything both APIs report about that node |
 | `yvpn datacenters` | The datacenter picker in the create dialog, with each region's hourly price |
-| `yvpn create <dc>` | **New exit node** — same cloud-init, same droplet spec, live progress log |
+| `yvpn create <dc>` | **New exit node** — same cloud-init, same droplet spec, built in the table |
 | `yvpn delete <id>` | **Delete**, with a confirmation dialog |
-| TUI keymap | `n` new · `d` delete · `r` refresh · `j`/`k` or `↓`/`↑` select · `?` help · `Esc` close |
+| TUI keymap | `n` new · `d` delete · `r` refresh · `j`/`k` or `↓`/`↑` select · `Enter`/`o` open · `?` help · `Esc` close or deselect |
 
 Create runs the identical sequence to `cmd/tui/cli.go`: request an ephemeral
 single-use auth key → provision the droplet with the same cloud-init → wait for
 it to join the tailnet → approve its advertised routes → revoke the key. If any
 step fails the droplet and key are rolled back, exactly as the CLI does.
 
-Two deliberate differences:
+Three deliberate differences:
 
 - The tailnet poll runs every **2s** rather than 1s, and gives up after **15
   minutes** rather than 60. Browser tabs are a worse place to hold an hour-long
   loop, and 1s polling from a browser invites Tailscale's rate limiter.
 - The wait is **cancellable**. Cancel aborts in flight and rolls back.
+- It runs **in the table**, not in a dialog (below).
+
+## Creating a node happens in the table
+
+Picking a datacenter is the only thing the create dialog does. Press **Create**
+and it closes; the node appears as a row immediately, reporting each step in its
+status column — *requesting key*, *provisioning*, *booting*, *joining tailnet*,
+*revoking key* — with the seconds ticking beside it. When the build finishes the
+row simply stops being special: it is an ordinary node, in the place it has held
+all along, because the pending create adopts the droplet's own row as soon as the
+droplet exists rather than being swapped out for it.
+
+That leaves the dashboard usable while a node boots. You can start a second one,
+delete a third, or open the building row to watch its log — the same log the old
+progress dialog held, now attached to the thing it describes — and **cancel**,
+which aborts in flight and rolls the half-built node back.
+
+A build that fails or is cancelled leaves its row behind, opened on its log and
+marked *failed* or *cancelled*, until you dismiss it. A failure that vanished on
+the next poll would be a failure nobody got to read.
+
+While anything is building, the table reloads itself every 10s, so a booting
+node's IP, droplet status and cost fill themselves in.
 
 ## Getting started, in the app
 
@@ -132,10 +155,38 @@ in the markup.
 
 ## Stats
 
-Per node: region, public IP, tailnet IP, droplet status, tailnet reachability,
-whether exit routes are actually approved, size, cost so far, and age.
-Across the fleet: node count, how many are live on the tailnet, running cost per
-hour, and total spent so far on the nodes that exist.
+Per node, in the nine columns: region, public IP, tailnet IP, droplet status,
+tailnet reachability, whether exit routes are actually approved, size, cost so
+far, and age. Across the fleet: node count (and how many are still building),
+how many are live on the tailnet, running cost per hour, and total spent so far
+on the nodes that exist.
+
+### Opening a row
+
+Nine columns is what fits, not what the two APIs know. Click a node — or select
+it and press `Enter` — and a panel drops out of the row with the rest of it:
+
+| Group | What it holds |
+|---|---|
+| Droplet | DO id, status, image, kernel, size, vCPUs, memory, disk, monthly transfer, features, tags, VPC, volumes, backups, snapshots, lock state, creation time, uptime |
+| Region | Datacenter slug and name, whether it is still accepting droplets, region features |
+| Addresses | Public IPv4 with its netmask and gateway, private IPv4, IPv6, and both tailnet addresses |
+| Tailscale | Machine and host name, node id, owner, OS, client version, update available, authorized, reachable, join time, last seen, key expiry, inbound blocking, external, tags, tailnet-lock error |
+| Exit routing | Advertised and approved routes, whether exit routing is actually approved, the DERP relay in use, round-trip latency to the nearest relays, endpoints, whether NAT mapping varies by destination |
+| Billing | Hourly rate, monthly cap, cost so far, billing start |
+
+A `<details>` element cannot live between two `<tr>`s, so the panel is a second
+row that is only in the DOM while it is open. Selection and open panels survive
+a refresh, so a node's detail does not collapse under you every poll.
+
+Everything in it comes from calls the app already makes, bar one addition: the
+tailnet device list is now fetched with `fields=all`, which is what supplies the
+relay, endpoints and per-relay latency. That is a query parameter on an endpoint
+the relay already forwards, so the allowlist is unchanged.
+
+There are no CPU or bandwidth graphs, and the panel says so where you would go
+looking for them: these nodes skip DigitalOcean's monitoring agent to cut about
+a minute off boot, so its metrics API has nothing to report for them.
 
 Costs are worked out from each droplet's own `price_hourly` and `created_at`,
 the way DigitalOcean bills Droplets: per second, with a $0.01 minimum, capped at
