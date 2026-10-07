@@ -97,7 +97,7 @@ calls will fail — it needs to be served by one of the above.
 | CLI | Web |
 |---|---|
 | `yvpn list` | The node table; open a row for everything both APIs report about that node |
-| `yvpn datacenters` | The datacenter picker in the create dialog, with each region's hourly price |
+| `yvpn datacenters` | The datacenter picker in the create dialog, with each region's monthly price |
 | `yvpn create <dc>` | **New exit node** — same cloud-init, same droplet spec, built in the table |
 | `yvpn delete <id>` | **Delete**, with a confirmation dialog |
 | TUI keymap | `n` new · `d` delete · `r` refresh · `j`/`k` or `↓`/`↑` select · `Enter`/`o` open · `?` help · `Esc` close or deselect |
@@ -158,8 +158,10 @@ in the markup.
 Per node, in the nine columns: region, public IP, tailnet IP, droplet status,
 tailnet reachability, whether exit routes are actually approved, size, cost so
 far, and age. Across the fleet: node count (and how many are still building),
-how many are live on the tailnet, running cost per hour, and total spent so far
-on the nodes that exist.
+how many are live on the tailnet, the current rate (what those nodes would cost
+over a month left running; click the unit to switch between `/mo` and `/hr`,
+kept in `localStorage` under `yvpn.rate`), and the cost so far of the nodes that
+exist.
 
 ### Opening a row
 

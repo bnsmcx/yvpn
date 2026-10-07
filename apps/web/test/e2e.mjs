@@ -67,10 +67,10 @@ const SIZES = [
   { slug: 's-1vcpu-2gb', memory: 2048, disk: 50, price_hourly: 0.01786, available: true,
     price_monthly: 12, transfer: 2, regions: ['nyc1', 'fra1', 'mem1'] },
   // Cheaper than everything, but too little disk for the image.
-  { slug: 'tiny', memory: 512, disk: 5, price_hourly: 0.001, available: true, regions: ['fra1', 'mem1'] },
+  { slug: 'tiny', price_monthly: 0.5, memory: 512, disk: 5, price_hourly: 0.001, available: true, regions: ['fra1', 'mem1'] },
   // Cheaper than everything, but not for sale.
-  { slug: 'gone', memory: 1024, disk: 25, price_hourly: 0.002, available: false, regions: ['fra1', 'mem1'] },
-  { slug: 'gpu-h100x1-80gb', memory: 245760, disk: 720, price_hourly: 3.39, available: true,
+  { slug: 'gone', price_monthly: 1.5, memory: 1024, disk: 25, price_hourly: 0.002, available: false, regions: ['fra1', 'mem1'] },
+  { slug: 'gpu-h100x1-80gb', price_monthly: 2277.6, memory: 245760, disk: 720, price_hourly: 3.39, available: true,
     description: 'GPU', regions: ['atl1'] },
 ];
 const IMAGE = { slug: 'ubuntu-24-04-x64', min_disk_size: 7, regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'mem1', 'atl1'] };
@@ -258,7 +258,7 @@ check('guide ends with troubleshooting', /When something looks wrong/.test(guide
   guide.indexOf('When something looks wrong') > guide.indexOf('Connecting a device to it'));
 check('guide covers both tokens', guide.includes('dop_v1_') && guide.includes('tskey-api-'));
 check('guide covers using a node on devices', /Exit Node/.test(guide));
-check('guide covers cost and cleanup', /per hour/.test(guide));
+check('guide covers cost and cleanup', /a month/.test(guide));
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);
 check('dashboard hidden initially', await page.isHidden('#view-dash'));
@@ -318,8 +318,8 @@ const regionCount = (await page.$$('#regions .region')).length;
 check('only regions that can run a node offered', regionCount === 4, `got ${regionCount}`);
 const regionText = await page.textContent('#regions');
 check('no GPU-only, image-less or unavailable regions', !/atl1|syd9|lon1/.test(regionText));
-check('region shows its cheapest hourly price', (await page.textContent('#regions .region:has-text("fra1")')).includes('$0.006/hr'));
-check('region without small sizes falls back to the next cheapest', (await page.textContent('#regions .region:has-text("mem1")')).includes('$0.018/hr'));
+check('region shows its cheapest monthly price', (await page.textContent('#regions .region:has-text("fra1")')).includes('$4/mo'));
+check('region without small sizes falls back to the next cheapest', (await page.textContent('#regions .region:has-text("mem1")')).includes('$12/mo'));
 check('regions sorted by slug', (await page.textContent('#regions')).indexOf('fra1') < (await page.textContent('#regions')).indexOf('nyc1'));
 
 await page.click('#regions .region:has-text("fra1") span');
@@ -379,7 +379,18 @@ check('table note lines up with the first column', await page.evaluate(() => {
 }));
 check('cost column is right-aligned', await page.evaluate(() => getComputedStyle(document.querySelector('#nodes-body td.num')).textAlign) === 'right');
 check('status pill says exit node', rowText.includes('exit node'));
-check('running cost stat is hourly', (await page.textContent('#stats')).includes('$0.006/hr'));
+const statsText = async () => (await page.textContent('#stats')).replace(/\s+/g, ' ');
+check('rate stat is monthly by default', (await statsText()).includes('$4/mo'), await statsText());
+check('stats use the clearer labels', /Current rate/i.test(await statsText()) && /Cost so far/i.test(await statsText()) && !/Running cost|Spent so far/i.test(await statsText()));
+check('rate says what it assumes', (await statsText()).includes('if this node keeps running'));
+await page.click('#rate-unit');
+check('clicking the unit switches to hourly', (await statsText()).includes('$0.006/hr'), await statsText());
+check('hourly choice is remembered', (await page.evaluate(() => localStorage.getItem('yvpn.rate'))) === 'hr');
+check('unit toggle keeps focus', await page.evaluate(() => document.activeElement?.id === 'rate-unit'));
+await page.keyboard.press('Enter');
+check('toggles back to monthly from the keyboard', (await statsText()).includes('$4/mo'));
+// Enter belongs to the focused button, so let go of it before the row-keyboard checks.
+await page.evaluate(() => document.activeElement?.blur());
 
 // --- the open row: everything both APIs will tell us ---
 check('tailnet devices requested with fields=all', !!state.allFieldsAsked);
