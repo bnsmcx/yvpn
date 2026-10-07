@@ -50,7 +50,30 @@ const REGIONS = [
   { slug: 'sfo3', name: 'San Francisco 3', available: true },
   { slug: 'fra1', name: 'Frankfurt 1', available: true },
   { slug: 'lon1', name: 'London 1', available: false },
+  // Doesn't sell the small sizes -- like the real mem1. Gets a pricier one.
+  { slug: 'mem1', name: 'Memphis 1', available: true },
+  // Sells only GPU droplets.
+  { slug: 'atl1', name: 'Atlanta 1', available: true },
+  // Sells small sizes but doesn't carry the Ubuntu image.
+  { slug: 'syd9', name: 'Sydney 9', available: true },
 ];
+const SIZES = [
+  { slug: 's-1vcpu-512mb-10gb', memory: 512, disk: 10, price_hourly: 0.00595, available: true,
+    price_monthly: 4, transfer: 0.5, regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'syd9'] },
+  { slug: 's-1vcpu-1gb', memory: 1024, disk: 25, price_hourly: 0.00893, available: true,
+    price_monthly: 6, transfer: 1, regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'syd9'] },
+  { slug: 's-2vcpu-4gb', memory: 4096, disk: 80, price_hourly: 0.03571, available: true,
+    price_monthly: 24, transfer: 4, regions: ['nyc1', 'fra1', 'mem1'] },
+  { slug: 's-1vcpu-2gb', memory: 2048, disk: 50, price_hourly: 0.01786, available: true,
+    price_monthly: 12, transfer: 2, regions: ['nyc1', 'fra1', 'mem1'] },
+  // Cheaper than everything, but too little disk for the image.
+  { slug: 'tiny', memory: 512, disk: 5, price_hourly: 0.001, available: true, regions: ['fra1', 'mem1'] },
+  // Cheaper than everything, but not for sale.
+  { slug: 'gone', memory: 1024, disk: 25, price_hourly: 0.002, available: false, regions: ['fra1', 'mem1'] },
+  { slug: 'gpu-h100x1-80gb', memory: 245760, disk: 720, price_hourly: 3.39, available: true,
+    description: 'GPU', regions: ['atl1'] },
+];
+const IMAGE = { slug: 'ubuntu-24-04-x64', min_disk_size: 7, regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'mem1', 'atl1'] };
 
 const log = [];
 const results = [];
@@ -84,6 +107,8 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
     return json({ month_to_date_balance: '12.34', account_balance: '-5.00', month_to_date_usage: '12.34' });
   }
   if (p === '/v2/regions') return json({ regions: REGIONS });
+  if (p === '/v2/sizes') return json({ sizes: SIZES });
+  if (p === '/v2/images/ubuntu-24-04-x64') return json({ image: IMAGE });
 
   if (p === '/v2/droplets' && m === 'GET') {
     if (url.searchParams.get('tag_name') !== 'yVPN')
@@ -95,7 +120,7 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
     const b = JSON.parse(req.postData());
     check('create sends yVPN tag', b.tags?.includes('yVPN'));
     check('create sends ubuntu-24-04-x64', b.image === 'ubuntu-24-04-x64');
-    check('create sends s-1vcpu-1gb', b.size === 's-1vcpu-1gb');
+    check('create sends the cheapest usable size in the region', b.size === 's-1vcpu-512mb-10gb', b.size);
     check('cloud-init carries the auth key', b.user_data?.includes('tskey-auth-FAKE'));
     check('cloud-init advertises exit node', b.user_data?.includes('--advertise-exit-node'));
     // The slow parts, removed deliberately: an apt upgrade on first boot cost ~145 s
@@ -105,12 +130,14 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
     check('cloud-init installs the static tailscale build', b.user_data?.includes('pkgs.tailscale.com'));
     const d = {
       id: ++nextId, name: b.name, status: 'active',
-      memory: 1024, vcpus: 1, disk: 25, locked: false,
+      memory: SIZES.find((z) => z.slug === b.size).memory,
+      disk: SIZES.find((z) => z.slug === b.size).disk,
+      vcpus: 1, locked: false,
       kernel: null, tags: ['yVPN'], features: ['ipv6', 'droplet_agent'],
       vpc_uuid: 'vpc-1234', volume_ids: [], backup_ids: [], snapshot_ids: [],
       image: { slug: 'ubuntu-24-04-x64', name: '24.04 (LTS) x64', distribution: 'Ubuntu' },
       region: { slug: b.region, name: b.region, available: true, features: ['private_networking', 'ipv6'] },
-      size: { slug: 's-1vcpu-1gb', price_monthly: 6, price_hourly: 0.00893, transfer: 1 },
+      size: SIZES.find((z) => z.slug === b.size),
       created_at: new Date().toISOString(),
       networks: {
         v4: [
@@ -288,7 +315,11 @@ await page.click('#btn-new');
 await page.waitForSelector('#dlg-create[open]');
 await page.waitForTimeout(300);
 const regionCount = (await page.$$('#regions .region')).length;
-check('only available regions offered', regionCount === 3, `got ${regionCount}`);
+check('only regions that can run a node offered', regionCount === 4, `got ${regionCount}`);
+const regionText = await page.textContent('#regions');
+check('no GPU-only, image-less or unavailable regions', !/atl1|syd9|lon1/.test(regionText));
+check('region shows its cheapest hourly price', (await page.textContent('#regions .region:has-text("fra1")')).includes('$0.006/hr'));
+check('region without small sizes falls back to the next cheapest', (await page.textContent('#regions .region:has-text("mem1")')).includes('$0.018/hr'));
 check('regions sorted by slug', (await page.textContent('#regions')).indexOf('fra1') < (await page.textContent('#regions')).indexOf('nyc1'));
 
 await page.click('#regions .region:has-text("fra1") span');
@@ -341,23 +372,23 @@ check('shows public IP', rowText.includes('203.0.113.'));
 check('shows tailnet IP', rowText.includes('100.64.0.'));
 check('shows cost so far, not list price', rowText.includes('$0.01') && !rowText.includes('$6.00'));
 check('the list price is in the open panel instead',
-      (await page.textContent('#nodes-body tr.detail')).includes('$6.00'));
+      (await page.textContent('#nodes-body tr.detail')).includes('$4.00'));
 check('table note lines up with the first column', await page.evaluate(() => {
   const textLeft = (el) => el.getBoundingClientRect().left + parseFloat(getComputedStyle(el).paddingLeft);
   return Math.abs(textLeft(document.querySelector('.tablenote')) - textLeft(document.querySelector('#nodes thead th'))) < 0.6;
 }));
 check('cost column is right-aligned', await page.evaluate(() => getComputedStyle(document.querySelector('#nodes-body td.num')).textAlign) === 'right');
 check('status pill says exit node', rowText.includes('exit node'));
-check('running cost stat is hourly', (await page.textContent('#stats')).includes('$0.009/hr'));
+check('running cost stat is hourly', (await page.textContent('#stats')).includes('$0.006/hr'));
 
 // --- the open row: everything both APIs will tell us ---
 check('tailnet devices requested with fields=all', !!state.allFieldsAsked);
 const detail = (await page.textContent('#nodes-body tr.detail')).replace(/\s+/g, ' ');
 for (const [what, needle] of [
   ['droplet image', 'ubuntu-24-04-x64'],
-  ['vCPUs and memory', '1 GB'],
-  ['disk', '25 GB'],
-  ['monthly transfer', '1 TB/mo'],
+  ['memory', '512 MB'],
+  ['disk', '10 GB'],
+  ['monthly transfer', '0.5 TB/mo'],
   ['droplet features', 'droplet_agent'],
   ['the VPC', 'vpc-1234'],
   ['uptime', 'Uptime'],
@@ -375,7 +406,7 @@ for (const [what, needle] of [
   ['the preferred relay', 'Frankfurt'],
   ['relay latency', '13ms'],
   ['the tailnet endpoint', '203.0.113.7:41641'],
-  ['the hourly rate', '$0.00893'],
+  ['the hourly rate', '$0.00595'],
   ['cost so far', 'Cost so far'],
 ]) check('open row shows ' + what, detail.includes(needle), needle);
 check('open row explains the missing metrics', /monitoring agent/.test(detail));

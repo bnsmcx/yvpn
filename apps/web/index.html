@@ -449,6 +449,7 @@ dialog {
   }
   & span b { display: block; font-size: 13px; }
   & span i { font-style: normal; color: var(--dim); font-size: 11px; }
+  & span em { display: block; font-style: normal; color: var(--muted); font-size: 11px; margin-top: 3px; }
   & input:checked + span { border-color: var(--amber); background: var(--sel-bg); }
   & input:checked + span b { color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
   & input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: 2px; }
@@ -816,7 +817,8 @@ code { font-family: var(--mono); color: var(--text); }
 
       <h3>What it costs, and cleaning up</h3>
       <p>
-        A node costs about <b>$0.009 per hour</b> &mdash; $6 a month if you leave it running &mdash;
+        Each node is the cheapest droplet its datacenter sells, and the picker shows that price
+        per hour &mdash; usually <b>about $0.006</b>, $4 a month if you leave it running &mdash;
         billed by the second with a one cent minimum. <b>Cost so far</b> is what each node has run
         up, and <b>Spent so far</b> totals the nodes you still have. Deleting a node stops its
         billing immediately. Nothing else here costs anything.
@@ -901,6 +903,11 @@ code { font-family: var(--mono); color: var(--text); }
 const VERSION = "0.4.0";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
+// What every node boots. Not every region carries it, and it sets a floor on disk.
+const IMAGE = "ubuntu-24-04-x64";
+// The least memory a node may have. Tailscale needs far less; 512 MB is the
+// smallest droplet DigitalOcean sells.
+const MIN_MEMORY_MB = 512;
 const POLL_MS = 2000;          // a node now joins in ~60-90s; 1s (the CLI) invites Tailscale's rate limiter
 const POLL_TIMEOUT_MS = 15 * 60 * 1000;
 const CFG_KEY = "yvpn.cfg";
@@ -998,10 +1005,32 @@ async function fetchExitNodes() {
   return r.droplets || [];
 }
 
+// A size can run a node if it's big enough and a plain CPU droplet: GPU
+// droplets need their own images and cost dollars an hour.
+const usableSize = (s, minDisk) =>
+  s.available && s.memory >= MIN_MEMORY_MB && s.disk >= minDisk &&
+  !s.slug.startsWith("gpu-") && !/gpu/i.test(s.description || "");
+
+// Every region a node can be created in, each with the cheapest usable size it
+// offers. Regions without one (no usable size, or no Ubuntu image) are left
+// out rather than failing at create time. Same rules as the CLI.
 async function fetchDatacenters() {
-  const r = await doFetch("/regions?per_page=200");
+  const [r, s, i] = await Promise.all([
+    doFetch("/regions?per_page=200"),
+    doFetch("/sizes?per_page=200"),
+    doFetch("/images/" + IMAGE),
+  ]);
+  const img = i.image || {};
+  const sizes = (s.sizes || []).filter((x) => usableSize(x, img.min_disk_size || 0));
   return (r.regions || [])
-    .filter((x) => x.available)
+    .filter((x) => x.available && (img.regions || []).includes(x.slug))
+    .map((x) => {
+      const best = sizes
+        .filter((z) => (z.regions || []).includes(x.slug))
+        .reduce((a, z) => (!a || z.price_hourly < a.price_hourly ? z : a), null);
+      return best && { slug: x.slug, name: x.name, size: best.slug, price_hourly: best.price_hourly };
+    })
+    .filter(Boolean)
     .sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
@@ -1024,8 +1053,8 @@ write_files:
 runcmd:
   - sysctl --system
   # The static tarball, rather than install.sh: no apt repo, no apt-get update,
-  # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches the
-  # droplet size below. No package_update/package_upgrade either -- an apt
+  # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches every
+  # non-GPU droplet size. No package_update/package_upgrade either -- an apt
   # upgrade on first boot cost ~145 s and these nodes live for hours.
   - mkdir -p /tmp/tailscale
   - curl -fsSL https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz | tar xz -C /tmp/tailscale --strip-components=1
@@ -1042,16 +1071,16 @@ final_message: "yVPN exit node ready."
 `;
 }
 
-async function createDroplet(authKey, datacenter, signal) {
-  const name = `${datacenter}-yvpn-${Math.floor(Date.now() / 1000)}`;
+async function createDroplet(authKey, dc, signal) {
+  const name = `${dc.slug}-yvpn-${Math.floor(Date.now() / 1000)}`;
   const r = await doFetch("/droplets", {
     method: "POST",
     signal,
     body: JSON.stringify({
       name,
-      region: datacenter,
-      size: "s-1vcpu-1gb",
-      image: "ubuntu-24-04-x64",
+      region: dc.slug,
+      size: dc.size,
+      image: IMAGE,
       tags: [TAG],
       user_data: cloudInit(authKey),
     }),
@@ -1291,8 +1320,8 @@ function nodeCells(d, p) {
   ];
 }
 
-// Before the droplet exists there is nothing to report but the datacenter and
-// what the create is doing, so the rest of the row is held open with dashes.
+// Before the droplet exists the only things to report are the datacenter, the
+// size it sells and what the create is doing; the rest is held open with dashes.
 function buildingCells(p) {
   return [
     `<td class="name"><span class="chev">\u25B8</span>${esc(p.name || "new exit node")}</td>`,
@@ -1300,7 +1329,7 @@ function buildingCells(p) {
     `<td class="dim col-wide">${DASH}</td>`,
     `<td class="dim col-mid">${DASH}</td>`,
     `<td class="status">${pendingPill(p)}</td>`,
-    `<td class="dim col-wide">${DASH}</td>`,
+    `<td class="dim col-wide">${esc(p.size || DASH)}</td>`,
     `<td class="dim num">${DASH}</td>`,
     `<td class="dim col-mid">${DASH}</td>`,
     `<td class="dim num col-wide">${DASH}</td>`,
@@ -1533,7 +1562,7 @@ async function loadRegions() {
   $("#regions").innerHTML = state.regions.map((r, i) => `
     <label class="region">
       <input type="radio" name="region" value="${esc(r.slug)}" ${i === 0 ? "checked" : ""}>
-      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i></span>
+      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><em>$${r.price_hourly.toFixed(3)}/hr</em></span>
     </label>`).join("") || `<p class="muted small">No datacenters available.</p>`;
 }
 
@@ -1613,10 +1642,14 @@ function cancelPending(p) {
   renderNodes();
 }
 
-async function runCreate(datacenter) {
+// `dc` is an entry from fetchDatacenters(): the region, and the cheapest size
+// it sells. Both are known before the droplet exists, so the building row can
+// show them from its first paint.
+async function runCreate(dc) {
   const p = {
     key: "p" + ++pendingSeq,
-    datacenter,
+    datacenter: dc.slug,
+    size: dc.size,
     name: null,
     dropletId: null,
     phase: "requesting key",
@@ -1639,8 +1672,8 @@ async function runCreate(datacenter) {
     keyId = key.id;
 
     setPhase(p, "provisioning");
-    plog(p, `Provisioning a new droplet in the ${datacenter} datacenter…`);
-    const droplet = await createDroplet(key.key, datacenter, signal);
+    plog(p, `Provisioning a ${dc.size} droplet in the ${dc.slug} datacenter…`);
+    const droplet = await createDroplet(key.key, dc, signal);
     p.name = droplet.name;
     p.dropletId = droplet.id;         // the row shows the droplet from here on
     plog(p, `Droplet ${droplet.name} created (id ${droplet.id}).`);
@@ -1854,7 +1887,10 @@ $("#btn-create-go").addEventListener("click", (e) => {
 $("#dlg-create").addEventListener("close", () => {
   if ($("#dlg-create").returnValue !== "go") return;
   const picked = $("#regions input:checked");
-  if (picked) runCreate(picked.value);
+  // The radio carries the slug; the build needs the whole datacenter, since it
+  // is what knows which size that region sells.
+  const dc = picked && state.regions.find((r) => r.slug === picked.value);
+  if (dc) runCreate(dc);
 });
 
 /* Delete is the same key whatever the selected row is doing: a finished node

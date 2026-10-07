@@ -169,7 +169,7 @@ func (m Add) buildTable() table.Model {
 	width := (m.width - 8) / 2
 	columns := []table.Column{
 		{Title: "Datacenter", Width: width},
-		{Title: "Provider", Width: width},
+		{Title: "Price/hr", Width: width},
 	}
 
 	var rows []table.Row
@@ -183,7 +183,7 @@ func (m Add) buildTable() table.Model {
 
 	if len(m.dash.Datacenters) > 0 {
 		for _, dc := range m.dash.Datacenters {
-			rows = append(rows, table.Row{dc, "Digital Ocean"})
+			rows = append(rows, table.Row{dc.Slug, fmt.Sprintf("$%.4f", dc.PriceHourly)})
 		}
 	} else {
 		rows = append(rows, table.Row{"None", ""})

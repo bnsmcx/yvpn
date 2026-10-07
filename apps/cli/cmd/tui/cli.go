@@ -137,9 +137,9 @@ func cmdDatacenters(token string, jsonOutput bool) {
 		return
 	}
 
-	fmt.Println("DATACENTER")
+	fmt.Printf("%-12s %-12s %-22s %s\n", "DATACENTER", "PRICE/HR", "SIZE", "NAME")
 	for _, dc := range datacenters {
-		fmt.Println(dc)
+		fmt.Printf("%-12s %-12s %-22s %s\n", dc.Slug, fmt.Sprintf("$%.4f", dc.PriceHourly), dc.Size, dc.Name)
 	}
 }
 
