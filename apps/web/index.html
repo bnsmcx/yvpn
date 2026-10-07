@@ -337,9 +337,57 @@ td.dim { color: var(--dim); }
 .pill.ok   { color: var(--ok);     text-shadow: 0 0 9px var(--ok-glow); }
 .pill.warn { color: var(--warn); }
 .pill.bad  { color: var(--danger); }
+/* A node still being built: the lamp blinks until it settles into one of the above. */
+.pill.busy { color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
+.pill.busy::before { animation: blink 1.1s ease-in-out infinite; }
+.pill .elapsed { color: var(--dim); text-shadow: none; font-variant-numeric: tabular-nums; }
+@keyframes blink { 50% { opacity: .2; } }
 
 .empty { padding: 44px 20px; text-align: center; color: var(--muted); }
 .empty p { margin: 0 0 14px; font-size: 12.5px; }
+
+/* ---- rows open ----
+   Nine columns is what fits; the two APIs will tell us far more than that. Each
+   row is a disclosure: clicking it drops a panel underneath with everything
+   DigitalOcean and Tailscale report about that node. A <details> element cannot
+   live between <tr>s, so the panel is a second row that is only rendered while
+   it is open -- which also keeps the table's own DOM the size it looks. */
+.chev {
+  display: inline-block; width: 9px; margin-right: 7px; font-weight: 400;
+  font-size: 10px; color: var(--amber); transition: transform .12s;
+}
+tr[aria-expanded="true"] .chev { transform: rotate(90deg); }
+
+tr.detail > td {
+  padding: 0; background: var(--inset); white-space: normal;
+  border-bottom: 1px solid var(--line); box-shadow: inset 2px 0 0 var(--amber);
+}
+tr.detail:hover > td { background: var(--inset); }
+.node-detail {
+  padding: 15px 18px 17px;
+  display: grid; gap: 16px 28px; align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+}
+.dgroup h4 {
+  font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--amber);
+  margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--rule);
+}
+.dl {
+  display: grid; grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 14px; margin: 0; font-size: 11.5px; line-height: 1.55;
+}
+.dl dt { color: var(--muted); }
+.dl dd { margin: 0; overflow-wrap: anywhere; }
+.dl dd.na, .dgroup p.na { color: var(--dim); }
+.dgroup p.na { margin: 0; font-size: 11.5px; line-height: 1.6; }
+.detail-note, .detail-actions, .node-detail .log { grid-column: 1 / -1; }
+.detail-note { font-size: 11px; line-height: 1.6; color: var(--dim); margin: 0; }
+.detail-actions { display: flex; gap: 10px; }
+
+/* A create in flight owns its row until it finishes, and wears the same amber
+   edge as its open panel so the two read as one thing. */
+tr.pending { box-shadow: inset 2px 0 0 var(--amber); }
+tr.pending > td.name { color: var(--amber); }
 
 /* ================= dialogs ================= */
 
@@ -414,21 +462,18 @@ dialog {
   & input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: 2px; }
 }
 
+/* The build log. It used to be the whole of a modal; now it lives inside the
+   row of the node it is describing. */
 .log {
-  font-size: 12px; line-height: 1.5;
-  background: var(--inset); border: 1px solid var(--rule);
-  padding: 12px 14px; max-height: 250px; overflow-y: auto;
+  font-size: 11.5px; line-height: 1.5;
+  background: var(--panel); border: 1px solid var(--rule);
+  padding: 11px 13px; max-height: 190px; overflow-y: auto;
   white-space: pre-wrap; word-break: break-word;
 
   & .row { display: flex; gap: 12px; padding: 2px 0; color: var(--muted); }
   & .row .t { color: var(--dim); flex: none; }
   & .row.err { color: var(--danger); }
   & .row.ok { color: var(--ok); text-shadow: 0 0 9px var(--ok-glow); }
-}
-
-progress {
-  width: 100%; height: 4px; margin-top: 13px;
-  accent-color: var(--amber);
 }
 
 /* ================= toasts + help ================= */
@@ -483,6 +528,9 @@ code { font-family: var(--mono); color: var(--text); }
   .col-wide { display: none; }
   th, td { padding-left: 11px; padding-right: 11px; }
   .tablenote { padding: 0 11px; }
+  /* One column, and lined up with the table's own phone gutter. Left to itself
+     the panel's minimum width would widen the table and start it scrolling. */
+  .node-detail { grid-template-columns: minmax(0, 1fr); padding: 13px 11px 15px; }
   .toolbar { flex-wrap: wrap; }
   #toasts { left: 12px; right: 12px; }
   #toasts .toast { max-width: none; }
@@ -515,7 +563,7 @@ code { font-family: var(--mono); color: var(--text); }
   <span class="screw"></span>
   <span class="brand">yVPN</span>
   <span class="stamp">exit node control</span>
-  <span class="stamp-dim ver" id="ver-header">v0.4.0</span>
+  <span class="stamp-dim ver" id="ver-header">v0.4.1</span>
   <span class="spacer"></span>
   <span id="who" class="stamp-dim hidden"></span>
   <button id="btn-guide" title="Getting started">guide</button>
@@ -648,10 +696,11 @@ code { font-family: var(--mono); color: var(--text); }
     <span><span class="cap">D</span><span class="stamp">delete</span></span>
     <span><span class="cap">R</span><span class="stamp">refresh</span></span>
     <span><span class="cap">J K</span><span class="stamp">select</span></span>
+    <span><span class="cap">&crarr;</span><span class="stamp">details</span></span>
     <span><span class="cap">?</span><span class="stamp">help</span></span>
   </span>
   <span class="spacer"></span>
-  <span class="stamp-dim ver" id="ver-footer">v0.4.0</span>
+  <span class="stamp-dim ver" id="ver-footer">v0.4.1</span>
   <span class="display">
     <span class="stamp" id="display-label">display</span>
     <span class="sel" role="group" aria-labelledby="display-label" id="display-sel">
@@ -667,15 +716,12 @@ code { font-family: var(--mono); color: var(--text); }
   <form method="dialog">
     <div class="dlg-head">
       <h2>New exit node</h2>
-      <p class="sub" id="create-sub">Pick a datacenter. A droplet is provisioned there, joins your
-        tailnet with a single-use ephemeral key, and is enabled as an exit node.</p>
+      <p class="sub">Pick a datacenter. A droplet is provisioned there, joins your
+        tailnet with a single-use ephemeral key, and is enabled as an exit node. The dialog
+        closes and the node builds in the table, where you can watch it and cancel it.</p>
     </div>
     <div class="dlg-body">
       <div id="regions" class="regions"></div>
-      <div id="create-progress" class="hidden">
-        <div class="log" id="create-log"></div>
-        <progress id="create-bar" max="5" value="0"></progress>
-      </div>
     </div>
     <div class="dlg-foot">
       <button value="cancel" id="btn-create-cancel" class="ghost">Cancel</button>
@@ -723,8 +769,20 @@ code { font-family: var(--mono); color: var(--text); }
       <h3>Making a node</h3>
       <p>
         Press <b>New exit node</b> and pick a datacenter &mdash; whichever country you want your
-        traffic to appear from. About a minute later it is listed here as an exit node, running and
-        already on your tailnet.
+        traffic to appear from. The dialog closes at once and the node appears in the table
+        straight away, reporting each step as it goes &mdash; requesting a key, provisioning,
+        joining tailnet. About a minute later it settles into an ordinary row: running, on your
+        tailnet, and ready to use. You can keep working while it builds, start another, or open
+        its row and <b>cancel</b> &mdash; which rolls the half-built node back.
+      </p>
+
+      <h3>What a row will tell you</h3>
+      <p>
+        Click any node (or press <b>Enter</b>) to open it. The panel underneath holds everything
+        the two APIs report about it: the droplet's image, kernel, size, features and every
+        address it has; the tailnet machine's client version, key expiry, advertised and approved
+        routes, relay and round-trip latency; and what it has cost so far. A node still building
+        opens on its build log instead.
       </p>
 
       <h3>Connecting a device to it</h3>
@@ -777,7 +835,8 @@ code { font-family: var(--mono); color: var(--text); }
       <h3>When something looks wrong</h3>
       <ul>
         <li><b>Stuck on "joining tailnet"</b> &mdash; the node is still booting. It is normally
-          ready inside two minutes; if it never appears, delete it and create another.</li>
+          ready inside two minutes; open the row to watch the log, and if it never appears,
+          cancel it and create another.</li>
         <li><b>"DigitalOcean rejected that token"</b> &mdash; the token is wrong, expired, or lacks
           write scope.</li>
         <li><b>"Tailscale relay unreachable"</b> &mdash; droplet data still loads, but the tailnet
@@ -821,8 +880,9 @@ code { font-family: var(--mono); color: var(--text); }
     <dt>d</dt><dd>Delete selected node</dd>
     <dt>r</dt><dd>Refresh</dd>
     <dt>j k / ↓ ↑</dt><dd>Move selection</dd>
+    <dt>Enter / o</dt><dd>Open the selected node's details</dd>
     <dt>?</dt><dd>This panel</dd>
-    <dt>Esc</dt><dd>Close</dd>
+    <dt>Esc</dt><dd>Close, or clear the selection</dd>
   </dl>
   <p class="small muted" style="margin-top:14px">
     Mirrors the <code>yvpn tui</code> keymap.
@@ -848,7 +908,7 @@ code { font-family: var(--mono); color: var(--text); }
 
 // Single source of truth for the version stamped on the console. The release
 // workflow checks this against the tag, so a tagged build can't ship stale.
-const VERSION = "0.4.0";
+const VERSION = "0.4.1";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
 // What every node boots. Not every region carries it, and it sets a floor on disk.
@@ -866,8 +926,14 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 let cfg = null;
-let state = { nodes: [], regions: [], devices: [], selected: null };
-let creating = null;           // AbortController while a create is in flight
+let state = {
+  nodes: [],
+  regions: [],
+  devices: [],
+  pending: [],                 // creates in flight, each one a row in the table
+  selected: null,              // a row key: "n<droplet id>", or a pending's own key
+  expanded: new Set(),         // row keys whose detail panel is open
+};
 
 /* ------------------------------ storage ------------------------------ */
 
@@ -1053,8 +1119,11 @@ async function getAuthKey(signal) {
 
 const deleteAuthKey = (id) => tsFetch("/api/v2/tailnet/-/keys/" + encodeURIComponent(id), { method: "DELETE" });
 
-async function getDevices(signal) {
-  const r = await tsFetch("/api/v2/tailnet/-/devices", { signal });
+// `fields=all` adds clientConnectivity (relay, endpoints, per-relay latency) and
+// the tailnet-lock fields, which is what the open row reports. The create loop
+// polls without it -- it only needs to know the machine showed up.
+async function getDevices(signal, all = false) {
+  const r = await tsFetch("/api/v2/tailnet/-/devices" + (all ? "?fields=all" : ""), { signal });
   return r.devices || [];
 }
 
@@ -1126,6 +1195,25 @@ function costSoFar(d, now = Date.now()) {
   return Math.max(total, 0.01);
 }
 
+// Whole units, largest first: "3d 4h" rather than "3.18 days".
+function fmtDuration(secs) {
+  if (secs < 60) return Math.floor(secs) + "s";
+  if (secs < 3600) return Math.floor(secs / 60) + "m";
+  if (secs < 86400) return Math.floor(secs / 3600) + "h " + Math.floor((secs % 3600) / 60) + "m";
+  return Math.floor(secs / 86400) + "d " + Math.floor((secs % 86400) / 3600) + "h";
+}
+
+function fmtWhen(iso) {
+  if (!iso) return null;
+  const t = new Date(iso);
+  return isNaN(t) ? String(iso) : t.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
+
+const fmtBool = (v) => (v == null ? null : v ? "yes" : "no");
+const fmtList = (a) => (Array.isArray(a) && a.length ? a.join(", ") : null);
+// DigitalOcean reports droplet memory in MB.
+const fmtMem = (mb) => (mb == null ? null : mb >= 1024 ? mb / 1024 + " GB" : mb + " MB");
+
 function fmtAge(iso) {
   if (!iso) return "—";
   const secs = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -1161,7 +1249,11 @@ function renderStats() {
   const nodes = state.nodes;
   const spent = nodes.reduce((s, d) => s + costSoFar(d), 0);
   const online = nodes.filter((d) => d._device && isOnline(d._device)).length;
-  const n = nodes.length;
+  // A create in flight only counts once, whether or not its droplet exists yet.
+  const building = state.pending.filter((p) => !p.failed);
+  const total = nodes.length +
+    building.filter((p) => !nodes.some((n) => n.id === p.dropletId)).length;
+  const live = nodes.length;
 
   const rate = rateUnit === "hr"
     ? "$" + nodes.reduce((s, d) => s + hourlyRate(d), 0).toFixed(3)
@@ -1171,10 +1263,10 @@ function renderStats() {
     aria-label="Per ${rateUnit === "hr" ? "hour" : "month"}; show per ${other}">/${rateUnit}</button>`;
 
   const cards = [
-    { k: "Exit nodes", v: String(n) },
-    { k: "On tailnet", v: `${online}<small> / ${n}</small>` },
+    { k: "Exit nodes", v: String(total) + (building.length ? `<small> ${building.length} building</small>` : "") },
+    { k: "On tailnet", v: `${online}<small> / ${live}</small>` },
     { k: "Current rate", v: rate + unit,
-      sub: n ? `if ${n === 1 ? "this node keeps" : `these ${n} nodes keep`} running` : "nothing running" },
+      sub: live ? `if ${live === 1 ? "this node keeps" : `these ${live} nodes keep`} running` : "nothing running" },
     { k: "Cost so far", v: fmtMoney(spent), sub: "of the nodes below" },
   ];
 
@@ -1210,40 +1302,253 @@ function statusPill(d) {
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+/* A row is a droplet, a create still in flight, or -- for most of a create's
+   life -- both. As soon as the droplet exists the create adopts its droplet, so
+   the line the table gained when you pressed Create is the same line that
+   graduates into an ordinary node, rather than one being swapped for another
+   under the pointer. While a create owns a row the row keeps the create's key,
+   so the key changes exactly once: when the build finishes and lets go. */
+function tableRows() {
+  const adopted = new Set();
+  const nodes = state.nodes.map((d) => {
+    const p = state.pending.find((x) => x.dropletId === d.id);
+    if (p) adopted.add(p);
+    return { key: p ? p.key : "n" + d.id, droplet: d, pending: p || null };
+  });
+  const building = state.pending
+    .filter((p) => !adopted.has(p))
+    .map((p) => ({ key: p.key, droplet: null, pending: p }));
+  return [...building, ...nodes];
+}
+
+const selectedRow = () => tableRows().find((r) => r.key === state.selected) || null;
+
+// Carry the selection and the open panel across the one key change.
+function reKey(from, to) {
+  if (state.expanded.delete(from)) state.expanded.add(to);
+  if (state.selected === from) state.selected = to;
+}
+
+const elapsedText = (p) => " · " + Math.round((Date.now() - p.startedAt) / 1000) + "s";
+
+function pendingPill(p) {
+  if (p.failed) return `<span class="pill bad">${esc(p.phase)}</span>`;
+  return `<span class="pill busy">${esc(p.phase)}` +
+         `<span class="elapsed" data-elapsed="${p.key}">${elapsedText(p)}</span></span>`;
+}
+
+const DASH = "—";
+
+function nodeCells(d, p) {
+  return [
+    `<td class="name"><span class="chev">\u25B8</span>${esc(d.name)}</td>`,
+    `<td class="dim">${esc(d.region?.slug || DASH)}</td>`,
+    `<td class="dim col-wide">${esc(publicIP(d))}</td>`,
+    `<td class="dim col-mid">${esc(d._device?.addresses?.[0] || DASH)}</td>`,
+    `<td class="status">${p ? pendingPill(p) : statusPill(d)}</td>`,
+    `<td class="dim col-wide">${esc(d.size?.slug || DASH)}</td>`,
+    `<td class="dim num" title="${esc(fmtMoney(hourlyRate(d) * MONTHLY_CAP_HOURS))}/mo cap">${fmtMoney(costSoFar(d))}</td>`,
+    `<td class="dim col-mid">${esc(fmtAge(d.created_at))}</td>`,
+    `<td class="dim num col-wide">${d.id}</td>`,
+  ];
+}
+
+// Before the droplet exists the only things to report are the datacenter, the
+// size it sells and what the create is doing; the rest is held open with dashes.
+function buildingCells(p) {
+  return [
+    `<td class="name"><span class="chev">\u25B8</span>${esc(p.name || "new exit node")}</td>`,
+    `<td class="dim">${esc(p.datacenter)}</td>`,
+    `<td class="dim col-wide">${DASH}</td>`,
+    `<td class="dim col-mid">${DASH}</td>`,
+    `<td class="status">${pendingPill(p)}</td>`,
+    `<td class="dim col-wide">${esc(p.size || DASH)}</td>`,
+    `<td class="dim num">${DASH}</td>`,
+    `<td class="dim col-mid">${DASH}</td>`,
+    `<td class="dim num col-wide">${DASH}</td>`,
+  ];
+}
+
+function renderRow(r) {
+  const open = state.expanded.has(r.key);
+  const cells = r.droplet ? nodeCells(r.droplet, r.pending) : buildingCells(r.pending);
+  const cls = r.pending ? (r.pending.failed ? "pending failed" : "pending") : "";
+  const row =
+    `<tr data-key="${r.key}" class="${cls}" tabindex="0"` +
+    ` aria-selected="${state.selected === r.key}" aria-expanded="${open}">${cells.join("")}</tr>`;
+  if (!open) return row;
+  return row + `<tr class="detail ${cls}"><td colspan="9">${renderDetail(r)}</td></tr>`;
+}
+
 function renderNodes() {
   const body = $("#nodes-body");
   const empty = $("#nodes-empty");
   const table = $("#nodes");
+  const rows = tableRows();
 
-  if (!state.nodes.length) {
+  if (state.selected != null && !rows.some((r) => r.key === state.selected)) state.selected = null;
+
+  if (!rows.length) {
     body.innerHTML = "";
     table.classList.add("hidden");
     empty.classList.remove("hidden");
-    return;
+  } else {
+    table.classList.remove("hidden");
+    empty.classList.add("hidden");
+    body.innerHTML = rows.map(renderRow).join("");
   }
-  table.classList.remove("hidden");
-  empty.classList.add("hidden");
 
-  body.innerHTML = state.nodes.map((d) => `
-    <tr data-id="${d.id}" aria-selected="${state.selected === d.id}" tabindex="0">
-      <td class="name">${esc(d.name)}</td>
-      <td class="dim">${esc(d.region?.slug || "—")}</td>
-      <td class="dim col-wide">${esc(publicIP(d))}</td>
-      <td class="dim col-mid">${esc(d._device?.addresses?.[0] || "—")}</td>
-      <td>${statusPill(d)}</td>
-      <td class="dim col-wide">${esc(d.size?.slug || "—")}</td>
-      <td class="dim num" title="${esc(fmtMoney(hourlyRate(d) * MONTHLY_CAP_HOURS))}/mo cap">${fmtMoney(costSoFar(d))}</td>
-      <td class="dim col-mid">${esc(fmtAge(d.created_at))}</td>
-      <td class="dim num col-wide">${d.id}</td>
-    </tr>`).join("");
+  const sel = selectedRow();
+  const btn = $("#btn-delete");
+  btn.disabled = sel == null;
+  // Destroying a node and abandoning one that is still being built are different
+  // enough acts to deserve different words on the same key.
+  btn.textContent = sel?.pending ? (sel.pending.failed ? "Dismiss" : "Cancel") : "Delete";
+}
 
-  $("#btn-delete").disabled = state.selected == null;
+/* ------------------------------ node detail ---------------------------- */
+
+const logRow = (l) => `<div class="row ${l.kind}"><span class="t">${esc(l.t)}</span><span>${esc(l.msg)}</span></div>`;
+
+function dgroup(title, pairs) {
+  const body = pairs.map(([k, v]) => {
+    const blank = v == null || v === "";
+    return `<dt>${esc(k)}</dt><dd class="${blank ? "na" : ""}">${blank ? DASH : esc(v)}</dd>`;
+  }).join("");
+  return `<div class="dgroup"><h4>${esc(title)}</h4><dl class="dl">${body}</dl></div>`;
+}
+
+function renderDetail(r) {
+  const parts = [];
+  if (r.pending) parts.push(buildPanel(r.pending));
+  if (r.droplet) parts.push(...detailGroups(r.droplet));
+  return `<div class="node-detail">${parts.join("")}</div>`;
+}
+
+// A node that is still building opens on its own build log -- the same lines the
+// create dialog used to show, now attached to the thing they describe.
+function buildPanel(p) {
+  const action = p.failed
+    ? `<button class="ghost" data-dismiss="${p.key}">Dismiss</button>`
+    : `<button class="ghost" data-cancel="${p.key}">Cancel and roll back</button>`;
+  return `<div class="log" data-log="${p.key}">${p.log.map(logRow).join("")}</div>` +
+         `<div class="detail-actions">${action}</div>`;
+}
+
+function detailGroups(d) {
+  const dev = d._device;
+  const routes = d._routes;
+  const v4 = d.networks?.v4 || [];
+  const pub = v4.find((n) => n.type === "public");
+  const priv = v4.find((n) => n.type === "private");
+  const v6 = (d.networks?.v6 || [])[0];
+  const conn = dev?.clientConnectivity;
+  const latency = conn?.latency || {};
+  const preferred = Object.entries(latency).find(([, v]) => v.preferred);
+  const nearest = Object.entries(latency)
+    .filter(([, v]) => v.latencyMs != null)
+    .sort((a, b) => a[1].latencyMs - b[1].latencyMs)
+    .slice(0, 3)
+    .map(([name, v]) => `${name} ${v.latencyMs.toFixed(0)}ms`)
+    .join(", ");
+
+  const out = [
+    dgroup("Droplet", [
+      ["DO id", String(d.id)],
+      ["Status", DROPLET_STATE[d.status] || d.status],
+      ["Image", d.image?.slug || d.image?.name],
+      ["Kernel", d.kernel?.name],
+      ["Size", d.size?.slug],
+      ["vCPUs", d.vcpus],
+      ["Memory", fmtMem(d.memory)],
+      ["Disk", d.disk == null ? null : d.disk + " GB"],
+      ["Transfer", d.size?.transfer == null ? null : d.size.transfer + " TB/mo"],
+      ["Features", fmtList(d.features)],
+      ["Tags", fmtList(d.tags)],
+      ["VPC", d.vpc_uuid],
+      ["Volumes", fmtList(d.volume_ids) || "none"],
+      ["Backups", d.backup_ids?.length ? String(d.backup_ids.length) : "none"],
+      ["Snapshots", d.snapshot_ids?.length ? String(d.snapshot_ids.length) : "none"],
+      ["Locked", fmtBool(d.locked)],
+      ["Created", fmtWhen(d.created_at)],
+      ["Uptime", fmtDuration((Date.now() - new Date(d.created_at).getTime()) / 1000)],
+    ]),
+    dgroup("Region", [
+      ["Datacenter", d.region?.slug],
+      ["Name", d.region?.name],
+      ["Accepting droplets", fmtBool(d.region?.available)],
+      ["Features", fmtList(d.region?.features)],
+    ]),
+    dgroup("Addresses", [
+      ["Public IPv4", pub?.ip_address],
+      ["Netmask", pub?.netmask],
+      ["Gateway", pub?.gateway],
+      ["Private IPv4", priv?.ip_address],
+      ["IPv6", v6?.ip_address],
+      ["Tailnet IPv4", dev?.addresses?.find((a) => a.includes("."))],
+      ["Tailnet IPv6", dev?.addresses?.find((a) => a.includes(":"))],
+    ]),
+  ];
+
+  out.push(dev
+    ? dgroup("Tailscale", [
+        ["Machine", dev.name],
+        ["Hostname", dev.hostname],
+        ["Node id", dev.nodeId || dev.id],
+        ["Owner", dev.user],
+        ["OS", dev.os],
+        ["Client", dev.clientVersion],
+        ["Update available", fmtBool(dev.updateAvailable)],
+        ["Authorized", fmtBool(dev.authorized)],
+        ["Reachable", isOnline(dev) ? "yes" : "no"],
+        ["Joined", fmtWhen(dev.created)],
+        ["Last seen", dev.lastSeen ? `${fmtWhen(dev.lastSeen)} (${fmtAge(dev.lastSeen)})` : null],
+        ["Key expiry", dev.keyExpiryDisabled ? "disabled" : fmtWhen(dev.expires)],
+        ["Blocks inbound", fmtBool(dev.blocksIncomingConnections)],
+        ["External", fmtBool(dev.isExternal)],
+        ["Tags", fmtList(dev.tags)],
+        ["Lock error", dev.tailnetLockError],
+      ])
+    : `<div class="dgroup"><h4>Tailscale</h4><p class="na">No tailnet machine matches this
+       droplet yet. It is either still booting, or the relay could not be reached.</p></div>`);
+
+  out.push(dgroup("Exit routing", [
+    ["Advertised", fmtList(routes?.advertisedRoutes)],
+    ["Approved", fmtList(routes?.enabledRoutes)],
+    ["Exit node", d._exit === undefined ? null : d._exit ? "approved" : "advertised, not approved"],
+    ["Relay (DERP)", conn ? conn.derp || preferred?.[0] : null],
+    ["Nearest relays", nearest || null],
+    ["Endpoints", fmtList(conn?.endpoints)],
+    ["Mapping varies by dest", conn ? fmtBool(conn.mappingVariesByDestIP) : null],
+  ]));
+
+  out.push(dgroup("Billing", [
+    ["Hourly", "$" + hourlyRate(d).toFixed(5)],
+    ["Monthly cap", fmtMoney(d.size?.price_monthly ?? hourlyRate(d) * MONTHLY_CAP_HOURS)],
+    ["Cost so far", fmtMoney(costSoFar(d))],
+    ["Billed since", fmtWhen(d.created_at)],
+  ]));
+
+  // Worth saying once, where someone would go looking for the graphs: the
+  // absence is a deliberate trade, not a gap in what this page reads.
+  out.push(`<p class="detail-note">No CPU or bandwidth graphs: these nodes skip DigitalOcean's
+    monitoring agent to cut about a minute off boot, so its metrics API has nothing to report
+    for them. Everything above is read live from DigitalOcean and Tailscale.</p>`);
+
+  return out;
 }
 
 /* ------------------------------- loading ------------------------------ */
 
+// A create in flight refreshes on its own schedule, so several of these can now
+// overlap. The button reads "Refreshing…" until the last one is done.
+let refreshing = 0;
+
 async function refresh() {
+  // A create that is being rolled back after a sign-out has nothing to read with.
+  if (!cfg) return;
   const btn = $("#btn-refresh");
+  refreshing++;
   btn.disabled = true;
   btn.textContent = "Refreshing…";
   try {
@@ -1252,31 +1557,31 @@ async function refresh() {
 
     // Tailnet enrichment is best-effort: a bad proxy shouldn't blank the droplet list.
     try {
-      state.devices = await getDevices();
+      state.devices = await getDevices(undefined, true);
       for (const d of state.nodes) {
         d._device = state.devices.find(
           (dev) => (dev.name || "").includes(d.name) || (dev.hostname || "").includes(d.name));
       }
       await Promise.all(state.nodes.filter((d) => d._device).map(async (d) => {
         try {
-          const r = await getRoutes(d._device.id);
-          d._exit = (r.enabledRoutes || []).some((x) => x === "0.0.0.0/0" || x === "::/0");
-        } catch { d._exit = undefined; }
+          // The open row reports both route lists, so keep the whole response.
+          d._routes = await getRoutes(d._device.id);
+          d._exit = (d._routes.enabledRoutes || []).some((x) => x === "0.0.0.0/0" || x === "::/0");
+        } catch { d._routes = undefined; d._exit = undefined; }
       }));
     } catch (e) {
       toast("Tailscale proxy unreachable — showing DigitalOcean data only. " + e.message, "err");
     }
 
-    if (state.selected != null && !state.nodes.some((n) => n.id === state.selected)) {
-      state.selected = null;
-    }
     renderStats();
     renderNodes();
   } catch (e) {
     toast("Could not load exit nodes: " + e.message, "err");
   } finally {
-    btn.disabled = false;
-    btn.textContent = "Refresh";
+    if (--refreshing === 0) {
+      btn.disabled = false;
+      btn.textContent = "Refresh";
+    }
   }
 }
 
@@ -1295,84 +1600,170 @@ async function loadRegions() {
 }
 
 /* ------------------------------- create ------------------------------- */
+/* Creating a node used to happen behind a modal that narrated five steps and
+   then sat there. It happens in the table instead: the row appears the moment
+   you press Create, reports what it is doing, and graduates into an ordinary
+   node when it is done. Nothing to dismiss, and the dashboard stays usable --
+   you can start a second node while the first one boots. */
 
-function logLine(msg, kind = "") {
-  const row = document.createElement("div");
-  row.className = "row " + kind;
-  const t = new Date().toLocaleTimeString([], { hour12: false });
-  row.innerHTML = `<span class="t">${t}</span><span>${esc(msg)}</span>`;
-  $("#create-log").append(row);
-  $("#create-log").scrollTop = $("#create-log").scrollHeight;
+let pendingSeq = 0;
+let ticker = null;
+let tickCount = 0;
+
+// Only the pending parts of the table are repainted here. A full render on every
+// log line would throw away scroll position in the log it is writing to.
+function paintPending(p) {
+  const row = $(`#nodes-body tr[data-key="${p.key}"]`);
+  const cell = row?.querySelector("td.status");
+  if (cell) cell.innerHTML = pendingPill(p);
+  const log = $(`#nodes-body [data-log="${p.key}"]`);
+  if (log) {
+    log.innerHTML = p.log.map(logRow).join("");
+    log.scrollTop = log.scrollHeight;
+  }
 }
 
+function plog(p, msg, kind = "") {
+  p.log.push({ t: new Date().toLocaleTimeString([], { hour12: false }), msg, kind });
+  paintPending(p);
+}
+
+function setPhase(p, phase) {
+  p.phase = phase;
+  paintPending(p);
+}
+
+/* One timer for every node being built: it ages the "· 42s" counters every
+   second, and every tenth tick reloads the droplets so a booting node's IP,
+   status and cost fill in by themselves. */
+function startTicker() {
+  if (ticker) return;
+  tickCount = 0;
+  ticker = setInterval(() => {
+    const live = state.pending.filter((p) => !p.failed);
+    for (const p of live) {
+      const el = $(`[data-elapsed="${p.key}"]`);
+      if (el) el.textContent = elapsedText(p);
+    }
+    if (++tickCount % 10 === 0 && live.length) refresh();
+  }, 1000);
+}
+
+function stopTicker() {
+  if (ticker && !state.pending.some((p) => !p.failed)) {
+    clearInterval(ticker);
+    ticker = null;
+  }
+}
+
+function dropPending(p) {
+  state.pending = state.pending.filter((x) => x !== p);
+  stopTicker();
+}
+
+/** Abandon a build in flight, or clear a failed one out of the table. */
+function cancelPending(p) {
+  if (!p.failed) {
+    p.ctrl.abort();                 // the row stays put so the rollback is visible
+    toast("Cancelling — rolling back " + (p.name || "the new node") + ".");
+    return;
+  }
+  state.expanded.delete(p.key);
+  if (state.selected === p.key) state.selected = null;
+  dropPending(p);
+  renderStats();
+  renderNodes();
+}
+
+// `dc` is an entry from fetchDatacenters(): the region, and the cheapest size
+// it sells. Both are known before the droplet exists, so the building row can
+// show them from its first paint.
 async function runCreate(dc) {
-  const bar = $("#create-bar");
-  const step = (n) => { bar.value = n; };
-  creating = new AbortController();
-  const signal = creating.signal;
-  const started = Date.now();
+  const p = {
+    key: "p" + ++pendingSeq,
+    datacenter: dc.slug,
+    size: dc.size,
+    name: null,
+    dropletId: null,
+    phase: "requesting key",
+    startedAt: Date.now(),
+    log: [],
+    failed: false,
+    ctrl: new AbortController(),
+  };
+  state.pending.push(p);
+  renderStats();
+  renderNodes();
+  startTicker();
 
-  $("#regions").classList.add("hidden");
-  $("#create-progress").classList.remove("hidden");
-  $("#create-log").innerHTML = "";
-  $("#create-sub").textContent = "Provisioning in " + dc.slug + "…";
-  $("#btn-create-go").disabled = true;
-  $("#btn-create-cancel").textContent = "Cancel";
-
-  let keyId = null, dropletId = null;
+  const signal = p.ctrl.signal;
+  let keyId = null;
 
   try {
-    logLine("Getting an auth key from Tailscale…");
+    plog(p, "Getting an auth key from Tailscale…");
     const key = await getAuthKey(signal);
     keyId = key.id;
-    step(1);
 
-    logLine(`Provisioning a ${dc.size} droplet in the ${dc.slug} datacenter…`);
+    setPhase(p, "provisioning");
+    plog(p, `Provisioning a ${dc.size} droplet in the ${dc.slug} datacenter…`);
     const droplet = await createDroplet(key.key, dc, signal);
-    dropletId = droplet.id;
-    logLine(`Droplet ${droplet.name} created (id ${droplet.id}).`);
-    step(2);
+    p.name = droplet.name;
+    p.dropletId = droplet.id;         // the row shows the droplet from here on
+    plog(p, `Droplet ${droplet.name} created (id ${droplet.id}).`);
+    setPhase(p, "booting");
+    await refresh();
 
-    logLine("Waiting for the new exit node to phone home to Tailscale…");
+    plog(p, "Waiting for the new exit node to phone home to Tailscale…");
+    setPhase(p, "joining tailnet");
     // One line every ~15s: enough to show progress without burying the log.
     let nextTick = 15;
     const dev = await enableExit(droplet.name, signal, (secs) => {
-      if (secs >= nextTick) { logLine(`  …still waiting (${secs}s)`); nextTick = secs + 15; }
+      if (secs >= nextTick) { plog(p, `  …still waiting (${secs}s)`); nextTick = secs + 15; }
     });
-    logLine(`Node joined as ${dev.name} — exit routes approved.`, "ok");
-    step(4);
+    plog(p, `Node joined as ${dev.name} — exit routes approved.`, "ok");
 
-    logLine("Deleting the Tailscale auth key…");
-    await deleteAuthKey(keyId).catch(() => logLine("  (auth key cleanup failed; it expires in 1h)", "err"));
+    setPhase(p, "revoking key");
+    plog(p, "Deleting the Tailscale auth key…");
+    await deleteAuthKey(keyId).catch(() => plog(p, "  (auth key cleanup failed; it expires in 1h)", "err"));
     keyId = null;
-    step(5);
 
-    const secs = Math.round((Date.now() - started) / 1000);
-    logLine(`Exit node ready in ${secs}s.`, "ok");
+    const secs = Math.round((Date.now() - p.startedAt) / 1000);
+    plog(p, `Exit node ready in ${secs}s.`, "ok");
     toast(`Exit node ${droplet.name} is ready.`, "ok");
-    $("#btn-create-cancel").textContent = "Close";
+
+    // Done: let go of the row. It keeps its place, its selection and its open
+    // panel, and is now drawn like any other node.
+    reKey(p.key, "n" + p.dropletId);
+    dropPending(p);
     await refresh();
   } catch (e) {
     const aborted = e.name === "AbortError";
-    logLine(aborted ? "Cancelled." : "ERROR: " + e.message, "err");
+    plog(p, aborted ? "Cancelled." : "ERROR: " + e.message, "err");
+    p.failed = true;
+    p.phase = aborted ? "cancelled" : "failed";
 
     // Same cleanup the CLI does when it can't bring a node up.
-    if (dropletId != null) {
-      logLine("Rolling back: deleting droplet " + dropletId + "…");
-      try { await deleteDroplet(dropletId); logLine("  droplet deleted.", "ok"); }
-      catch (err) { logLine("  could not delete droplet " + dropletId + ": " + err.message, "err"); }
+    if (p.dropletId != null) {
+      const id = p.dropletId;
+      plog(p, "Rolling back: deleting droplet " + id + "…");
+      try { await deleteDroplet(id); plog(p, "  droplet deleted.", "ok"); }
+      catch (err) { plog(p, "  could not delete droplet " + id + ": " + err.message, "err"); }
+      p.dropletId = null;
     }
     if (keyId != null) {
       try { await deleteAuthKey(keyId); } catch {}
     }
     if (!aborted) toast("Create failed: " + e.message, "err");
-    $("#btn-create-cancel").textContent = "Close";
+
+    // The failed row stays, opened on its log, until it is dismissed: a failure
+    // that disappeared on the next refresh would be one nobody got to read.
+    state.expanded.add(p.key);
+    stopTicker();
+    renderNodes();
     await refresh();
   } finally {
-    creating = null;
-    // Deliberately leave Create disabled: the region picker is hidden and a
-    // second click here would silently provision another node. openCreate()
-    // re-arms it for the next run.
+    renderStats();
+    renderNodes();
   }
 }
 
@@ -1486,7 +1877,9 @@ $$(".reveal").forEach((b) => b.addEventListener("click", () => {
 $("#btn-logout").addEventListener("click", () => {
   clearCfg();
   cfg = null;
-  state = { nodes: [], regions: [], devices: [], selected: null };
+  for (const p of state.pending) p.ctrl.abort();
+  state = { nodes: [], regions: [], devices: [], pending: [], selected: null, expanded: new Set() };
+  stopTicker();
   $("#credentials").value = "";
   $("#do-token").value = "";
   $("#ts-token").value = "";
@@ -1498,45 +1891,48 @@ $("#btn-logout").addEventListener("click", () => {
 $("#btn-refresh").addEventListener("click", refresh);
 
 $("#nodes-body").addEventListener("click", (e) => {
-  const tr = e.target.closest("tr");
-  if (!tr) return;
-  state.selected = state.selected === +tr.dataset.id ? null : +tr.dataset.id;
+  const act = e.target.closest("button[data-cancel], button[data-dismiss]");
+  if (act) {
+    const key = act.dataset.cancel || act.dataset.dismiss;
+    const p = state.pending.find((x) => x.key === key);
+    if (p) cancelPending(p);
+    return;
+  }
+  const tr = e.target.closest("tr[data-key]");
+  if (!tr) return;                  // a click inside an open panel selects text, nothing more
+  const key = tr.dataset.key;
+  state.selected = key;
+  if (!state.expanded.delete(key)) state.expanded.add(key);
   renderNodes();
 });
 
-function openCreate() {
-  $("#regions").classList.remove("hidden");
-  $("#create-progress").classList.add("hidden");
-  $("#create-sub").textContent =
-    "Pick a datacenter. A droplet is provisioned there, joins your tailnet with a " +
-    "single-use ephemeral key, and is enabled as an exit node.";
-  $("#btn-create-go").disabled = false;
-  $("#btn-create-cancel").textContent = "Cancel";
-  $("#create-bar").value = 0;
-  $("#dlg-create").showModal();
-}
+const openCreate = () => $("#dlg-create").showModal();
 
 $("#btn-new").addEventListener("click", openCreate);
 $("#btn-new-empty").addEventListener("click", openCreate);
 
+// The dialog now only picks a datacenter, so it closes on Create and the work
+// shows up in the table.
 $("#btn-create-go").addEventListener("click", (e) => {
+  if (!$("#regions input:checked")) { e.preventDefault(); toast("Pick a datacenter first.", "err"); }
+});
+
+$("#dlg-create").addEventListener("close", () => {
+  if ($("#dlg-create").returnValue !== "go") return;
   const picked = $("#regions input:checked");
-  if (!picked) { e.preventDefault(); toast("Pick a datacenter first.", "err"); return; }
-  e.preventDefault();               // keep the dialog open to show progress
-  runCreate(state.regions.find((r) => r.slug === picked.value));
+  // The radio carries the slug; the build needs the whole datacenter, since it
+  // is what knows which size that region sells.
+  const dc = picked && state.regions.find((r) => r.slug === picked.value);
+  if (dc) runCreate(dc);
 });
 
-$("#btn-create-cancel").addEventListener("click", () => {
-  if (creating) creating.abort();   // dialog stays open so rollback stays visible
-});
-
-$("#dlg-create").addEventListener("cancel", (e) => {
-  if (creating) { e.preventDefault(); toast("Creation in progress — use Cancel to roll back."); }
-});
-
+/* Delete is the same key whatever the selected row is doing: a finished node
+   goes through the confirm dialog, one still being built is simply abandoned. */
 $("#btn-delete").addEventListener("click", () => {
-  const node = state.nodes.find((n) => n.id === state.selected);
-  if (!node) return;
+  const row = selectedRow();
+  if (!row) return;
+  if (row.pending) { cancelPending(row.pending); return; }
+  const node = row.droplet;
   $("#delete-sub").innerHTML =
     `Destroy <code>${esc(node.name)}</code> in ${esc(node.region?.slug || "?")} (DO id ${node.id})?`;
   $("#dlg-delete").showModal();
@@ -1544,12 +1940,14 @@ $("#btn-delete").addEventListener("click", () => {
 
 $("#dlg-delete").addEventListener("close", async (e) => {
   if ($("#dlg-delete").returnValue !== "go") return;
-  const id = state.selected;
-  const node = state.nodes.find((n) => n.id === id);
+  const row = selectedRow();
+  if (!row?.droplet) return;
+  const { id, name } = row.droplet;
   try {
     await deleteDroplet(id);
-    toast(`Exit node ${node ? node.name : id} deleted.`, "ok");
+    toast(`Exit node ${name || id} deleted.`, "ok");
     state.selected = null;
+    state.expanded.delete("n" + id);
     await refresh();
   } catch (err) {
     toast("Delete failed: " + err.message, "err");
@@ -1582,13 +1980,16 @@ $$("#display-sel .seg").forEach((b) =>
 
 document.addEventListener("keydown", (e) => {
   if (e.target.matches("input, textarea, select")) return;
+  // Enter and Space belong to whatever control has focus, if one does.
+  if ((e.key === "Enter" || e.key === " ") && e.target.closest("button, a")) return;
   // Leave browser shortcuts alone (Ctrl+K, Ctrl+R, …) now that j/k call preventDefault.
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if ($("#view-dash").classList.contains("hidden")) return;
   if (document.querySelector("dialog[open]")) return;
 
-  const rows = state.nodes;
-  const idx = rows.findIndex((n) => n.id === state.selected);
+  const rows = tableRows();
+  const idx = rows.findIndex((r) => r.key === state.selected);
+  const moveTo = (i) => { state.selected = rows[i].key; renderNodes(); };
 
   switch (e.key) {
     case "n": openCreate(); break;
@@ -1598,12 +1999,27 @@ document.addEventListener("keydown", (e) => {
     case "j":
     case "ArrowDown":
       e.preventDefault();
-      if (rows.length) { state.selected = rows[Math.min(idx + 1, rows.length - 1)].id; renderNodes(); }
+      if (rows.length) moveTo(Math.min(idx + 1, rows.length - 1));
       break;
     case "k":
     case "ArrowUp":
       e.preventDefault();
-      if (rows.length) { state.selected = rows[Math.max(idx - 1, 0)].id; renderNodes(); }
+      if (rows.length) moveTo(Math.max(idx - 1, 0));
+      break;
+    case "Enter":
+    case " ":
+    case "o":
+      // Open the selected node. Clicking does this too; from the keyboard it is
+      // the one thing j/k deliberately don't do, so moving the selection stays cheap.
+      e.preventDefault();
+      if (state.selected != null) {
+        if (!state.expanded.delete(state.selected)) state.expanded.add(state.selected);
+        renderNodes();
+      }
+      break;
+    case "Escape":
+      // Nothing is open to close, so Esc drops the selection instead.
+      if (state.selected != null) { state.selected = null; renderNodes(); }
       break;
   }
 });
