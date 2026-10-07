@@ -294,6 +294,13 @@ details.setup {
   & .k { font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
   & .v { font-size: 21px; margin-top: 4px; letter-spacing: -.02em; }
   & .v small { font-size: 13px; color: var(--dim); }
+  & .sub { font-size: 11px; color: var(--dim); margin-top: 3px; }
+  /* The rate's unit is a toggle: click /mo to see /hr and back. */
+  & .unit {
+    border: 0; background: none; padding: 0; font: inherit; font-size: 13px; color: var(--dim);
+    cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px;
+    &:hover, &:focus-visible { color: var(--amber); }
+  }
 }
 
 /* Lines up with the first column of the table above it, not the screen edge. */
@@ -761,9 +768,10 @@ code { font-family: var(--mono); color: var(--text); }
       <p>
         Each node is the cheapest droplet its datacenter sells, and the picker shows what it costs
         for a month left running &mdash; usually <b>$4</b>. You pay only while it exists:
-        billed by the second with a one cent minimum. <b>Cost so far</b> is what each node has run
-        up, and <b>Spent so far</b> totals the nodes you still have. Deleting a node stops its
-        billing immediately. Nothing else here costs anything.
+        billed by the second with a one cent minimum. <b>Current rate</b> is what your nodes would
+        cost over a month if you left them all running; click its <b>/mo</b> to see it per hour.
+        <b>Cost so far</b> is what each node has run up, and the total covers the nodes you still
+        have. Deleting a node stops its billing immediately. Nothing else here costs anything.
       </p>
 
       <h3>When something looks wrong</h3>
@@ -852,6 +860,7 @@ const POLL_MS = 2000;          // a node now joins in ~60-90s; 1s (the CLI) invi
 const POLL_TIMEOUT_MS = 15 * 60 * 1000;
 const CFG_KEY = "yvpn.cfg";
 const THEME_KEY = "yvpn.theme";   // display preference; survives sign-out
+const RATE_KEY = "yvpn.rate";     // "mo" or "hr" on the rate stat; likewise
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -1096,6 +1105,10 @@ const fmtMoney = (n) => (n == null ? "—" : "$" + Number(n).toFixed(2));
 // still exist — which is what the table shows.
 const MONTHLY_CAP_HOURS = 672;
 const hourlyRate = (d) => d.size?.price_hourly ?? (d.size?.price_monthly ?? 0) / MONTHLY_CAP_HOURS;
+const monthlyRate = (d) => d.size?.price_monthly ?? hourlyRate(d) * MONTHLY_CAP_HOURS;
+
+// $4, $10, $4.50: whole dollars stay whole.
+const fmtDollars = (n) => "$" + (Number.isInteger(n) ? n : n.toFixed(2));
 
 function costSoFar(d, now = Date.now()) {
   const rate = hourlyRate(d);
@@ -1141,23 +1154,43 @@ function swapView(fn) {
 
 /* ------------------------------ rendering ----------------------------- */
 
+let rateUnit = "mo";
+try { if (localStorage.getItem(RATE_KEY) === "hr") rateUnit = "hr"; } catch {}
+
 function renderStats() {
   const nodes = state.nodes;
-  const perHour = nodes.reduce((s, d) => s + hourlyRate(d), 0);
   const spent = nodes.reduce((s, d) => s + costSoFar(d), 0);
   const online = nodes.filter((d) => d._device && isOnline(d._device)).length;
+  const n = nodes.length;
+
+  const rate = rateUnit === "hr"
+    ? "$" + nodes.reduce((s, d) => s + hourlyRate(d), 0).toFixed(3)
+    : fmtDollars(nodes.reduce((s, d) => s + monthlyRate(d), 0));
+  const other = rateUnit === "hr" ? "month" : "hour";
+  const unit = `<button type="button" class="unit" id="rate-unit" title="Show per ${other}"
+    aria-label="Per ${rateUnit === "hr" ? "hour" : "month"}; show per ${other}">/${rateUnit}</button>`;
 
   const cards = [
-    { k: "Exit nodes", v: String(nodes.length) },
-    { k: "On tailnet", v: `${online}<small> / ${nodes.length}</small>` },
-    { k: "Running cost", v: `$${perHour.toFixed(3)}<small>/hr</small>` },
-    { k: "Spent so far", v: fmtMoney(spent) },
+    { k: "Exit nodes", v: String(n) },
+    { k: "On tailnet", v: `${online}<small> / ${n}</small>` },
+    { k: "Current rate", v: rate + unit,
+      sub: n ? `if ${n === 1 ? "this node keeps" : `these ${n} nodes keep`} running` : "nothing running" },
+    { k: "Cost so far", v: fmtMoney(spent), sub: "of the nodes below" },
   ];
 
   $("#stats").innerHTML = cards
-    .map((c) => `<div class="stat"><div class="k">${c.k}</div><div class="v">${c.v}</div></div>`)
+    .map((c) => `<div class="stat"><div class="k">${c.k}</div><div class="v">${c.v}</div>` +
+      (c.sub ? `<div class="sub">${c.sub}</div>` : "") + `</div>`)
     .join("");
 }
+
+$("#stats").addEventListener("click", (e) => {
+  if (!e.target.closest("#rate-unit")) return;
+  rateUnit = rateUnit === "mo" ? "hr" : "mo";
+  try { localStorage.setItem(RATE_KEY, rateUnit); } catch {}
+  renderStats();
+  $("#rate-unit").focus();   // re-rendered; keep keyboard users where they were
+});
 
 const isOnline = (dev) =>
   dev.lastSeen ? (Date.now() - new Date(dev.lastSeen).getTime()) < 5 * 60 * 1000 : false;
@@ -1257,7 +1290,7 @@ async function loadRegions() {
   $("#regions").innerHTML = state.regions.map((r, i) => `
     <label class="region">
       <input type="radio" name="region" value="${esc(r.slug)}" ${i === 0 ? "checked" : ""}>
-      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><em>$${Number.isInteger(r.price_monthly) ? r.price_monthly : r.price_monthly.toFixed(2)}/mo</em></span>
+      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><em>${fmtDollars(r.price_monthly)}/mo</em></span>
     </label>`).join("") || `<p class="muted small">No datacenters available.</p>`;
 }
 

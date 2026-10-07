@@ -324,7 +324,16 @@ check('table note lines up with the first column', await page.evaluate(() => {
 }));
 check('cost column is right-aligned', await page.evaluate(() => getComputedStyle(document.querySelector('#nodes-body td.num')).textAlign) === 'right');
 check('status pill says exit node', rowText.includes('exit node'));
-check('running cost stat is hourly', (await page.textContent('#stats')).includes('$0.006/hr'));
+const statsText = async () => (await page.textContent('#stats')).replace(/\s+/g, ' ');
+check('rate stat is monthly by default', (await statsText()).includes('$4/mo'), await statsText());
+check('stats use the clearer labels', /Current rate/i.test(await statsText()) && /Cost so far/i.test(await statsText()) && !/Running cost|Spent so far/i.test(await statsText()));
+check('rate says what it assumes', (await statsText()).includes('if this node keeps running'));
+await page.click('#rate-unit');
+check('clicking the unit switches to hourly', (await statsText()).includes('$0.006/hr'), await statsText());
+check('hourly choice is remembered', (await page.evaluate(() => localStorage.getItem('yvpn.rate'))) === 'hr');
+check('unit toggle keeps focus', await page.evaluate(() => document.activeElement?.id === 'rate-unit'));
+await page.keyboard.press('Enter');
+check('toggles back to monthly from the keyboard', (await statsText()).includes('$4/mo'));
 
 // --- reopening the dialog re-arms Create ---
 await page.click('#btn-new');

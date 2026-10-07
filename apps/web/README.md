@@ -134,8 +134,10 @@ in the markup.
 
 Per node: region, public IP, tailnet IP, droplet status, tailnet reachability,
 whether exit routes are actually approved, size, cost so far, and age.
-Across the fleet: node count, how many are live on the tailnet, running cost per
-hour, and total spent so far on the nodes that exist.
+Across the fleet: node count, how many are live on the tailnet, the current rate
+(what those nodes would cost over a month left running; click the unit to switch
+between `/mo` and `/hr`, kept in `localStorage` under `yvpn.rate`), and the cost
+so far of the nodes that exist.
 
 Costs are worked out from each droplet's own `price_hourly` and `created_at`,
 the way DigitalOcean bills Droplets: per second, with a $0.01 minimum, capped at
