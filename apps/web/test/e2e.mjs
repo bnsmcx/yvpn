@@ -58,19 +58,19 @@ const REGIONS = [
   { slug: 'syd9', name: 'Sydney 9', available: true },
 ];
 const SIZES = [
-  { slug: 's-1vcpu-512mb-10gb', memory: 512, disk: 10, price_hourly: 0.00595, available: true,
+  { slug: 's-1vcpu-512mb-10gb', price_monthly: 4, memory: 512, disk: 10, price_hourly: 0.00595, available: true,
     regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'syd9'] },
-  { slug: 's-1vcpu-1gb', memory: 1024, disk: 25, price_hourly: 0.00893, available: true,
+  { slug: 's-1vcpu-1gb', price_monthly: 6, memory: 1024, disk: 25, price_hourly: 0.00893, available: true,
     regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'syd9'] },
-  { slug: 's-2vcpu-4gb', memory: 4096, disk: 80, price_hourly: 0.03571, available: true,
+  { slug: 's-2vcpu-4gb', price_monthly: 24, memory: 4096, disk: 80, price_hourly: 0.03571, available: true,
     regions: ['nyc1', 'fra1', 'mem1'] },
-  { slug: 's-1vcpu-2gb', memory: 2048, disk: 50, price_hourly: 0.01786, available: true,
+  { slug: 's-1vcpu-2gb', price_monthly: 12, memory: 2048, disk: 50, price_hourly: 0.01786, available: true,
     regions: ['nyc1', 'fra1', 'mem1'] },
   // Cheaper than everything, but too little disk for the image.
-  { slug: 'tiny', memory: 512, disk: 5, price_hourly: 0.001, available: true, regions: ['fra1', 'mem1'] },
+  { slug: 'tiny', price_monthly: 0.5, memory: 512, disk: 5, price_hourly: 0.001, available: true, regions: ['fra1', 'mem1'] },
   // Cheaper than everything, but not for sale.
-  { slug: 'gone', memory: 1024, disk: 25, price_hourly: 0.002, available: false, regions: ['fra1', 'mem1'] },
-  { slug: 'gpu-h100x1-80gb', memory: 245760, disk: 720, price_hourly: 3.39, available: true,
+  { slug: 'gone', price_monthly: 1.5, memory: 1024, disk: 25, price_hourly: 0.002, available: false, regions: ['fra1', 'mem1'] },
+  { slug: 'gpu-h100x1-80gb', price_monthly: 2277.6, memory: 245760, disk: 720, price_hourly: 3.39, available: true,
     description: 'GPU', regions: ['atl1'] },
 ];
 const IMAGE = { slug: 'ubuntu-24-04-x64', min_disk_size: 7, regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'mem1', 'atl1'] };
@@ -230,7 +230,7 @@ check('guide ends with troubleshooting', /When something looks wrong/.test(guide
   guide.indexOf('When something looks wrong') > guide.indexOf('Connecting a device to it'));
 check('guide covers both tokens', guide.includes('dop_v1_') && guide.includes('tskey-api-'));
 check('guide covers using a node on devices', /Exit Node/.test(guide));
-check('guide covers cost and cleanup', /per hour/.test(guide));
+check('guide covers cost and cleanup', /a month/.test(guide));
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);
 check('dashboard hidden initially', await page.isHidden('#view-dash'));
@@ -290,8 +290,8 @@ const regionCount = (await page.$$('#regions .region')).length;
 check('only regions that can run a node offered', regionCount === 4, `got ${regionCount}`);
 const regionText = await page.textContent('#regions');
 check('no GPU-only, image-less or unavailable regions', !/atl1|syd9|lon1/.test(regionText));
-check('region shows its cheapest hourly price', (await page.textContent('#regions .region:has-text("fra1")')).includes('$0.006/hr'));
-check('region without small sizes falls back to the next cheapest', (await page.textContent('#regions .region:has-text("mem1")')).includes('$0.018/hr'));
+check('region shows its cheapest monthly price', (await page.textContent('#regions .region:has-text("fra1")')).includes('$4/mo'));
+check('region without small sizes falls back to the next cheapest', (await page.textContent('#regions .region:has-text("mem1")')).includes('$12/mo'));
 check('regions sorted by slug', (await page.textContent('#regions')).indexOf('fra1') < (await page.textContent('#regions')).indexOf('nyc1'));
 
 await page.click('#regions .region:has-text("fra1") span');

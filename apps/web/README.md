@@ -97,7 +97,7 @@ calls will fail — it needs to be served by one of the above.
 | CLI | Web |
 |---|---|
 | `yvpn list` | The node table, plus tailnet status and what each node has cost so far |
-| `yvpn datacenters` | The datacenter picker in the create dialog, with each region's hourly price |
+| `yvpn datacenters` | The datacenter picker in the create dialog, with each region's monthly price |
 | `yvpn create <dc>` | **New exit node** — same cloud-init, same droplet spec, live progress log |
 | `yvpn delete <id>` | **Delete**, with a confirmation dialog |
 | TUI keymap | `n` new · `d` delete · `r` refresh · `j`/`k` or `↓`/`↑` select · `?` help · `Esc` close |

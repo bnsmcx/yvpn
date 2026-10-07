@@ -759,8 +759,8 @@ code { font-family: var(--mono); color: var(--text); }
 
       <h3>What it costs, and cleaning up</h3>
       <p>
-        Each node is the cheapest droplet its datacenter sells, and the picker shows that price
-        per hour &mdash; usually <b>about $0.006</b>, $4 a month if you leave it running &mdash;
+        Each node is the cheapest droplet its datacenter sells, and the picker shows what it costs
+        for a month left running &mdash; usually <b>$4</b>. You pay only while it exists:
         billed by the second with a one cent minimum. <b>Cost so far</b> is what each node has run
         up, and <b>Spent so far</b> totals the nodes you still have. Deleting a node stops its
         billing immediately. Nothing else here costs anything.
@@ -962,7 +962,7 @@ async function fetchDatacenters() {
       const best = sizes
         .filter((z) => (z.regions || []).includes(x.slug))
         .reduce((a, z) => (!a || z.price_hourly < a.price_hourly ? z : a), null);
-      return best && { slug: x.slug, name: x.name, size: best.slug, price_hourly: best.price_hourly };
+      return best && { slug: x.slug, name: x.name, size: best.slug, price_monthly: best.price_monthly };
     })
     .filter(Boolean)
     .sort((a, b) => a.slug.localeCompare(b.slug));
@@ -1257,7 +1257,7 @@ async function loadRegions() {
   $("#regions").innerHTML = state.regions.map((r, i) => `
     <label class="region">
       <input type="radio" name="region" value="${esc(r.slug)}" ${i === 0 ? "checked" : ""}>
-      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><em>$${r.price_hourly.toFixed(3)}/hr</em></span>
+      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><em>$${Number.isInteger(r.price_monthly) ? r.price_monthly : r.price_monthly.toFixed(2)}/mo</em></span>
     </label>`).join("") || `<p class="muted small">No datacenters available.</p>`;
 }
 
