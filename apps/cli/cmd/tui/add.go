@@ -104,7 +104,8 @@ func (m Add) addExit() tea.Cmd {
 
 		addMessage(fmt.Sprintf(" Provisioning a new droplet in the %s datacenter...",
 			m.datacenter))
-		name, id, err := digital_ocean.Create(m.dash.tokens.digitalOcean, tailscaleAuth, m.datacenter)
+		name, id, err := digital_ocean.Create(m.dash.tokens.digitalOcean, tailscaleAuth, m.datacenter,
+			digital_ocean.Options{Exit: true, Version: VERSION})
 		if err != nil {
 			addMessage(fmt.Sprintf(" \tERROR: %s", err.Error()))
 		}

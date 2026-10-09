@@ -1,0 +1,41 @@
+#cloud-config
+
+# DigitalOcean's vendor data runs a ~60 s agent install before any of this, and
+# these nodes are disposable, so it is skipped. Consequence: the image's default
+# user stays "ubuntu" rather than root, and no DO monitoring agent is installed.
+vendor_data:
+  enabled: false
+
+write_files:
+  - path: /etc/sysctl.d/99-tailscale.conf
+    content: |
+      net.ipv4.ip_forward = 1
+      net.ipv6.conf.all.forwarding = 1
+  - path: /etc/yvpn/node.json
+    permissions: '0600'
+    content: |
+      {"addon":"jellyfin","token":"bgNz5-TksTQNmx47kee8BrFSUG4HLBUVZ5t7lMHBUTs","adminUser":"admin","adminPassword":"gedmb-cwcdh-mohbl-peifm","guestUser":"guest","guestPassword":"jaza-ruwa-wifa-20"}
+
+runcmd:
+  - sysctl --system
+  # The static tarball, rather than install.sh: no apt repo, no apt-get update,
+  # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches every
+  # non-GPU droplet size. No package_update/package_upgrade either -- an apt
+  # upgrade on first boot cost ~145 s and these nodes live for hours.
+  - mkdir -p /tmp/tailscale
+  - curl -fsSL https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz | tar xz -C /tmp/tailscale --strip-components=1
+  - install -m 0755 /tmp/tailscale/tailscale /usr/bin/tailscale
+  - install -m 0755 /tmp/tailscale/tailscaled /usr/sbin/tailscaled
+  - install -m 0644 /tmp/tailscale/systemd/tailscaled.service /etc/systemd/system/tailscaled.service
+  - install -m 0644 /tmp/tailscale/systemd/tailscaled.defaults /etc/default/tailscaled
+  - systemctl enable --now tailscaled
+  # Tailscale installs its own netfilter rules for an exit node, so the manual
+  # iptables FORWARD/MASQUERADE rules that used to be here are not needed.
+  - tailscale up --authkey tskey-auth-PARITY --advertise-exit-node
+  # The add-on's agent, from the yVPN release this front end belongs to. It
+  # installs the add-on and serves the dashboard's controls on the tailnet only.
+  - curl -fsSL -o /usr/local/bin/yvpn-node https://github.com/bnsmcx/yvpn/releases/download/v9.9.9/yvpn-node-linux-amd64
+  - chmod 0755 /usr/local/bin/yvpn-node
+  - /usr/local/bin/yvpn-node bootstrap
+
+final_message: "yVPN node ready; its add-on is installing."

@@ -19,7 +19,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.23'
           cache-dependency-path: apps/cli/go.sum
 
       - name: Check the tag matches the versions in the tree
@@ -31,6 +31,11 @@ jobs:
           grep -q "const VERSION = \"$VERSION\";" apps/web/index.html || { echo "apps/web/index.html is not $VERSION"; fail=1; }
           grep -q ">v$VERSION<" apps/web/index.html || { echo "apps/web/index.html console stamps are not v$VERSION"; fail=1; }
           exit $fail
+
+      # Includes the parity tests that hold the CLI and the web app to the
+      # same cloud-init, secrets and add-on catalog.
+      - name: Test the CLI
+        run: go test ./...
 
       - name: Build binaries
         run: |
@@ -49,6 +54,17 @@ jobs:
           # Windows AMD64
           GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o yvpn-windows-amd64.exe ./cmd/tui
 
+      # The agent that runs on nodes with an add-on. Both front ends' cloud-init
+      # download it from the release matching their own version, so it must be
+      # attached to every release.
+      - name: Test and build the node agent
+        working-directory: apps/node
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          go vet ./...
+          go test ./...
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w -X main.VERSION=$VERSION" -o yvpn-node-linux-amd64 .
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -57,4 +73,5 @@ jobs:
             apps/cli/yvpn-darwin-amd64
             apps/cli/yvpn-darwin-arm64
             apps/cli/yvpn-windows-amd64.exe
+            apps/node/yvpn-node-linux-amd64
           generate_release_notes: true

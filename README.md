@@ -30,6 +30,7 @@ The rest of this document covers the CLI.
 - **SSH access** - Run as an SSH server for remote management without local installation
 - **Exit node management** - View, create, and delete exit nodes from a unified dashboard
 - **Full node detail** (web) - Open any row for everything DigitalOcean and Tailscale report about that node
+- **Add-ons** - A node can also run something for your tailnet. The first is a **Jellyfin watch party**: drop a video on the node's row in the web app, then watch it in sync with family, on your tailnet or through a guest link. The droplet size follows what the node runs. See [Add-ons](#add-ons)
 
 ## Prerequisites
 
@@ -100,6 +101,15 @@ yvpn datacenters
 # Create a new exit node
 yvpn create nyc1
 
+# Create a node that runs Jellyfin for a watch party, and isn't an exit node
+yvpn create nyc1 --addon jellyfin --no-exit
+
+# Datacenters priced for a node running Jellyfin
+yvpn datacenters --addon jellyfin
+
+# How to reach an add-on node, with its passwords
+yvpn access 12345
+
 # Delete an exit node by ID
 yvpn delete 12345
 
@@ -149,6 +159,26 @@ Pass credentials via SSH environment variables.
 
 4. **Use**: Connect to your new exit node from any device on your tailnet.
 
+## Add-ons
+
+Pick an add-on when creating a node (**New node** in the web app, or `--addon`)
+and the node runs it as well as, or instead of, being an exit node. The droplet
+is the cheapest in the region that is big enough for the add-on.
+
+| Add-on | Needs | What it is |
+|---|---|---|
+| `jellyfin` | 2 vCPU · 4 GB · 50 GB | A private media server for a watch party. Drop videos on the node's row in the web app (or give it a link), and they are converted so every device plays them. Share with guests opens it to the internet through Tailscale Funnel, behind a guest login, and writes an invite to send. Jellyfin's SyncPlay keeps everyone's playback in step. |
+
+An add-on node runs a small agent, [`apps/node`](apps/node), that installs the
+add-on and serves the web app's controls on the tailnet only. Its passwords
+derive from your DigitalOcean token, so they are never stored and any front end
+holding the token shows the same ones (`yvpn access <id>`). Everything on the
+node goes with it when it is deleted.
+
+**It needs** MagicDNS and HTTPS certificates turned on in the tailnet (Tailscale
+admin console → DNS), and the browser's computer on the tailnet. Sharing needs
+Tailscale Funnel, which new tailnets allow for every member.
+
 ## Project Structure
 
 ```
@@ -164,15 +194,18 @@ yvpn/
 │   │   │   ├── onboard.go # Credential input
 │   │   │   └── style.go   # UI styling
 │   │   ├── pkg/
+│   │   │   ├── addons/    # Add-on catalog, node secrets, cloud-init
 │   │   │   ├── digital_ocean/
 │   │   │   └── tailscale/
 │   │   ├── Dockerfile
 │   │   ├── go.mod
 │   │   └── shell.nix      # Nix development environment
+│   ├── node/              # yvpn-node: the agent on add-on nodes
 │   └── web/               # Single-page web app
 │       ├── index.html     # The entire application
 │       ├── proxy/         # Serves the page + Tailscale relay (Worker + Go)
-│       └── test/          # Playwright end-to-end test
+│       └── test/          # Playwright end-to-end and real-stack tests
+├── testdata/parity/       # Golden files both front ends are held to
 └── README.md
 ```
 
@@ -195,7 +228,8 @@ Exit nodes are created with:
   that don't sell it get the next cheapest instead of failing. Regions with no
   such size, or without the Ubuntu image, aren't offered. `yvpn datacenters`
   and the web picker show each region's size and hourly price.
-- **Tag**: `yVPN`
+- **Tag**: `yVPN`, plus `yvpn-addon:<name>` on a node with an add-on, whose
+  size is instead the cheapest that meets the add-on's needs
 
 ### Boot time
 

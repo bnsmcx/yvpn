@@ -8,11 +8,17 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
+
+	"yvpn/pkg/addons"
 )
 
+// Tag marks every droplet yVPN made; nothing else is ever listed or deleted.
+const Tag = "yVPN"
+
 type ExitNode struct {
-	Name string
-	ID   int
+	Name  string
+	ID    int
+	Addon string `json:",omitempty"` // catalog ID from its tags; "" for a plain exit node
 }
 
 func FetchExitNodes(token string) (nodes []ExitNode, err error) {
@@ -24,15 +30,16 @@ func FetchExitNodes(token string) (nodes []ExitNode, err error) {
 		PerPage: 200,
 	}
 
-	droplets, _, err := client.Droplets.ListByTag(ctx, "yVPN", opt)
+	droplets, _, err := client.Droplets.ListByTag(ctx, Tag, opt)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, d := range droplets {
 		node := ExitNode{
-			Name: d.Name,
-			ID:   d.ID,
+			Name:  d.Name,
+			ID:    d.ID,
+			Addon: addons.FromTags(d.Tags),
 		}
 		nodes = append(nodes, node)
 	}
@@ -44,10 +51,6 @@ func FetchExitNodes(token string) (nodes []ExitNode, err error) {
 // floor on disk size.
 const image = "ubuntu-24-04-x64"
 
-// minMemoryMB is the least memory a node may have. Tailscale needs far less
-// than this; 512 MB is the smallest droplet DigitalOcean sells.
-const minMemoryMB = 512
-
 // Datacenter is a region a node can be created in, with the cheapest size
 // there that can run one.
 type Datacenter struct {
@@ -57,21 +60,27 @@ type Datacenter struct {
 	PriceHourly float64 `json:"price_hourly"`
 }
 
-// usable reports whether a size can run a node: big enough, and a plain CPU
-// droplet. GPU droplets need their own images and cost dollars an hour.
-func usable(s godo.Size, minDisk int) bool {
+// usable reports whether a size can run a node: big enough for what the node
+// will run (and for the image), and a plain CPU droplet. GPU droplets need
+// their own images and cost dollars an hour.
+func usable(s godo.Size, minDisk int, needs addons.Needs) bool {
 	return s.Available &&
-		s.Memory >= minMemoryMB &&
-		s.Disk >= minDisk &&
+		s.Memory >= needs.MemoryMB &&
+		s.Vcpus >= needs.VCPUs &&
+		s.Disk >= max(minDisk, needs.DiskGB) &&
 		!strings.HasPrefix(s.Slug, "gpu-") &&
 		!strings.Contains(strings.ToUpper(s.Description), "GPU")
 }
 
-// FetchDatacenters lists every region a node can be created in, sorted by
-// slug, each with the cheapest usable size it offers. Regions without one
-// (no usable size, or no Ubuntu image) are left out rather than failing later
-// at create time.
-func FetchDatacenters(token string) ([]Datacenter, error) {
+// FetchDatacenters lists every region a node running addon ("" for a plain
+// exit node) can be created in, sorted by slug, each with the cheapest size
+// there that is big enough for it. Regions without one (no such size, or no
+// Ubuntu image) are left out rather than failing later at create time.
+func FetchDatacenters(token, addon string) ([]Datacenter, error) {
+	a, ok := addons.Lookup(addon)
+	if !ok {
+		return nil, fmt.Errorf("no add-on called %q; there is %s", addon, strings.Join(addons.IDs(), ", "))
+	}
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 	opts := &godo.ListOptions{Page: 1, PerPage: 200}
@@ -89,11 +98,11 @@ func FetchDatacenters(token string) ([]Datacenter, error) {
 		return nil, err
 	}
 
-	return pickDatacenters(regions, sizes, img), nil
+	return pickDatacenters(regions, sizes, img, a.Needs), nil
 }
 
 // pickDatacenters is FetchDatacenters without the API calls.
-func pickDatacenters(regions []godo.Region, sizes []godo.Size, img *godo.Image) []Datacenter {
+func pickDatacenters(regions []godo.Region, sizes []godo.Size, img *godo.Image, needs addons.Needs) []Datacenter {
 	var datacenters []Datacenter
 	for _, r := range regions {
 		if !r.Available || !slices.Contains(img.Regions, r.Slug) {
@@ -101,7 +110,7 @@ func pickDatacenters(regions []godo.Region, sizes []godo.Size, img *godo.Image) 
 		}
 		var best *godo.Size
 		for i, s := range sizes {
-			if !usable(s, img.MinDiskSize) || !slices.Contains(s.Regions, r.Slug) {
+			if !usable(s, img.MinDiskSize, needs) || !slices.Contains(s.Regions, r.Slug) {
 				continue
 			}
 			if best == nil || s.PriceHourly < best.PriceHourly {
@@ -126,64 +135,55 @@ func pickDatacenters(regions []godo.Region, sizes []godo.Size, img *godo.Image) 
 	return datacenters
 }
 
-func Create(token, tailscaleAuth, datacenter string) (string, int, error) {
+// Options is what a node is created as.
+type Options struct {
+	Addon   string // catalog ID, or "" for a plain exit node
+	Exit    bool   // advertise it as an exit node
+	Version string // the yVPN release its add-on agent is downloaded from
+}
+
+// NodeName is what a node created in datacenter now is called. The name is
+// fixed before the droplet exists because the node's secrets derive from it.
+func NodeName(datacenter string, now time.Time) string {
+	return fmt.Sprintf("%s-yvpn-%d", datacenter, now.Unix())
+}
+
+func Create(token, tailscaleAuth, datacenter string, opts Options) (string, int, error) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
-	datacenters, err := FetchDatacenters(token)
+	if opts.Addon == "" && !opts.Exit {
+		return "", 0, fmt.Errorf("a node with no add-on has to be an exit node")
+	}
+	datacenters, err := FetchDatacenters(token, opts.Addon)
 	if err != nil {
 		return "", 0, err
 	}
 	i := slices.IndexFunc(datacenters, func(d Datacenter) bool { return d.Slug == datacenter })
 	if i < 0 {
-		return "", 0, fmt.Errorf("can't create a node in %q: no such region, or it has no droplet size that can run one", datacenter)
+		return "", 0, fmt.Errorf("can't create this node in %q: no such region, or it has no droplet size that can run it", datacenter)
 	}
 	size := datacenters[i].Size
 
-	// Cloud-init script for setting up Tailscale as an exit node
-	cloudInit := fmt.Sprintf(`#cloud-config
-
-# DigitalOcean's vendor data runs a ~60 s agent install before any of this, and
-# these nodes are disposable, so it is skipped. Consequence: the image's default
-# user stays "ubuntu" rather than root, and no DO monitoring agent is installed.
-vendor_data:
-  enabled: false
-
-write_files:
-  - path: /etc/sysctl.d/99-tailscale.conf
-    content: |
-      net.ipv4.ip_forward = 1
-      net.ipv6.conf.all.forwarding = 1
-
-runcmd:
-  - sysctl --system
-  # The static tarball, rather than install.sh: no apt repo, no apt-get update,
-  # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches every
-  # non-GPU droplet size. No package_update/package_upgrade either -- an apt
-  # upgrade on first boot cost ~145 s and these nodes live for hours.
-  - mkdir -p /tmp/tailscale
-  - curl -fsSL https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz | tar xz -C /tmp/tailscale --strip-components=1
-  - install -m 0755 /tmp/tailscale/tailscale /usr/bin/tailscale
-  - install -m 0755 /tmp/tailscale/tailscaled /usr/sbin/tailscaled
-  - install -m 0644 /tmp/tailscale/systemd/tailscaled.service /etc/systemd/system/tailscaled.service
-  - install -m 0644 /tmp/tailscale/systemd/tailscaled.defaults /etc/default/tailscaled
-  - systemctl enable --now tailscaled
-  # Tailscale installs its own netfilter rules for an exit node, so the manual
-  # iptables FORWARD/MASQUERADE rules that used to be here are not needed.
-  - tailscale up --authkey %s --advertise-exit-node
-
-final_message: "yVPN exit node ready."
-`, tailscaleAuth)
+	name := NodeName(datacenter, time.Now())
+	params := addons.Params{AuthKey: tailscaleAuth, Exit: opts.Exit, Addon: opts.Addon, Version: opts.Version}
+	tags := []string{Tag}
+	if opts.Addon != "" {
+		params.NodeConfig = addons.NodeConfig(opts.Addon, addons.Derive(token, name))
+		tags = append(tags, addons.TagPrefix+opts.Addon)
+	}
 
 	createRequest := &godo.DropletCreateRequest{
-		Tags:   []string{"yVPN"},
-		Name:   fmt.Sprintf("%s-yvpn-%d", datacenter, time.Now().Unix()),
+		Tags:   tags,
+		Name:   name,
 		Region: datacenter,
 		Size:   size,
 		Image: godo.DropletCreateImage{
 			Slug: image,
 		},
-		UserData: cloudInit, // Cloud-init script for Tailscale exit node
+		// The same script the web app writes, held to it by the parity tests
+		// in pkg/addons.
+		UserData: addons.CloudInit(params),
 	}
 
 	droplet, _, err := client.Droplets.Create(ctx, createRequest)

@@ -143,6 +143,12 @@ func DeleteAuthKey(token, id string) error {
 }
 
 func EnableExit(name, token string) (int, error) {
+	return WaitForNode(name, token, true)
+}
+
+// WaitForNode waits for the droplet called name to join the tailnet and, when
+// exit is set, approves the exit routes it advertises.
+func WaitForNode(name, token string, exit bool) (int, error) {
 	for elapsed := 0; elapsed < 3600; elapsed++ {
 		machines, err := getTailscaleMachines(token)
 		if err != nil {
@@ -151,6 +157,9 @@ func EnableExit(name, token string) (int, error) {
 
 		for _, machine := range machines {
 			if strings.Contains(machine.Name, name) {
+				if !exit {
+					return elapsed, nil
+				}
 				if err := enableExitNode(machine.ID, token); err != nil {
 					return elapsed, fmt.Errorf("Error enabling exit node: %v", err)
 				}
@@ -160,7 +169,22 @@ func EnableExit(name, token string) (int, error) {
 
 		time.Sleep(time.Second)
 	}
-	return 3600, fmt.Errorf("Exit node not found on tailnet within sixty minutes.")
+	return 3600, fmt.Errorf("Node not found on tailnet within sixty minutes.")
+}
+
+// FindDevice returns the tailnet machine for the droplet called name. Its Name
+// is the machine's MagicDNS name, which is what the node is reached by.
+func FindDevice(name, token string) (Device, error) {
+	machines, err := getTailscaleMachines(token)
+	if err != nil {
+		return Device{}, err
+	}
+	for _, m := range machines {
+		if strings.Contains(m.Name, name) || strings.Contains(m.Hostname, name) {
+			return m, nil
+		}
+	}
+	return Device{}, fmt.Errorf("%s is not on the tailnet (yet)", name)
 }
 
 func getTailscaleMachines(token string) ([]Device, error) {
