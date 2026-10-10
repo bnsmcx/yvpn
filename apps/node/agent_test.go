@@ -27,6 +27,7 @@ type fakeRunner struct {
 	calls    []string
 	funnel   bool
 	funnelOK bool   // false: tailscale refuses funnel, like a tailnet without the attribute
+	approval bool   // true: tailscale prints a link to allow funnel and waits, like a tailnet that hasn't yet
 	probe    string // ffprobe's JSON
 	workDir  string
 	block    chan struct{} // when set, ffmpeg waits on it
@@ -60,6 +61,12 @@ func (f *fakeRunner) Run(ctx context.Context, name string, args ...string) (stri
 		return `{"BackendState":"Running","Self":{"DNSName":"fra1-yvpn-1.tail1234.ts.net."}}`, nil
 	case strings.HasPrefix(c, "tailscale funnel status"):
 		return fmt.Sprintf(`{"AllowFunnel":{"fra1-yvpn-1.tail1234.ts.net:443":%v}}`, f.funnel), nil
+	case strings.HasPrefix(c, "tailscale funnel --bg") && f.approval:
+		f.mu.Unlock()
+		<-ctx.Done()
+		f.mu.Lock()
+		out := "Funnel is not enabled on your tailnet.\nTo enable, visit:\n\n         https://login.tailscale.com/f/funnel?node=nABC123\n"
+		return out, cmdError(name, args, ctx.Err(), []byte(out))
 	case strings.HasPrefix(c, "tailscale funnel --bg"):
 		if !f.funnelOK {
 			return "", errors.New(`tailscale funnel: exit status 1: Funnel not available; "funnel" node attribute not set.`)
@@ -467,6 +474,34 @@ func TestShareRefusedByTailnet(t *testing.T) {
 	}
 	if !h.jf.guestDisabled() {
 		t.Fatal("a failed share must leave the guest locked out")
+	}
+}
+
+// A tailnet that hasn't allowed Funnel makes tailscale print a link and wait.
+// The wait must end, and the link must reach the dashboard.
+func TestShareWaitingForApproval(t *testing.T) {
+	defer func(d time.Duration) { tsTimeout = d }(tsTimeout)
+	tsTimeout = 200 * time.Millisecond
+	h := newHarness(t)
+	h.a.phase = "ready"
+	h.run.approval = true
+	var r struct {
+		Message string
+		Status  statusResponse
+	}
+	start := time.Now()
+	if code := h.call("POST", "/v1/share", h.jsonBody(map[string]bool{"enabled": true}), nil, &r); code != http.StatusBadGateway {
+		t.Fatalf("got %d", code)
+	}
+	if time.Since(start) > 5*time.Second {
+		t.Fatal("the wait for approval was not cut short")
+	}
+	if !strings.Contains(r.Message, "https://login.tailscale.com/f/funnel?node=nABC123 as a tailnet admin") ||
+		!strings.Contains(r.Status.Share.Error, "https://login.tailscale.com/f/funnel?node=nABC123") {
+		t.Fatalf("the approval link should reach the dashboard: %+v", r)
+	}
+	if r.Status.Share.Enabled || !h.jf.guestDisabled() {
+		t.Fatal("an unapproved share must stay off, with the guest locked out")
 	}
 }
 

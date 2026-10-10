@@ -88,4 +88,8 @@ and real ffmpeg, driven through the web app.
 `tailscale serve` and `tailscale funnel` are stubbed in every test; there is no
 tailnet in CI. The commands follow the Tailscale 1.104 CLI. After a share
 change the agent reads `tailscale funnel status --json` back rather than trusting
-what it asked for. Real boot timing on a droplet is not measured either.
+what it asked for. Every `tailscale` call is limited to 45 s: a tailnet that
+hasn't allowed serve or Funnel makes the CLI print a `login.tailscale.com` link
+and wait, so the agent stops waiting and passes that link to the dashboard, where
+it is shown as a link to click. Real boot timing on a droplet is not measured
+either.

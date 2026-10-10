@@ -69,7 +69,7 @@ func (a *Agent) applyShare(ctx context.Context, enabled bool) error {
 		return err
 	}
 	if on, err := a.funnelled(ctx, "443"); err == nil && on {
-		a.run.Run(ctx, "tailscale", "funnel", "--https=443", "off")
+		a.ts(ctx, "funnel", "--https=443", "off")
 		if err := a.serve(ctx, "443", target); err != nil {
 			return err
 		}

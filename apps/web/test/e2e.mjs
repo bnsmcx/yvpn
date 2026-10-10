@@ -329,7 +329,8 @@ await page.route((u) => u.port === '8443' && u.hostname.endsWith('.tailnet.ts.ne
     const { enabled } = JSON.parse(req.postData());
     if (enabled && agent.failShareOnce) {
       agent.failShareOnce = false;
-      agent.share.error = "Tailscale won't open Funnel for this node. Give it the \"funnel\" node attribute.";
+      agent.share.error = "Tailscale won't open Funnel for this node. Give it the \"funnel\" node attribute, " +
+        "or open https://login.tailscale.com/f/funnel?node=nABC123 as a tailnet admin.";
       return json({ message: agent.share.error, status: agentStatus(url.hostname) }, 502);
     }
     agent.share = { enabled, busy: false, error: '' };
@@ -736,6 +737,8 @@ await page.waitForFunction(() => document.querySelectorAll('#nodes-body tr.pendi
   await page.click(card + ' [data-act=share][data-on="1"]');
   await waitCard(/funnel" node attribute/);
   check("the tailnet's refusal is explained in the card", true);
+  check("Tailscale's link to allow it is clickable",
+        (await page.getAttribute(card + ' p.err a', 'href')) === 'https://login.tailscale.com/f/funnel?node=nABC123');
   check('a refused share stays off', await page.getAttribute(card + ' [data-act=share][data-on="0"]', 'aria-pressed') === 'true');
   await page.click(card + ' [data-act=share][data-on="1"]');
   await waitCard(/Guest link/);

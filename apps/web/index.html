@@ -2206,7 +2206,7 @@ function sharePart(d, a) {
       <button type="button" data-act="share" data-on="0" aria-pressed="${!on}" ${busy ? "disabled" : ""}>off</button>
       <button type="button" data-act="share" data-on="1" aria-pressed="${on}" ${busy ? "disabled" : ""}>on</button>
     </span>${busy ? `<span class="muted small">${a.shareWant ?? !on ? "opening" : "closing"}…</span>` : ""}</div>`;
-  const err = st.share?.error ? `<p class="err">${esc(st.share.error)}</p>` : "";
+  const err = st.share?.error ? `<p class="err">${linkTailscale(st.share.error)}</p>` : "";
   if (!on) {
     return head + err + `<p>Only your tailnet can open Jellyfin now. Turn this on for a link and a
       guest login that work from anywhere: Jellyfin goes on the internet through Tailscale Funnel,
@@ -2221,6 +2221,10 @@ function sharePart(d, a) {
   <p style="margin-top:8px"><button class="ghost" data-act="invite">Copy invite</button>
     &nbsp;a message with the link, the login and how to join the party.</p>`;
 }
+
+// Tailscale's "allow it here" links, in an agent's message, become links.
+const linkTailscale = (msg) => esc(msg).replace(/https:\/\/login\.tailscale\.com\/[^\s"'<&]+/g,
+  (u) => `<a href="${u}" target="_blank" rel="noreferrer">${u}</a>`);
 
 function mediaPart(a) {
   const server = a.status?.media || [];

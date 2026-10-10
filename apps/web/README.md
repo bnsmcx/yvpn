@@ -214,9 +214,16 @@ messages mean.
 ## Version
 
 The version is stamped on both console rails and lives in one constant,
-`VERSION`, in `index.html`. The release workflow refuses to build a tag whose
-version does not match that constant, `apps/cli/cmd/tui/main.go`, and the stamps
-in the markup.
+`VERSION`, in `index.html`. **Bumping it is how a release is made:** every push
+to `main` reads it, and if there is no release for that version yet, the release
+workflow builds the CLI binaries and the node agent and publishes them as
+`v<version>`, creating the tag itself. There is nothing to tag by hand. The
+workflow fails if the constant, `apps/cli/cmd/tui/main.go` and the stamps in the
+markup disagree.
+
+Bump the version with any change to what a node is built from (the cloud-init,
+or the agent in `apps/node`): nodes download the agent from the release that
+matches the page's version.
 
 ## Stats
 
