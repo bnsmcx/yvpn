@@ -1695,10 +1695,11 @@ function renderScope() {
 
   // One blip per datacenter, carrying every row that lives there.
   const sites = new Map();
+  const unmapped = new Set();       // datacenters DC_PLACES doesn't know yet
   for (const r of tableRows()) {
     const slug = r.droplet ? r.droplet.region?.slug : r.pending.datacenter;
     const at = placeOf(slug);
-    if (!at) continue;
+    if (!at) { if (slug) unmapped.add(slug); continue; }
     const site = sites.get(slug) || { slug, xy: project(at), rows: [], lamp: "ok" };
     site.rows.push(r);
     const lamp = lampOf(r);
@@ -1731,7 +1732,9 @@ function renderScope() {
 
   const n = tableRows().length;
   $("#map-what").textContent = n
-    ? `${n} ${n === 1 ? "node" : "nodes"} · ${sites.size} ${sites.size === 1 ? "datacenter" : "datacenters"}`
+    ? `${n} ${n === 1 ? "node" : "nodes"} · ${sites.size} ${sites.size === 1 ? "datacenter" : "datacenters"}` +
+      // Say so rather than leave a node off the map without a word.
+      (unmapped.size ? ` · ${unmapped.size} not on the map (${[...unmapped].join(", ")})` : "")
     : "no signal · start a node and it lights up here";
   $("#map .map-hint").classList.toggle("hidden", !n);
 }

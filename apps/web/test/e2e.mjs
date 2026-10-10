@@ -511,6 +511,13 @@ check('no running total of spend up top', !/so far/i.test(await page.textContent
 check('the node lights its datacenter', (await page.getAttribute('#blips .blip', 'data-site')) === 'fra1');
 check('a healthy node lights olive', await page.$eval('#blips .blip', (g) => g.classList.contains('ok')));
 check('map counts what it shows', /1 node · 1 datacenter/.test(await page.textContent('#map-what')));
+check('a datacenter the map does not know is named, not dropped', await page.evaluate(() => {
+  state.nodes.push({ id: 999, name: 'x', region: { slug: 'zzz1' }, size: {}, status: 'active', tags: [] });
+  renderScope();
+  const said = /1 not on the map \(zzz1\)/.test(document.querySelector('#map-what').textContent);
+  state.nodes.pop(); renderScope();
+  return said;
+}));
 await page.click('#nodes-body tr[data-key]');           // close the open row
 check('row closed before the blip check', !(await page.$('#nodes-body tr.detail')));
 await page.click('#blips .blip');
