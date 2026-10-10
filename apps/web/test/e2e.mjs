@@ -419,8 +419,10 @@ check('signs in with valid credentials', true);
 await page.waitForTimeout(600);
 
 check('empty state shown with no nodes', await page.isVisible('#nodes-empty'));
-check('stats rendered', (await page.$$('#stats .stat')).length === 4);
-check('no account-wide billing figures', !/balance|month to date/i.test(await page.textContent('#stats')));
+check('map drawn', (await page.$$('#map-svg path.land')).length === 2);
+check('map says nothing is running', /no signal/i.test(await page.textContent('#map-what')));
+check('burn rate idle', /nothing running/.test(await page.textContent('#readout')));
+check('no account-wide billing figures', !/balance|month to date/i.test(await page.textContent('#scope')));
 check('billing endpoint never called', !state.balanceCalls);
 
 // --- cost so far: per-second at price_hourly, $0.01 minimum, 672 h cap per calendar month ---
@@ -471,6 +473,7 @@ check('log shows provisioning step', buildLog.includes('fra1 datacenter'));
 check('a build in flight offers to roll back', await page.isVisible('#nodes-body [data-cancel]'));
 check('the building row reports it is still waiting', /joining tailnet/.test(
   await page.textContent('#nodes-body tr.pending .pill.busy')));
+check('a build in flight blinks amber on the map', await page.$eval('#blips .blip', (g) => g.classList.contains('busy')));
 await page.screenshot({ path: SHOTS + '/shot-building.png' });
 
 // …and the row graduates into an ordinary node when the build is done.
@@ -501,17 +504,19 @@ check('table note lines up with the first column', await page.evaluate(() => {
 }));
 check('cost column is right-aligned', await page.evaluate(() => getComputedStyle(document.querySelector('#nodes-body td.num')).textAlign) === 'right');
 check('status pill says exit node', rowText.includes('exit node'));
-const statsText = async () => (await page.textContent('#stats')).replace(/\s+/g, ' ');
-check('rate stat is monthly by default', (await statsText()).includes('$4/mo'), await statsText());
-check('stats use the clearer labels', /Current rate/i.test(await statsText()) && /Cost so far/i.test(await statsText()) && !/Running cost|Spent so far/i.test(await statsText()));
-check('rate says what it assumes', (await statsText()).includes('if this node keeps running'));
-await page.click('#rate-unit');
-check('clicking the unit switches to hourly', (await statsText()).includes('$0.006/hr'), await statsText());
-check('hourly choice is remembered', (await page.evaluate(() => localStorage.getItem('yvpn.rate'))) === 'hr');
-check('unit toggle keeps focus', await page.evaluate(() => document.activeElement?.id === 'rate-unit'));
-await page.keyboard.press('Enter');
-check('toggles back to monthly from the keyboard', (await statsText()).includes('$4/mo'));
-// Enter belongs to the focused button, so let go of it before the row-keyboard checks.
+const readout = async () => (await page.textContent('#readout')).replace(/\s+/g, ' ');
+check('burn rate is hourly', (await readout()).includes('$0.006/hr'), await readout());
+check('burn rate says what a month comes to', (await readout()).includes('$4/mo if left running'), await readout());
+check('no running total of spend up top', !/so far/i.test(await page.textContent('#scope')));
+check('the node lights its datacenter', (await page.getAttribute('#blips .blip', 'data-site')) === 'fra1');
+check('a healthy node lights olive', await page.$eval('#blips .blip', (g) => g.classList.contains('ok')));
+check('map counts what it shows', /1 node · 1 datacenter/.test(await page.textContent('#map-what')));
+await page.click('#nodes-body tr[data-key]');           // close the open row
+check('row closed before the blip check', !(await page.$('#nodes-body tr.detail')));
+await page.click('#blips .blip');
+check('clicking a blip opens its node', !!(await page.$('#nodes-body tr.detail')));
+await page.hover('#nodes-body tr[data-key]');
+check('pointing at a row lights its blip', await page.$eval('#blips .blip', (g) => g.classList.contains('hl')));
 await page.evaluate(() => document.activeElement?.blur());
 
 // --- the open row: everything both APIs will tell us ---

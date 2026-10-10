@@ -281,27 +281,83 @@ details.setup {
 
 #view-dash { padding-bottom: 8px; }
 
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+/* ---- the scope: the console's marquee. The wordmark on the left; on the right
+   the world in phosphor dots, every node lit where its datacenter is. The table
+   below already counts the nodes, so up here is for where they are and what
+   they burn while they run. ---- */
+.scope {
+  display: grid; grid-template-columns: minmax(250px, 1fr) minmax(0, 2.7fr);
   border-bottom: 1px solid var(--line);
 }
-.stat {
-  padding: 13px 18px;
-  border-right: 1px solid var(--line);
-  &:last-child { border-right: 0; }
-
-  & .k { font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
-  & .v { font-size: 21px; margin-top: 4px; letter-spacing: -.02em; }
-  & .v small { font-size: 13px; color: var(--dim); }
-  & .sub { font-size: 11px; color: var(--dim); margin-top: 3px; }
-  /* The rate's unit is a toggle: click /mo to see /hr and back. */
-  & .unit {
-    border: 0; background: none; padding: 0; font: inherit; font-size: 13px; color: var(--dim);
-    cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px;
-    &:hover, &:focus-visible { color: var(--amber); }
-  }
+.marquee {
+  display: flex; flex-direction: column; justify-content: center; gap: 16px;
+  padding: 20px 24px; border-right: 1px solid var(--line);
 }
+/* Slit lettering, after the striped logotypes of the period: solid at the top,
+   cut by thicker and thicker gaps as it nears the baseline. */
+.wordmark {
+  margin: 0; font: 800 clamp(46px, 5.4vw, 66px)/.9 var(--mono); letter-spacing: -.05em;
+  color: transparent; -webkit-background-clip: text; background-clip: text;
+  background-image: linear-gradient(180deg, var(--amber) 0 54%, transparent 54% 59%,
+    var(--amber) 59% 70%, transparent 70% 76%, var(--amber) 76% 84%, transparent 84% 91%,
+    var(--amber) 91%);
+  filter: drop-shadow(0 0 10px var(--glow-c));
+  user-select: none;
+}
+/* Three bands in the indicator colours, like a racing stripe on the cabinet. */
+.stripe {
+  display: block; width: min(100%, 200px); height: 7px; margin-top: -6px;
+  background: linear-gradient(180deg, var(--amber) 0 2px, transparent 2px 2.5px,
+    var(--warn) 2.5px 4.5px, transparent 4.5px 5px, var(--danger) 5px);
+}
+.readout {
+  border-top: 1px solid var(--rule); padding-top: 12px;
+  & .k { font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
+  & .v { font-size: 22px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  & .v.live { color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
+  & .v small { font-size: 13px; color: var(--dim); text-shadow: none; }
+  & .sub { font-size: 11px; color: var(--dim); margin-top: 2px; }
+}
+
+.map { position: relative; margin: 0; padding: 14px 18px 26px; min-width: 0; }
+.map svg { display: block; width: 100%; height: clamp(150px, 19vw, 250px); overflow: visible; }
+.map .grat { stroke: var(--line); stroke-width: .12; stroke-dasharray: .5 .7; fill: none; }
+.map .land { stroke: var(--amber); stroke-width: .5; stroke-linecap: round; fill: none; opacity: .3; }
+.map .land.hot { opacity: .85; }
+.map .beam { fill: var(--amber); opacity: .5; }
+.map .sweep { animation: sweep 9s linear infinite; }
+@keyframes sweep { from { transform: translateX(0); } to { transform: translateX(184px); } }
+.map figcaption {
+  position: absolute; left: 18px; right: 18px; bottom: 9px;
+  display: flex; gap: 14px; justify-content: space-between;
+  font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted);
+}
+
+/* A node, lit where it is. One blip per datacenter, in the colour of its worst
+   lamp; a ring keeps pulsing out of it while it is up. */
+.blip {
+  --c: var(--ok); cursor: pointer; outline: none;
+  &.warn { --c: var(--warn); }
+  &.bad  { --c: var(--danger); }
+  &.busy { --c: var(--amber); }
+  & .core { fill: var(--c); filter: drop-shadow(0 0 3px var(--c)); }
+  & .ring {
+    fill: none; stroke: var(--c); stroke-width: .25;
+    transform-box: fill-box; transform-origin: center;
+    animation: ping 2.6s ease-out infinite;
+  }
+  &.busy .ring { animation-duration: 1.1s; }
+  &.busy .core { animation: blink 1.1s ease-in-out infinite; }
+  &.bad .ring { animation: none; opacity: 0; }
+  & text {
+    fill: var(--text); font: 700 2.1px var(--mono); letter-spacing: .12px;
+    paint-order: stroke; stroke: var(--screen); stroke-width: .6px;
+  }
+  & .tick { stroke: var(--muted); stroke-width: .12; }
+  &:hover .core, &:focus-visible .core, &.hl .core { stroke: var(--text); stroke-width: .3; }
+  &:focus-visible text, &.hl text { fill: var(--amber); }
+}
+@keyframes ping { from { transform: scale(.6); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
 
 /* Lines up with the first column of the table above it, not the screen edge. */
 .tablenote { margin: 14px 0 0; padding: 0 16px; }
@@ -660,7 +716,17 @@ code { font-family: var(--mono); color: var(--text); }
   header.rail, footer.rail { height: auto; padding: 8px 12px; gap: 8px; flex-wrap: wrap; }
   header.rail .screw, footer.rail .keys { display: none; }
   .rail .stamp { font-size: 9px; }
-  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .scope { grid-template-columns: minmax(0, 1fr); }
+  .marquee { border-right: 0; border-bottom: 1px solid var(--rule); padding: 16px 14px;
+    display: grid; grid-template-columns: auto 1fr; align-items: end; gap: 6px 18px; }
+  .marquee .wordmark { font-size: 44px; }
+  .marquee .stripe { grid-column: 1; margin: 0; width: 100%; }
+  .readout .sub { font-size: 10.5px; }
+  .map .map-hint { display: none; }
+  .marquee .readout { grid-column: 2; grid-row: 1 / span 2; border: 0; padding: 0; text-align: right; }
+  .map { padding: 10px 8px 26px; }
+  .map svg { height: auto; }
+  .blip text, .blip .tick { display: none; }
   .col-wide { display: none; }
   th, td { padding-left: 11px; padding-right: 11px; }
   .tablenote { padding: 0 11px; }
@@ -683,11 +749,12 @@ code { font-family: var(--mono); color: var(--text); }
   .badge { display: none; }      /* the open card names it */
   th, td { font-size: 11.5px; padding-left: 9px; padding-right: 9px; }
   .tablenote { padding: 0 9px; }
-  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after { animation-duration: .001s !important; transition-duration: .001s !important; }
+  /* Shortened, a looping sweep or ping would strobe; hold them still instead. */
+  .map .sweep, .map .hot, .blip .ring { display: none; }
 }
 </style>
 <script>
@@ -795,7 +862,17 @@ code { font-family: var(--mono); color: var(--text); }
 <!-- ============ DASHBOARD ============ -->
 <section id="view-dash" class="hidden">
 
-  <div class="stats" id="stats"></div>
+  <div class="scope" id="scope">
+    <div class="marquee">
+      <p class="wordmark" aria-hidden="true">yVPN</p>
+      <span class="stripe" aria-hidden="true"></span>
+      <div class="readout" id="readout" aria-live="polite"></div>
+    </div>
+    <figure class="map" id="map">
+      <svg id="map-svg" role="group" aria-label="Your nodes on a world map"></svg>
+      <figcaption><span id="map-what"></span><span class="map-hint">select a light to open its node</span></figcaption>
+    </figure>
+  </div>
 
   <div class="toolbar">
     <h2>Nodes</h2>
@@ -1003,10 +1080,10 @@ code { font-family: var(--mono); color: var(--text); }
       <p>
         Each node is the cheapest droplet its datacenter sells, and the picker shows what it costs
         for a month left running &mdash; usually <b>$4</b>. You pay only while it exists:
-        billed by the second with a one cent minimum. <b>Current rate</b> is what your nodes would
-        cost over a month if you left them all running; click its <b>/mo</b> to see it per hour.
-        <b>Cost so far</b> is what each node has run up, and the total covers the nodes you still
-        have. Deleting a node stops its billing immediately. Nothing else here costs anything.
+        billed by the second with a one cent minimum. <b>Burning</b>, under the logo, is what the
+        nodes running right now cost per hour, with what that comes to over a month if you left
+        them all on. <b>Cost so far</b> in the table is what each node has run up. Deleting a node
+        stops its billing immediately. Nothing else here costs anything.
       </p>
 
       <h3>When something looks wrong</h3>
@@ -1095,7 +1172,6 @@ const POLL_MS = 2000;          // a node now joins in ~60-90s; 1s (the CLI) invi
 const POLL_TIMEOUT_MS = 15 * 60 * 1000;
 const CFG_KEY = "yvpn.cfg";
 const THEME_KEY = "yvpn.theme";   // display preference; survives sign-out
-const RATE_KEY = "yvpn.rate";     // "mo" or "hr" on the rate stat; likewise
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -1557,46 +1633,139 @@ function swapView(fn) {
 
 /* ------------------------------ rendering ----------------------------- */
 
-let rateUnit = "mo";
-try { if (localStorage.getItem(RATE_KEY) === "hr") rateUnit = "hr"; } catch {}
+/* ------------------------------- the map ------------------------------ */
 
-function renderStats() {
-  const nodes = state.nodes;
-  const spent = nodes.reduce((s, d) => s + costSoFar(d), 0);
-  const online = nodes.filter((d) => d._device && isOnline(d._device)).length;
-  // A create in flight only counts once, whether or not its droplet exists yet.
-  const building = state.pending.filter((p) => !p.failed);
-  const total = nodes.length +
-    building.filter((p) => !nodes.some((n) => n.id === p.dropletId)).length;
-  const live = nodes.length;
+// Land, from Natural Earth's 1:50m coastlines sampled every 2.5 degrees (77.5N
+// to 57.5S, so no Antarctica), one bit per dot in base64 rows of 144.
+const MAP = { cols: 144, rows: 54, step: 2.5, lat0: 77.5, mask:
+  "AAAB/f+f//+AAgAB4I/8AcAAAAAD/f/Af/+AAAAHBP//cIAAgPgP/u/4P/8AAHgMH/////8Aw////v58P/4AB/9/////////9/////8/P+HgB///////////I//////8HwHgH///////////J////+D4DgAAP//////////8AeD//+B+AAAGP/////////3AAcA///z/AAAHHv///////wOAAgAf//7/wAAPP////////8OAAAAP////wAAL/////////8MAAAAH///+4AAD/////////0AAAAAD////YAAB/////////8AAAAAD///+AAAP//H//////uAAAAAD///wAAAP3///////8IAAAAAD///gAAAPVv//////sYAAAAAB///AAAAH/H//////t4AAAAAB//+AAAAP+AP/////jgAAAAAAf/8AAAAP////////iAAAAAAAP9MAAABf////////gAAAAAAAP4EAAAA////3////AAAAAAAAB4OAAAB/////H///gAAAAIAAB4rAAAB/////H//4AAAAAEAAA/hcAAB////+B8f4gAAAAAAAAP4BAAB///98B4fwgAAAAAAAAB4AAAB////wBwHwwAAAAAAAAAZ+AAB////4AwVxwAAAAAAAAAP/gAA////4A4EiYAAAAAAAAAB/4AAf///wAILD4AAAAAAAAAB/8AAAP//gAAPHAAAAAAAAAAD/8AAAH//AAAHe0AAAAAAAAAH//AAAH/+AAAH/3SAAAAAAAAH//4AAD/8AAAD/18wAAAAAAAH//8AAB/8AAAB9BeoAAAAAAAD//8AAB/8AAAAP4foAAAAAAAB//8AAB/+AAAAADMiAAAAAAAB//4AAB/+QAAAALsAAAAAAAAA//4AAD//wAAAAf+AgAAAAAAAf/4AAD/5wAAAA/+ABAAAAAAAP/wAAB/xwAAAD//BAAAAAAAAf/gAAB/5gAAAH//gAAAAAAAAf+AAAA/ggAAAH//wAAAAAAAAf+AAAA/gAAAAH//wAAAAAAAAf8AAAAfgAAAAD//wAAAAAAAAf4AAAAeAAAAADx/gAAAAAAAA/wAAAAAAAAAAAAfAAAAAAAAA/gAAAAAAAAAAAAOAHAAAAAAA+AAAAAAAAAAAAADAOQAAAAAA+AAAAAAAAAAAAACAcAAAAAAA8AAAAAAAAAAAAAAA4AAAAAAA8AAAAAAAAEAAAAAAAAAAAAAA5gAAAAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" };
 
-  const rate = rateUnit === "hr"
-    ? "$" + nodes.reduce((s, d) => s + hourlyRate(d), 0).toFixed(3)
-    : fmtDollars(nodes.reduce((s, d) => s + monthlyRate(d), 0));
-  const other = rateUnit === "hr" ? "month" : "hour";
-  const unit = `<button type="button" class="unit" id="rate-unit" title="Show per ${other}"
-    aria-label="Per ${rateUnit === "hr" ? "hour" : "month"}; show per ${other}">/${rateUnit}</button>`;
+// Where each DigitalOcean datacenter is, by the letters of its slug.
+const DC_PLACES = {
+  nyc: [40.7, -74.0], tor: [43.7, -79.4], atl: [33.7, -84.4], ric: [37.5, -77.4],
+  sfo: [37.8, -122.4], ams: [52.4, 4.9], lon: [51.5, -0.1], fra: [50.1, 8.7],
+  blr: [13.0, 77.6], sgp: [1.35, 103.8], syd: [-33.9, 151.2],
+};
+const project = ([lat, lon]) => [(lon + 180) / MAP.step, (MAP.lat0 - lat) / MAP.step];
+const placeOf = (slug) => DC_PLACES[String(slug || "").replace(/\d+$/, "")];
 
-  const cards = [
-    { k: "Nodes", v: String(total) + (building.length ? `<small> ${building.length} building</small>` : "") },
-    { k: "On tailnet", v: `${online}<small> / ${live}</small>` },
-    { k: "Current rate", v: rate + unit,
-      sub: live ? `if ${live === 1 ? "this node keeps" : `these ${live} nodes keep`} running` : "nothing running" },
-    { k: "Cost so far", v: fmtMoney(spent), sub: "of the nodes below" },
-  ];
+function drawMap() {
+  const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  const { cols, rows, mask } = MAP;
+  let land = "";
+  for (let i = 0; i < cols * rows; i++)
+    if ((B64.indexOf(mask[(i / 6) | 0]) >> (5 - (i % 6))) & 1)
+      land += `M${(i % cols) + 0.5} ${((i / cols) | 0) + 0.5}h0`;
+  // Equator and the two tropics, faintly.
+  const grat = [0, 23.44, -23.44].map((lat) => `M0 ${project([lat, 0])[1]}H${cols}`).join("");
+  const svg = $("#map-svg");
+  svg.setAttribute("viewBox", `0 0 ${cols} ${rows}`);
+  // The beam sweeps west to east; the dots under it light up as it passes.
+  svg.innerHTML =
+    `<defs><linearGradient id="beam-g"><stop offset="0" stop-color="#fff" stop-opacity="0"/>` +
+    `<stop offset="1" stop-color="#fff"/></linearGradient>` +
+    `<mask id="beam-m"><rect class="sweep" x="-40" y="0" width="22" height="${rows}" fill="url(#beam-g)"/></mask></defs>` +
+    `<path class="grat" d="${grat}"/>` +
+    `<path class="land" d="${land}"/>` +
+    `<path class="land hot" d="${land}" mask="url(#beam-m)"/>` +
+    `<rect class="beam sweep" x="-18.2" y="0" width=".2" height="${rows}" mask="url(#beam-m)"/>` +
+    `<g id="blips"></g>`;
+}
+drawMap();
 
-  $("#stats").innerHTML = cards
-    .map((c) => `<div class="stat"><div class="k">${c.k}</div><div class="v">${c.v}</div>` +
-      (c.sub ? `<div class="sub">${c.sub}</div>` : "") + `</div>`)
-    .join("");
+// A datacenter's lamp is the worst of its nodes': offline, then building, then
+// anything short of a working node, then healthy.
+const LAMP_RANK = { bad: 3, busy: 2, warn: 1, ok: 0 };
+function lampOf(r) {
+  if (r.pending) return r.pending.failed ? "bad" : "busy";
+  const d = r.droplet;
+  if (d.status !== "active" || !d._device) return "warn";
+  if (!isOnline(d._device)) return "bad";
+  if (d._exit === false && !(addonOf(d) && !d._advertisesExit)) return "warn";
+  return "ok";
 }
 
-$("#stats").addEventListener("click", (e) => {
-  if (!e.target.closest("#rate-unit")) return;
-  rateUnit = rateUnit === "mo" ? "hr" : "mo";
-  try { localStorage.setItem(RATE_KEY, rateUnit); } catch {}
-  renderStats();
-  $("#rate-unit").focus();   // re-rendered; keep keyboard users where they were
+function renderScope() {
+  const nodes = state.nodes;
+  const hourly = nodes.reduce((s, d) => s + hourlyRate(d), 0);
+  $("#readout").innerHTML = nodes.length
+    ? `<div class="k">Burning</div><div class="v live">$${hourly.toFixed(3)}<small>/hr</small></div>` +
+      `<div class="sub">≈ ${fmtDollars(nodes.reduce((s, d) => s + monthlyRate(d), 0))}/mo if left running</div>`
+    : `<div class="k">Burning</div><div class="v">$0<small>/hr</small></div><div class="sub">nothing running</div>`;
+
+  // One blip per datacenter, carrying every row that lives there.
+  const sites = new Map();
+  for (const r of tableRows()) {
+    const slug = r.droplet ? r.droplet.region?.slug : r.pending.datacenter;
+    const at = placeOf(slug);
+    if (!at) continue;
+    const site = sites.get(slug) || { slug, xy: project(at), rows: [], lamp: "ok" };
+    site.rows.push(r);
+    const lamp = lampOf(r);
+    if (LAMP_RANK[lamp] > LAMP_RANK[site.lamp] || site.rows.length === 1) site.lamp = lamp;
+    sites.set(slug, site);
+  }
+
+  // Labels sit beside their blip, right if there is room and left if not. The
+  // eastern seaboard crowds, so a label with no room on either side steps down
+  // beneath its blip on a short leader. Other blips count as taken ground too.
+  const placed = [...sites.values()].map((s) => ({ x: s.xy[0] - 1, y: s.xy[1] + 0.75, w: 2 }));
+  const blips = [...sites.values()].sort((a, b) => a.xy[1] - b.xy[1]).map((s) => {
+    const [x, y] = s.xy;
+    const text = s.slug.toUpperCase() + (s.rows.length > 1 ? " ×" + s.rows.length : "");
+    const w = text.length * 1.45 + 0.5;
+    const free = (lx, ly) => !placed.some((b) => lx < b.x + b.w && b.x < lx + w && Math.abs(b.y - ly) < 2.3);
+    let lx = x + 1.6, ly = y + 0.75, end = "start";
+    if (!free(lx, ly) && free(x - 1.6 - w, ly)) { lx = x - 1.6 - w; end = "end"; }
+    else while (!free(lx, ly)) ly += 2.4;
+    placed.push({ x: lx, y: ly, w });
+    const names = s.rows.map((r) => r.droplet?.name || r.pending?.name || "new node").join(", ");
+    return `<g class="blip ${s.lamp}" data-site="${esc(s.slug)}" tabindex="0" role="button"` +
+      ` aria-label="${esc(s.slug)}: ${esc(names)}">` +
+      `<title>${esc(s.slug)} — ${esc(names)}</title>` +
+      (ly - y > 1 ? `<path class="tick" d="M${x} ${y + 0.9}V${ly - 0.6}H${x + 1.4}"/>` : "") +
+      `<circle class="ring" cx="${x}" cy="${y}" r="1.1"/><circle class="core" cx="${x}" cy="${y}" r=".85"/>` +
+      `<text x="${end === "end" ? lx + w - 0.2 : lx + 0.2}" y="${ly}" text-anchor="${end}">${esc(text)}</text></g>`;
+  });
+  $("#blips").innerHTML = blips.join("");
+
+  const n = tableRows().length;
+  $("#map-what").textContent = n
+    ? `${n} ${n === 1 ? "node" : "nodes"} · ${sites.size} ${sites.size === 1 ? "datacenter" : "datacenters"}`
+    : "no signal · start a node and it lights up here";
+  $("#map .map-hint").classList.toggle("hidden", !n);
+}
+
+// A blip opens the first of its rows, the same as clicking that row.
+function openSite(slug) {
+  const r = tableRows().find((x) => (x.droplet ? x.droplet.region?.slug : x.pending.datacenter) === slug);
+  if (!r) return;
+  state.selected = r.key;
+  state.expanded.add(r.key);
+  renderNodes();
+  $(`#nodes-body tr[data-key="${r.key}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+$("#map-svg").addEventListener("click", (e) => {
+  const g = e.target.closest(".blip");
+  if (g) openSite(g.dataset.site);
+});
+$("#map-svg").addEventListener("keydown", (e) => {
+  const g = e.target.closest(".blip");
+  if (!g || (e.key !== "Enter" && e.key !== " ")) return;
+  e.preventDefault();
+  e.stopPropagation();           // Enter here isn't the table's
+  openSite(g.dataset.site);
+});
+
+// Pointing at a row lights its datacenter on the map.
+$("#nodes-body").addEventListener("mouseover", (e) => {
+  const key = e.target.closest("tr[data-key]")?.dataset.key;
+  const r = key && tableRows().find((x) => x.key === key);
+  const slug = r ? (r.droplet ? r.droplet.region?.slug : r.pending.datacenter) : null;
+  for (const g of $$("#blips .blip")) g.classList.toggle("hl", g.dataset.site === slug);
+});
+$("#nodes-body").addEventListener("mouseleave", () => {
+  for (const g of $$("#blips .blip.hl")) g.classList.remove("hl");
 });
 
 const isOnline = (dev) =>
@@ -2541,7 +2710,7 @@ async function refresh() {
       toast("Tailscale proxy unreachable — showing DigitalOcean data only. " + e.message, "err");
     }
 
-    renderStats();
+    renderScope();
     renderNodes();
   } catch (e) {
     toast("Could not load nodes: " + e.message, "err");
@@ -2678,7 +2847,7 @@ function cancelPending(p) {
   state.expanded.delete(p.key);
   if (state.selected === p.key) state.selected = null;
   dropPending(p);
-  renderStats();
+  renderScope();
   renderNodes();
 }
 
@@ -2701,7 +2870,7 @@ async function runCreate(dc, opts) {
     ctrl: new AbortController(),
   };
   state.pending.push(p);
-  renderStats();
+  renderScope();
   renderNodes();
   startTicker();
 
@@ -2780,7 +2949,7 @@ async function runCreate(dc, opts) {
     renderNodes();
     await refresh();
   } finally {
-    renderStats();
+    renderScope();
     renderNodes();
   }
 }
