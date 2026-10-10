@@ -511,6 +511,8 @@ check('no running total of spend up top', !/so far/i.test(await page.textContent
 check('the node lights its datacenter', (await page.getAttribute('#blips .blip', 'data-site')) === 'fra1');
 check('a healthy node lights olive', await page.$eval('#blips .blip', (g) => g.classList.contains('ok')));
 check('map counts what it shows', /1 node · 1 datacenter/.test(await page.textContent('#map-what')));
+const unplaced = await page.evaluate(() => state.catalogue.regions.filter((r) => !placeOf(r.slug)).map((r) => r.slug));
+check('every datacenter the picker lists has a place on the map', unplaced.length === 0, unplaced.join(', '));
 check('a datacenter the map does not know is named, not dropped', await page.evaluate(() => {
   state.nodes.push({ id: 999, name: 'x', region: { slug: 'zzz1' }, size: {}, status: 'active', tags: [] });
   renderScope();

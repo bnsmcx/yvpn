@@ -772,7 +772,7 @@ code { font-family: var(--mono); color: var(--text); }
   <span class="screw"></span>
   <span class="brand">yVPN</span>
   <span class="stamp">exit node control</span>
-  <span class="stamp-dim ver" id="ver-header">v0.6.0</span>
+  <span class="stamp-dim ver" id="ver-header">v0.6.1</span>
   <span class="spacer"></span>
   <span id="who" class="stamp-dim hidden"></span>
   <button id="btn-guide" title="Getting started">guide</button>
@@ -919,7 +919,7 @@ code { font-family: var(--mono); color: var(--text); }
     <span><span class="cap">?</span><span class="stamp">help</span></span>
   </span>
   <span class="spacer"></span>
-  <span class="stamp-dim ver" id="ver-footer">v0.6.0</span>
+  <span class="stamp-dim ver" id="ver-footer">v0.6.1</span>
   <span class="display">
     <span class="stamp" id="display-label">display</span>
     <span class="sel" role="group" aria-labelledby="display-label" id="display-sel">
@@ -1163,7 +1163,7 @@ code { font-family: var(--mono); color: var(--text); }
 
 // Single source of truth for the version stamped on the console. The release
 // workflow checks this against the tag, so a tagged build can't ship stale.
-const VERSION = "0.6.0";
+const VERSION = "0.6.1";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
 // What every node boots. Not every region carries it, and it sets a floor on disk.
@@ -1642,7 +1642,7 @@ const MAP = { cols: 144, rows: 54, step: 2.5, lat0: 77.5, mask:
 
 // Where each DigitalOcean datacenter is, by the letters of its slug.
 const DC_PLACES = {
-  nyc: [40.7, -74.0], tor: [43.7, -79.4], atl: [33.7, -84.4], ric: [37.5, -77.4],
+  nyc: [40.7, -74.0], tor: [43.7, -79.4], atl: [33.7, -84.4], ric: [37.5, -77.4], mem: [35.1, -90.0],
   sfo: [37.8, -122.4], ams: [52.4, 4.9], lon: [51.5, -0.1], fra: [50.1, 8.7],
   blr: [13.0, 77.6], sgp: [1.35, 103.8], syd: [-33.9, 151.2],
 };
