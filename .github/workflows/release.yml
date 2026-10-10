@@ -1,9 +1,21 @@
 name: Release
 
+# A release is cut by bumping the version, not by tagging. Every push to main
+# reads the version from the tree; if no release exists for it yet, this builds
+# one, and creating the release creates its v<version> tag.
+#
+# The live web app deploys from main and downloads the node agent from the
+# release matching its own version, so the two always ship together.
+
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+  workflow_dispatch:
+
+# Two quick pushes must not race to create the same release.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 defaults:
   run:
@@ -17,25 +29,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-          cache-dependency-path: apps/cli/go.sum
-
-      - name: Check the tag matches the versions in the tree
+      - name: Read the version, and whether it is already released
+        id: version
         working-directory: .
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=$(sed -n 's/^const VERSION = "\(.*\)";$/\1/p' apps/web/index.html)
+          [ -n "$VERSION" ] || { echo "no VERSION constant in apps/web/index.html"; exit 1; }
           fail=0
           grep -q "var VERSION = \"$VERSION\"" apps/cli/cmd/tui/main.go || { echo "apps/cli/cmd/tui/main.go is not $VERSION"; fail=1; }
-          grep -q "const VERSION = \"$VERSION\";" apps/web/index.html || { echo "apps/web/index.html is not $VERSION"; fail=1; }
           grep -q ">v$VERSION<" apps/web/index.html || { echo "apps/web/index.html console stamps are not v$VERSION"; fail=1; }
-          exit $fail
+          [ $fail = 0 ] || exit 1
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
+            echo "v$VERSION is already released; nothing to do."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Releasing v$VERSION."
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-go@v5
+        if: steps.version.outputs.release == 'true'
+        with:
+          go-version: '1.23'
+          cache-dependency-path: apps/cli/go.sum
+
+      # Includes the parity tests that hold the CLI and the web app to the
+      # same cloud-init, secrets and add-on catalog.
+      - name: Test the CLI
+        if: steps.version.outputs.release == 'true'
+        run: go test ./...
 
       - name: Build binaries
+        if: steps.version.outputs.release == 'true'
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          LDFLAGS="-X main.VERSION=$VERSION"
+          LDFLAGS="-X main.VERSION=${{ steps.version.outputs.version }}"
 
           # Linux AMD64
           GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o yvpn-linux-amd64 ./cmd/tui
@@ -49,12 +77,29 @@ jobs:
           # Windows AMD64
           GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o yvpn-windows-amd64.exe ./cmd/tui
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      # The agent that runs on nodes with an add-on. Both front ends' cloud-init
+      # download it from the release matching their own version, so it must be
+      # attached to every release.
+      - name: Test and build the node agent
+        if: steps.version.outputs.release == 'true'
+        working-directory: apps/node
+        run: |
+          go vet ./...
+          go test ./...
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
+            -ldflags "-s -w -X main.VERSION=${{ steps.version.outputs.version }}" -o yvpn-node-linux-amd64 .
+
+      - name: Create the release, and its tag
+        if: steps.version.outputs.release == 'true'
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: v${{ steps.version.outputs.version }}
           files: |
             apps/cli/yvpn-linux-amd64
             apps/cli/yvpn-darwin-amd64
             apps/cli/yvpn-darwin-arm64
             apps/cli/yvpn-windows-amd64.exe
+            apps/node/yvpn-node-linux-amd64
           generate_release_notes: true

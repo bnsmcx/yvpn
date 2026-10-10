@@ -1,0 +1,22 @@
+[
+  {
+    "id": "",
+    "name": "Exit node",
+    "summary": "Just the VPN: route your traffic out through this datacenter.",
+    "needs": {
+      "vcpus": 1,
+      "memoryMB": 512,
+      "diskGB": 0
+    }
+  },
+  {
+    "id": "jellyfin",
+    "name": "Jellyfin watch party",
+    "summary": "A private media server: drop in a video, then watch it in sync with family, on your tailnet or through a guest link.",
+    "needs": {
+      "vcpus": 2,
+      "memoryMB": 4096,
+      "diskGB": 50
+    }
+  }
+]

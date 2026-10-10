@@ -20,6 +20,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const PARITY = path.join(HERE, '..', '..', '..', 'testdata', 'parity');
 const APP = path.join(HERE, '..', 'index.html');
 const SHOTS = process.env.SP || HERE;
 const ORIGIN = 'http://127.0.0.1:8899';
@@ -58,14 +59,17 @@ const REGIONS = [
   { slug: 'syd9', name: 'Sydney 9', available: true },
 ];
 const SIZES = [
-  { slug: 's-1vcpu-512mb-10gb', memory: 512, disk: 10, price_hourly: 0.00595, available: true,
+  { slug: 's-1vcpu-512mb-10gb', memory: 512, vcpus: 1, disk: 10, price_hourly: 0.00595, available: true,
     price_monthly: 4, transfer: 0.5, regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'syd9'] },
-  { slug: 's-1vcpu-1gb', memory: 1024, disk: 25, price_hourly: 0.00893, available: true,
+  { slug: 's-1vcpu-1gb', memory: 1024, vcpus: 1, disk: 25, price_hourly: 0.00893, available: true,
     price_monthly: 6, transfer: 1, regions: ['nyc1', 'sfo3', 'fra1', 'lon1', 'syd9'] },
-  { slug: 's-2vcpu-4gb', memory: 4096, disk: 80, price_hourly: 0.03571, available: true,
+  { slug: 's-2vcpu-4gb', memory: 4096, vcpus: 2, disk: 80, price_hourly: 0.03571, available: true,
     price_monthly: 24, transfer: 4, regions: ['nyc1', 'fra1', 'mem1'] },
-  { slug: 's-1vcpu-2gb', memory: 2048, disk: 50, price_hourly: 0.01786, available: true,
+  { slug: 's-1vcpu-2gb', memory: 2048, vcpus: 1, disk: 50, price_hourly: 0.01786, available: true,
     price_monthly: 12, transfer: 2, regions: ['nyc1', 'fra1', 'mem1'] },
+  // Memory enough for Jellyfin, one core, and cheaper than s-2vcpu-4gb: not enough.
+  { slug: 'm-1vcpu-8gb', memory: 8192, vcpus: 1, disk: 25, price_hourly: 0.03, available: true,
+    price_monthly: 20, transfer: 4, regions: ['nyc1', 'fra1', 'sfo3'] },
   // Cheaper than everything, but too little disk for the image.
   { slug: 'tiny', price_monthly: 0.5, memory: 512, disk: 5, price_hourly: 0.001, available: true, regions: ['fra1', 'mem1'] },
   // Cheaper than everything, but not for sale.
@@ -118,11 +122,14 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
 
   if (p === '/v2/droplets' && m === 'POST') {
     const b = JSON.parse(req.postData());
+    state.lastCreate = b;
     check('create sends yVPN tag', b.tags?.includes('yVPN'));
     check('create sends ubuntu-24-04-x64', b.image === 'ubuntu-24-04-x64');
-    check('create sends the cheapest usable size in the region', b.size === 's-1vcpu-512mb-10gb', b.size);
+    if (!b.tags.some((t) => t.startsWith('yvpn-addon:'))) {
+      check('create sends the cheapest usable size in the region', b.size === 's-1vcpu-512mb-10gb', b.size);
+      check('cloud-init advertises exit node', b.user_data?.includes('--advertise-exit-node'));
+    }
     check('cloud-init carries the auth key', b.user_data?.includes('tskey-auth-FAKE'));
-    check('cloud-init advertises exit node', b.user_data?.includes('--advertise-exit-node'));
     // The slow parts, removed deliberately: an apt upgrade on first boot cost ~145 s
     // and DigitalOcean's vendor script another ~60 s.
     check('cloud-init does not apt-upgrade on boot', !/^\s*package_upgrade:/m.test(b.user_data || ''));
@@ -132,8 +139,8 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
       id: ++nextId, name: b.name, status: 'active',
       memory: SIZES.find((z) => z.slug === b.size).memory,
       disk: SIZES.find((z) => z.slug === b.size).disk,
-      vcpus: 1, locked: false,
-      kernel: null, tags: ['yVPN'], features: ['ipv6', 'droplet_agent'],
+      vcpus: SIZES.find((z) => z.slug === b.size).vcpus, locked: false,
+      kernel: null, tags: b.tags, features: ['ipv6', 'droplet_agent'],
       vpc_uuid: 'vpc-1234', volume_ids: [], backup_ids: [], snapshot_ids: [],
       image: { slug: 'ubuntu-24-04-x64', name: '24.04 (LTS) x64', distribution: 'Ubuntu' },
       region: { slug: b.region, name: b.region, available: true, features: ['private_networking', 'ipv6'] },
@@ -149,6 +156,7 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
     };
     state.droplets.push(d);
     state._pending = d.name;
+    state._pendingExit = b.user_data.includes('--advertise-exit-node');
     return json({ droplet: d }, 202);
   }
 
@@ -217,7 +225,9 @@ await page.route(ORIGIN + '/api/**', async (route) => {
           },
         };
         state.devices.push(dev);
-        state.routes[dev.id] = { advertisedRoutes: ['0.0.0.0/0', '::/0'], enabledRoutes: [] };
+        state.routes[dev.id] = state._pendingExit
+          ? { advertisedRoutes: ['0.0.0.0/0', '::/0'], enabledRoutes: [] }
+          : { advertisedRoutes: [], enabledRoutes: [] };
         state._pending = null; state.pollCount = 0;
       }
     }
@@ -229,6 +239,7 @@ await page.route(ORIGIN + '/api/**', async (route) => {
     const id = rm[1];
     if (m === 'GET') return json(state.routes[id] || { advertisedRoutes: [], enabledRoutes: [] });
     const b = JSON.parse(req.postData());
+    state.routesPosted = (state.routesPosted || 0) + 1;
     state.routes[id].enabledRoutes = b.routes;
     check('exit routes approved with advertised routes', b.routes.includes('0.0.0.0/0'));
     return json(state.routes[id]);
@@ -236,8 +247,119 @@ await page.route(ORIGIN + '/api/**', async (route) => {
   return json({ message: 'unmocked ' + m + ' ' + p }, 404);
 });
 
+// ---------- the node agent (apps/node), on a node's tailnet name ----------
+// Reached straight from the browser at https://<node>.tailnet.ts.net:8443.
+const agent = {
+  token: null, mode: 'ok', phase: 'installing', statusPolls: 0,
+  media: [], share: { enabled: false, busy: false, error: '' },
+  chunks: [], uploadStarts: 0, failPatchOnce: true, failShareOnce: true, fetched: null,
+};
+const agentStatus = (host) => ({
+  addon: 'jellyfin', version: 'test', phase: agent.phase,
+  step: agent.phase === 'ready' ? 'Ready' : 'Downloading Jellyfin', url: `https://${host}/`,
+  disk: { free: 70e9, total: 80e9 }, media: agent.media, share: agent.share, log: ['pulling image'],
+});
+await page.route((u) => u.port === '8443' && u.hostname.endsWith('.tailnet.ts.net'), async (route) => {
+  const req = route.request();
+  const url = new URL(req.url());
+  const m = req.method();
+  const H = {
+    'access-control-allow-origin': '*',
+    'access-control-allow-headers': 'Authorization, Content-Type, Upload-Offset',
+    'access-control-allow-methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    'access-control-expose-headers': 'Upload-Offset',
+    'content-type': 'application/json',
+  };
+  if (m === 'OPTIONS') return route.fulfill({ status: 204, headers: H, body: '' });
+  if (agent.mode === 'down') return route.abort('connectionrefused');
+  const json = (o, status = 200) => route.fulfill({ status, headers: H, body: JSON.stringify(o) });
+  if (agent.mode === 'auth' || req.headers()['authorization'] !== 'Bearer ' + agent.token)
+    return json({ message: 'wrong or missing token' }, 401);
+  const p = url.pathname;
+
+  if (p === '/v1/status') {
+    if (agent.phase === 'installing' && ++agent.statusPolls >= 3) agent.phase = 'ready';
+    // Each poll moves every video one step along: downloaded, queued, converting, ready.
+    for (const it of agent.media) {
+      if (it.state === 'downloading') { it.state = 'queued'; }
+      else if (it.state === 'queued') { it.state = 'preparing'; it.progress = 0.5; }
+      else if (it.state === 'preparing') {
+        it.state = 'ready'; it.progress = 1; it.file = it.name.replace(/\.[^.]+$/, '') + '.mp4';
+      }
+    }
+    return json(agentStatus(url.hostname));
+  }
+  if (p === '/v1/uploads' && m === 'POST') {
+    agent.uploadStarts++;
+    const b = JSON.parse(req.postData());
+    let it = agent.media.find((x) => x.state === 'uploading' && x.name === b.name && x.size === b.size);
+    if (!it) {
+      it = { id: 'u' + agent.media.length, name: b.name, size: b.size, received: 0, state: 'uploading', source: 'upload', progress: 0 };
+      agent.media.push(it);
+    }
+    return json({ id: it.id, offset: it.received, name: it.name });
+  }
+  const up = p.match(/^\/v1\/uploads\/(\w+)$/);
+  if (up && m === 'PATCH') {
+    const it = agent.media.find((x) => x.id === up[1]);
+    const offset = Number(req.headers()['upload-offset']);
+    // The second chunk's connection drops once: the page has to ask where the
+    // upload stands and carry on from there.
+    if (agent.failPatchOnce && offset > 0) { agent.failPatchOnce = false; return route.abort('connectionreset'); }
+    if (offset !== it.received) return json({ offset: it.received, message: 'out of step' }, 409);
+    const body = req.postDataBuffer();
+    agent.chunks.push([offset, body.length]);
+    it.received += body.length;
+    if (it.received === it.size) it.state = 'queued';
+    return json({ offset: it.received });
+  }
+  if (p === '/v1/fetch' && m === 'POST') {
+    agent.fetched = JSON.parse(req.postData()).url;
+    const it = { id: 'l' + agent.media.length, name: path.basename(new URL(agent.fetched).pathname), size: 0,
+                 received: 0, state: 'downloading', source: 'link', progress: 0 };
+    agent.media.push(it);
+    return json(it);
+  }
+  const del = p.match(/^\/v1\/media\/(\w+)$/);
+  if (del && m === 'DELETE') {
+    agent.media = agent.media.filter((x) => x.id !== del[1]);
+    return route.fulfill({ status: 204, headers: H, body: '' });
+  }
+  if (p === '/v1/share' && m === 'POST') {
+    const { enabled } = JSON.parse(req.postData());
+    if (enabled && agent.failShareOnce) {
+      agent.failShareOnce = false;
+      agent.share.error = "Tailscale won't open Funnel for this node. Give it the \"funnel\" node attribute, " +
+        "or open https://login.tailscale.com/f/funnel?node=nABC123 as a tailnet admin.";
+      return json({ message: agent.share.error, status: agentStatus(url.hostname) }, 502);
+    }
+    agent.share = { enabled, busy: false, error: '' };
+    return json(agentStatus(url.hostname));
+  }
+  return json({ message: 'unmocked ' + m + ' ' + p }, 404);
+});
+
 // ================= drive the app =================
 await page.goto(ORIGIN + '/');
+
+// --- parity with the CLI: the same golden files apps/cli/pkg/addons checks ---
+{
+  const golden = (f) => fs.readFileSync(path.join(PARITY, f), 'utf8');
+  const tok = 'dop_v1_parity', name = 'fra1-yvpn-1700000000';
+  check('add-on catalog matches the CLI',
+    JSON.stringify(await page.evaluate(() => ADDONS)) === JSON.stringify(JSON.parse(golden('addons.json'))));
+  check('derived secrets match the CLI',
+    JSON.stringify(await page.evaluate(([t, n]) => deriveSecrets(t, n), [tok, name])) ===
+    JSON.stringify(JSON.parse(golden('secrets.json'))));
+  const render = (p) => page.evaluate(async ([t, n, p]) => {
+    const s = await deriveSecrets(t, n);
+    return cloudInit({ ...p, nodeConfig: p.addon ? nodeConfig(p.addon, s) : undefined });
+  }, [tok, name, p]);
+  const base = { authKey: 'tskey-auth-PARITY', version: '9.9.9' };
+  check('plain exit node cloud-init matches the CLI', (await render({ ...base, exit: true, addon: '' })) === golden('cloudinit-exit.yaml'));
+  check('jellyfin + exit cloud-init matches the CLI', (await render({ ...base, exit: true, addon: 'jellyfin' })) === golden('cloudinit-jellyfin-exit.yaml'));
+  check('jellyfin-only cloud-init matches the CLI', (await render({ ...base, exit: false, addon: 'jellyfin' })) === golden('cloudinit-jellyfin.yaml'));
+}
 
 check('no proxy URL field', (await page.$('#proxy')) === null);
 
@@ -498,6 +620,173 @@ check('empty state returns after a dismissed failure', await page.isVisible('#no
 state.holdDevice = false;
 state._pending = null;
 state.pollCount = 0;
+
+// ================= add-on: a Jellyfin watch party =================
+await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: ORIGIN });
+const clip = () => page.evaluate(() => navigator.clipboard.readText());
+const card = '#nodes-body .card-addon';
+const cardText = async () => (await page.textContent(card)).replace(/\s+/g, ' ');
+const waitCard = (re, timeout = 20000) =>
+  page.waitForFunction((src) => new RegExp(src).test(document.querySelector('#nodes-body .card-addon')?.textContent.replace(/\s+/g, ' ') || ''),
+    re.source, { timeout });
+
+await page.click('#btn-new');
+await page.waitForSelector('#dlg-create[open]');
+await page.waitForTimeout(200);
+check('create dialog offers the add-on catalog', (await page.$$('#addons label')).length === 2);
+check('a plain exit node is the default', await page.isChecked('#addons input[value=""]'));
+check('a plain node is held to being an exit node', (await page.isChecked('#exit')) && (await page.isDisabled('#exit')));
+await page.click('#addons label:has-text("Jellyfin") span');
+const jfRegions = await page.$$eval('#regions .region b', (els) => els.map((e) => e.textContent));
+check('regions narrow to those selling a size big enough for Jellyfin',
+      JSON.stringify(jfRegions) === JSON.stringify(['fra1', 'mem1', 'nyc1']), jfRegions.join(','));
+check('one core is not enough, however much memory', !jfRegions.includes('sfo3'));
+check('prices follow the add-on', (await page.textContent('#regions .region:has-text("fra1")')).includes('$24/mo'));
+check('each region names the size it will get', (await page.textContent('#regions .region:has-text("fra1")')).includes('s-2vcpu-4gb'));
+check('the dialog says what it is priced for', /Jellyfin/.test(await page.textContent('#size-hint')));
+check('an add-on node may skip being an exit node', !(await page.isDisabled('#exit')));
+await page.click('#addons label:has-text("Exit node") span');
+check('back to a plain node, prices drop again', (await page.textContent('#regions .region:has-text("fra1")')).includes('$4/mo'));
+check('and it is held to being an exit node again', (await page.isChecked('#exit')) && (await page.isDisabled('#exit')));
+await page.click('#addons label:has-text("Jellyfin") span');
+await page.uncheck('#exit');
+await page.click('#regions .region:has-text("fra1") span');
+await page.screenshot({ path: SHOTS + '/shot-create-addon.png' });
+const routesBefore = state.routesPosted || 0;
+await page.click('#btn-create-go');
+await page.waitForSelector('#nodes-body tr.pending', { timeout: 5000 });
+check('the building row says what it will run', (await page.textContent('#nodes-body tr.pending .badge')) === 'jellyfin');
+await page.waitForFunction(() => document.querySelectorAll('#nodes-body tr.pending').length === 0, null, { timeout: 30000 });
+
+{
+  const b = state.lastCreate;
+  const sec = await page.evaluate((n) => deriveSecrets('dop_v1_testtoken', n), b.name);
+  agent.token = sec.agentToken;
+  check('add-on node is tagged with it', b.tags.includes('yvpn-addon:jellyfin'));
+  check('add-on node gets the size it needs', b.size === 's-2vcpu-4gb', b.size);
+  check('a non-exit node neither forwards nor advertises', !b.user_data.includes('--advertise-exit-node') && !b.user_data.includes('ip_forward'));
+  check('the agent comes from this release', b.user_data.includes(`releases/download/v${await page.evaluate(() => VERSION)}/yvpn-node-linux-amd64`));
+  check("the agent's config carries the derived token", b.user_data.includes(`"token":"${sec.agentToken}"`));
+  check("the agent's config is a private file", b.user_data.includes("permissions: '0600'"));
+  check('the DigitalOcean token never goes to the node', !b.user_data.includes('dop_v1_testtoken'));
+  check('no exit routes approved for a node that is not an exit node', (state.routesPosted || 0) === routesBefore);
+  check('a non-exit add-on node reads as online', (await page.textContent('#nodes-body tr[data-key] .pill')).includes('online'));
+  check('the row carries the add-on badge', (await page.textContent('#nodes-body tr[data-key] .badge')) === 'jellyfin');
+
+  // Open it: the card first, the API detail folded underneath.
+  await page.click('#nodes-body tr[data-key] td.name');
+  await page.waitForSelector(card, { timeout: 5000 });
+  check('an add-on row opens on its card', true);
+  check('node details are folded away', !(await page.getAttribute('#nodes-body details.more', 'open')));
+  check('the folded details still hold the droplet', (await page.textContent('#nodes-body details.more')).includes('ubuntu-24-04-x64'));
+  await waitCard(/Downloading Jellyfin/);
+  check('setup progress is shown while it installs', /Installing/.test(await cardText()));
+  check('videos wait for Jellyfin', await page.getAttribute(card + ' .drop', 'aria-disabled') === 'true');
+  await waitCard(/Open Jellyfin/);
+  const host = b.name + '.tailnet.ts.net';
+  check('card links to Jellyfin on the tailnet', await page.getAttribute(card + ' a[href^="https://"]', 'href') === `https://${host}/`);
+  check('admin password starts hidden', !(await cardText()).includes(sec.adminPassword));
+  await page.click(card + ' [data-act=reveal]');
+  check('admin password can be shown', (await cardText()).includes(sec.adminPassword));
+  await page.click(card + ' [data-copy=admin]');
+  check('admin password can be copied', (await clip()) === sec.adminPassword);
+  check('free disk is reported', /GB free on the node/.test(await cardText()));
+  check('the card warns videos go with the node', /deleted with the node/.test(await cardText()));
+  await page.screenshot({ path: SHOTS + '/shot-card-ready.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(200);
+  check('the open card fits a phone without scrolling sideways', await page.evaluate(() => {
+    const wrap = document.querySelector('.tablewrap').getBoundingClientRect();
+    const box = document.querySelector('.addon-detail').getBoundingClientRect();
+    return box.left >= wrap.left - 1 && box.right <= wrap.right + 1 &&
+      document.querySelector('.screen-scroll').scrollWidth <= document.querySelector('.screen-scroll').clientWidth + 1;
+  }));
+  await page.screenshot({ path: SHOTS + '/shot-card-phone.png' });
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  // --- a 36 MiB video: three chunks, and the second one's connection drops ---
+  const SIZE = 36 * 1024 * 1024;
+  await page.setInputFiles(card + ' input[type=file]', { name: 'Family Holiday.mkv', mimeType: 'video/x-matroska', buffer: Buffer.alloc(SIZE, 7) });
+  await waitCard(/Ready to watch/, 40000);
+  const sent = agent.chunks.reduce((n, [, len]) => n + len, 0);
+  check('the whole file arrives', sent === SIZE, `${sent} of ${SIZE}`);
+  check('it goes in 16 MiB chunks', agent.chunks.every(([, len]) => len <= 16 * 1024 * 1024) && agent.chunks.length === 3,
+        JSON.stringify(agent.chunks));
+  check('a dropped connection resumes where the node says it stands', agent.uploadStarts === 2 && agent.chunks[1][0] === 16 * 1024 * 1024);
+  check('the converted name is shown', (await cardText()).includes('Family Holiday.mp4'));
+
+  // --- a link instead ---
+  await page.fill(card + ' .ca-link input', 'https://example.com/films/Birthday.mp4');
+  await page.click(card + ' .ca-link button');
+  await page.waitForFunction(() => !document.querySelector('#nodes-body .card-addon .ca-link input').value, null, { timeout: 5000 });
+  check('a pasted link is sent to the node', agent.fetched === 'https://example.com/films/Birthday.mp4');
+  await waitCard(/Birthday\.mp4.*(Downloading|Waiting|Converting|Ready)/);
+  check('the link shows up in the list', true);
+
+  // --- the table repaints under the card without losing what is typed in it ---
+  await page.fill(card + ' .ca-link input', 'https://half-typ');
+  await page.focus(card + ' .ca-link input');
+  await page.evaluate(() => refresh());
+  check('a repaint keeps a half-typed link', (await page.inputValue(card + ' .ca-link input')) === 'https://half-typ');
+  check('a repaint keeps focus in the card', await page.evaluate(() => document.activeElement?.matches('.card-addon .ca-link input')));
+  await page.fill(card + ' .ca-link input', '');
+  await page.evaluate(() => document.activeElement?.blur());
+
+  // --- sharing: refused by the tailnet once, then on ---
+  check('sharing starts off', /Only your tailnet can open Jellyfin/.test(await cardText()));
+  await page.click(card + ' [data-act=share][data-on="1"]');
+  await waitCard(/funnel" node attribute/);
+  check("the tailnet's refusal is explained in the card", true);
+  check("Tailscale's link to allow it is clickable",
+        (await page.getAttribute(card + ' p.err a', 'href')) === 'https://login.tailscale.com/f/funnel?node=nABC123');
+  check('a refused share stays off', await page.getAttribute(card + ' [data-act=share][data-on="0"]', 'aria-pressed') === 'true');
+  await page.click(card + ' [data-act=share][data-on="1"]');
+  await waitCard(/Guest link/);
+  check('sharing on shows the guest login', (await cardText()).includes(sec.guestPassword));
+  check('the state says it is shared', /shared with guests/.test(await page.textContent(card + ' .ca-head')));
+  await page.click(card + ' [data-act=invite]');
+  const invite = await clip();
+  check('the invite has the link, the login and SyncPlay',
+        invite.includes(`https://${host}/`) && invite.includes(sec.guestPassword) && invite.includes('"guest"') && /SyncPlay/.test(invite));
+  await page.screenshot({ path: SHOTS + '/shot-card-shared.png', fullPage: true });
+  await page.click(card + ' [data-act=share][data-on="0"]');
+  await waitCard(/Only your tailnet can open Jellyfin/);
+  check('sharing can be turned off again', agent.share.enabled === false);
+
+  // --- removing a finished video takes two clicks ---
+  const holiday = agent.media.find((x) => x.name === 'Family Holiday.mkv');
+  await page.click(`${card} [data-act=remove][data-id="${holiday.id}"]`);
+  check('the first click only asks', agent.media.some((x) => x.id === holiday.id) &&
+        (await page.textContent(`${card} [data-act=remove][data-id="${holiday.id}"]`)) === 'remove it?');
+  await page.click(`${card} [data-act=remove][data-id="${holiday.id}"]`);
+  await page.waitForFunction(() => !/Family Holiday/.test(document.querySelector('#nodes-body .card-addon').textContent), null, { timeout: 5000 });
+  check('the second click removes it', !agent.media.some((x) => x.id === holiday.id));
+
+  // --- the ways it can't be reached ---
+  agent.mode = 'auth';
+  await page.evaluate(() => agents.forEach((a) => { a.next = 0; }));
+  await waitCard(/different DigitalOcean token/);
+  check('a node made with another token says so', true);
+  agent.mode = 'down';
+  state.droplets.find((x) => x.name === b.name).created_at = new Date(Date.now() - 10 * 60e3).toISOString();
+  await page.evaluate(() => refresh());
+  await page.evaluate(() => agents.forEach((a) => { a.next = 0; }));
+  await waitCard(/MagicDNS/);
+  check('an unreachable node explains what the browser needs', /HTTPS certificates/.test(await cardText()));
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.waitForTimeout(300);   // let the palette's transitions finish
+  await page.screenshot({ path: SHOTS + '/shot-card-unreachable-dark.png', fullPage: true });
+  await page.emulateMedia({ colorScheme: 'light' });
+  agent.mode = 'ok';
+
+  // --- deleting it says the videos go too ---
+  await page.click('#btn-delete');
+  await page.waitForSelector('#dlg-delete[open]');
+  check('deleting an add-on node warns about its videos', /videos/.test(await page.textContent('#dlg-delete')));
+  await page.click('#btn-delete-go');
+  await page.waitForFunction(() => !document.querySelector('#nodes-body .card-addon'), null, { timeout: 5000 });
+  check('the node and its card are gone', state.droplets.length === 0);
+}
 
 // --- dark mode ---
 await page.emulateMedia({ colorScheme: 'dark' });

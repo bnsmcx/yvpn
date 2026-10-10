@@ -476,6 +476,142 @@ dialog {
   & .row.ok { color: var(--ok); text-shadow: 0 0 9px var(--ok-glow); }
 }
 
+/* ================= add-ons ================= */
+
+/* The create dialog's two questions: what the node runs, then where. */
+.dlg-label {
+  font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; font-weight: 500;
+  color: var(--muted); margin: 0 0 8px;
+  & .hint { letter-spacing: .04em; text-transform: none; color: var(--dim); margin-left: 6px; }
+}
+.dlg-label + .regions { margin-bottom: 0; }
+.addons {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 9px; margin-bottom: 12px;
+}
+/* Same lit-when-picked look as a datacenter. */
+.addons label {
+  & input { position: absolute; opacity: 0; pointer-events: none; }
+  & span {
+    display: block; height: 100%; border: 1px solid var(--line); background: var(--inset);
+    padding: 10px 12px; cursor: pointer; font-size: 12px; line-height: 1.5;
+    transition: border-color .12s, background .12s;
+  }
+  & span b { display: block; font-size: 13px; }
+  & span i { display: block; font-style: normal; color: var(--dim); font-size: 11px; margin: 1px 0 4px; }
+  & span em { display: block; font-style: normal; color: var(--muted); font-size: 11px; }
+  & input:checked + span { border-color: var(--amber); background: var(--sel-bg); }
+  & input:checked + span b { color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
+  & input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: 2px; }
+}
+#exit-wrap { margin: 0 0 16px; }
+#exit-wrap:has(input:disabled) { cursor: default; color: var(--muted); }
+.region span s { display: block; text-decoration: none; color: var(--dim); font-size: 10.5px; }
+
+/* What a node runs, beside its name in the table. */
+.badge {
+  display: inline-block; margin-left: 8px; padding: 0 5px; vertical-align: 1px;
+  border: 1px solid var(--line); color: var(--amber); font-size: 9.5px; font-weight: 500;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+
+/* An add-on node's open row: how to use it first, everything else folded below. */
+.addon-detail { padding: 15px 18px 17px; display: grid; gap: 16px; }
+details.more {
+  border-top: 1px solid var(--rule); padding-top: 12px;
+  & > summary {
+    cursor: pointer; list-style: none; font-size: 9.5px; letter-spacing: .15em;
+    text-transform: uppercase; color: var(--amber);
+    &::-webkit-details-marker { display: none; }
+    &::before { content: "\25B8"; margin-right: 9px; }
+    & .muted { letter-spacing: .04em; text-transform: none; margin-left: 6px; }
+  }
+  &[open] > summary::before { content: "\25BE"; }
+  & > .node-detail { padding: 14px 0 0; }
+}
+
+.card-addon {
+  & .ca-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  & .ca-head h4 {
+    margin: 0; font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--amber); text-shadow: 0 0 9px var(--glow-c);
+  }
+  & .ca-grid {
+    display: grid; gap: 18px 28px; align-items: start;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  }
+  & .ca-col { display: grid; gap: 14px; min-width: 0; }
+  & .ca-sub {
+    font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 7px;
+  }
+  & p { margin: 0; font-size: 11.5px; line-height: 1.6; color: var(--muted); }
+  & p.err, & .err { color: var(--danger); }
+  & code { font-size: 12px; }
+  & .dl dd { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  & .dl a { overflow-wrap: anywhere; }
+}
+.ca-how {
+  margin: 0; padding-left: 18px; font-size: 11.5px; line-height: 1.6; color: var(--muted);
+  & li { margin-bottom: 4px; }
+  & b { color: var(--text); font-weight: 600; }
+}
+/* The small text buttons that sit beside a value: copy, show, remove. */
+button.mini {
+  padding: 2px 6px; font-size: 10.5px; color: var(--muted); border-color: var(--rule);
+  &:hover:not(:disabled) { color: var(--amber); }
+}
+.ca-guide {
+  border-left: 2px solid var(--warn); padding: 2px 0 2px 12px;
+  & ul { margin: 6px 0 0; padding-left: 18px; font-size: 11.5px; line-height: 1.6; color: var(--muted); }
+}
+.ca-log {
+  font-size: 10.5px; line-height: 1.5; color: var(--dim); background: var(--panel);
+  border: 1px solid var(--rule); padding: 7px 9px; max-height: 120px; overflow-y: auto;
+  white-space: pre-wrap; word-break: break-word; margin: 0;
+}
+
+.drop {
+  border: 1px dashed var(--line); background: var(--panel); padding: 18px 14px;
+  text-align: center; font-size: 12px; line-height: 1.6; transition: border-color .12s, background .12s;
+  & b { color: var(--text); }
+  & span { display: block; font-size: 11px; color: var(--dim); margin-top: 3px; }
+  &.over { border-color: var(--amber); border-style: solid; background: var(--sel-bg); }
+  &:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  &[aria-disabled="true"] { opacity: .55; }
+}
+.ca-link {
+  display: flex; gap: 8px;
+  & input { flex: 1; min-width: 0; padding: 7px 10px; font-size: 12px; }
+  & button { flex: none; }
+}
+
+.media { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.media li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; align-items: center;
+  padding: 8px 10px; background: var(--inset); font-size: 11.5px;
+}
+.media .m-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.media .m-state { grid-column: 1; color: var(--dim); font-size: 11px; }
+.media .m-state.ok { color: var(--ok); }
+.media .m-state.err { color: var(--danger); }
+.media li > button { grid-column: 2; grid-row: 1 / span 2; }
+.media .empty-media { display: block; color: var(--dim); }
+.bar {
+  grid-column: 1; height: 3px; background: var(--rule); overflow: hidden;
+  & i { display: block; height: 100%; background: var(--amber); box-shadow: 0 0 6px var(--glow-c); transition: width .25s; }
+}
+
+/* off | on, printed on the screen rather than the housing. */
+.sw {
+  display: inline-flex; border: 1px solid var(--line);
+  & button { border: 0; padding: 5px 11px; font-size: 11px; color: var(--muted); }
+  & button[aria-pressed="true"] { background: var(--amber); color: var(--amber-fg); font-weight: 700; }
+  & button:disabled { cursor: progress; }
+}
+.share-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.share-row .ca-sub { margin: 0; }
+
 /* ================= toasts + help ================= */
 
 #toasts {
@@ -531,6 +667,11 @@ code { font-family: var(--mono); color: var(--text); }
   /* One column, and lined up with the table's own phone gutter. Left to itself
      the panel's minimum width would widen the table and start it scrolling. */
   .node-detail { grid-template-columns: minmax(0, 1fr); padding: 13px 11px 15px; }
+  /* The table may be wider than a phone and scroll sideways inside its wrap;
+     the card is for reading and typing into, so it stays the width of the
+     screen and pinned to its left edge (16px margins + the bezel). */
+  .addon-detail { padding: 13px 11px 15px; position: sticky; left: 0; width: calc(100vw - 34px); }
+  .card-addon .ca-grid { grid-template-columns: minmax(0, 1fr); }
   .toolbar { flex-wrap: wrap; }
   #toasts { left: 12px; right: 12px; }
   #toasts .toast { max-width: none; }
@@ -539,6 +680,7 @@ code { font-family: var(--mono); color: var(--text); }
 /* Narrow phones: name, region, status and cost are the four that matter. */
 @media (max-width: 560px) {
   .col-mid { display: none; }
+  .badge { display: none; }      /* the open card names it */
   th, td { font-size: 11.5px; padding-left: 9px; padding-right: 9px; }
   .tablenote { padding: 0 9px; }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -563,7 +705,7 @@ code { font-family: var(--mono); color: var(--text); }
   <span class="screw"></span>
   <span class="brand">yVPN</span>
   <span class="stamp">exit node control</span>
-  <span class="stamp-dim ver" id="ver-header">v0.4.1</span>
+  <span class="stamp-dim ver" id="ver-header">v0.5.0</span>
   <span class="spacer"></span>
   <span id="who" class="stamp-dim hidden"></span>
   <button id="btn-guide" title="Getting started">guide</button>
@@ -656,11 +798,11 @@ code { font-family: var(--mono); color: var(--text); }
   <div class="stats" id="stats"></div>
 
   <div class="toolbar">
-    <h2>Exit nodes</h2>
+    <h2>Nodes</h2>
     <span class="spacer"></span>
     <button id="btn-refresh" class="ghost">Refresh</button>
     <button id="btn-delete" class="danger" disabled>Delete</button>
-    <button id="btn-new" class="primary">New exit node</button>
+    <button id="btn-new" class="primary">New node</button>
   </div>
 
   <div class="tablewrap">
@@ -675,8 +817,8 @@ code { font-family: var(--mono); color: var(--text); }
       <tbody id="nodes-body"></tbody>
     </table>
     <div class="empty hidden" id="nodes-empty">
-      <p>No exit nodes yet.</p>
-      <button class="primary" id="btn-new-empty">Create your first exit node</button>
+      <p>No nodes yet.</p>
+      <button class="primary" id="btn-new-empty">Create your first node</button>
     </div>
   </div>
 
@@ -700,7 +842,7 @@ code { font-family: var(--mono); color: var(--text); }
     <span><span class="cap">?</span><span class="stamp">help</span></span>
   </span>
   <span class="spacer"></span>
-  <span class="stamp-dim ver" id="ver-footer">v0.4.1</span>
+  <span class="stamp-dim ver" id="ver-footer">v0.5.0</span>
   <span class="display">
     <span class="stamp" id="display-label">display</span>
     <span class="sel" role="group" aria-labelledby="display-label" id="display-sel">
@@ -715,12 +857,19 @@ code { font-family: var(--mono); color: var(--text); }
 <dialog id="dlg-create">
   <form method="dialog">
     <div class="dlg-head">
-      <h2>New exit node</h2>
-      <p class="sub">Pick a datacenter. A droplet is provisioned there, joins your
-        tailnet with a single-use ephemeral key, and is enabled as an exit node. The dialog
-        closes and the node builds in the table, where you can watch it and cancel it.</p>
+      <h2>New node</h2>
+      <p class="sub">Pick what it runs and where. A droplet is provisioned there and joins your
+        tailnet with a single-use ephemeral key. The dialog closes and the node builds in the
+        table, where you can watch it and cancel it.</p>
     </div>
     <div class="dlg-body">
+      <h3 class="dlg-label">What it runs</h3>
+      <div id="addons" class="addons" role="radiogroup" aria-label="What it runs"></div>
+      <label class="check" id="exit-wrap">
+        <input type="checkbox" id="exit" checked>
+        <span>Also an exit node <span class="muted">(your devices can send their traffic through it)</span></span>
+      </label>
+      <h3 class="dlg-label">Datacenter <span class="hint" id="size-hint"></span></h3>
       <div id="regions" class="regions"></div>
     </div>
     <div class="dlg-foot">
@@ -768,7 +917,7 @@ code { font-family: var(--mono); color: var(--text); }
 
       <h3>Making a node</h3>
       <p>
-        Press <b>New exit node</b> and pick a datacenter &mdash; whichever country you want your
+        Press <b>New node</b>, leave <b>Exit node</b> picked, and choose a datacenter &mdash; whichever country you want your
         traffic to appear from. The dialog closes at once and the node appears in the table
         straight away, reporting each step as it goes &mdash; requesting a key, provisioning,
         joining tailnet. About a minute later it settles into an ordinary row: running, on your
@@ -809,7 +958,7 @@ code { font-family: var(--mono); color: var(--text); }
         <code>sudo tailscale up --exit-node=</code>.
       </p>
 
-      <h3>What "New exit node" actually does</h3>
+      <h3>What "New node" actually does</h3>
       <ol>
         <li>Issues a <b>single-use, ephemeral</b> Tailscale auth key.</li>
         <li>Provisions a droplet in the datacenter you picked, which installs Tailscale on first
@@ -820,6 +969,34 @@ code { font-family: var(--mono); color: var(--text); }
         If any step fails, the droplet and the key are deleted again, so a failed attempt leaves
         nothing behind. Because the node is ephemeral, deleting the droplet also drops the machine
         from your tailnet on its own.
+      </p>
+
+      <h3>A watch party: Jellyfin on a node</h3>
+      <p>
+        Pick <b>Jellyfin watch party</b> in <b>New node</b> and the node runs a private media server
+        as well. It needs a bigger droplet &mdash; two cores and 4 GB, usually <b>$24</b> a month, so
+        a three-hour party costs about ten cents &mdash; and the picker prices every datacenter for
+        it. Setup takes a few minutes more than an exit node; open its row to follow it.
+      </p>
+      <ol>
+        <li><b>Add a video.</b> Drop it on the node's row, or paste a link to the file. It is converted
+          once, so every phone, laptop and TV plays it without the server straining.</li>
+        <li><b>Open Jellyfin</b> from the row and sign in as <code>admin</code> with the password shown
+          there.</li>
+        <li><b>Invite the family.</b> Turn on <b>Share with guests</b> and send the invite it writes:
+          a link and a guest login that work from anywhere, no Tailscale needed.</li>
+        <li><b>Watch together.</b> Everyone opens the video; you press <b>SyncPlay</b> (the group icon
+          at the top of Jellyfin) and start a group, everyone else joins it, and play and pause stay
+          in step.</li>
+      </ol>
+      <p>
+        <b>It needs</b> this computer on your tailnet, with <b>MagicDNS</b> and <b>HTTPS
+        certificates</b> turned on (Tailscale admin console &rarr; <b>DNS</b>), since the row talks to
+        the node directly. Sharing uses Tailscale <b>Funnel</b>, which new tailnets allow for every
+        member. Your browser may ask once whether this page may reach devices on your local network:
+        allow it. Passwords are worked out from your DigitalOcean token, so they are never stored and
+        any browser signed in with that token shows the same ones. Everything on the node, videos
+        included, goes when the node is deleted.
       </p>
 
       <h3>What it costs, and cleaning up</h3>
@@ -857,13 +1034,14 @@ code { font-family: var(--mono); color: var(--text); }
 <dialog id="dlg-delete">
   <form method="dialog">
     <div class="dlg-head">
-      <h2>Delete exit node</h2>
+      <h2>Delete node</h2>
       <p class="sub" id="delete-sub"></p>
     </div>
     <div class="dlg-body">
       <div class="notice">
-        The droplet is destroyed immediately and billing stops. The matching machine stays in your
-        tailnet until Tailscale reaps it — ephemeral nodes disappear on their own.
+        The droplet is destroyed immediately and billing stops<span id="delete-addon"></span>. The
+        matching machine stays in your tailnet until Tailscale reaps it — ephemeral nodes disappear
+        on their own.
       </div>
     </div>
     <div class="dlg-foot">
@@ -876,7 +1054,7 @@ code { font-family: var(--mono); color: var(--text); }
 <div id="help" popover>
   <h3>Keyboard shortcuts</h3>
   <dl>
-    <dt>n</dt><dd>New exit node</dd>
+    <dt>n</dt><dd>New node</dd>
     <dt>d</dt><dd>Delete selected node</dd>
     <dt>r</dt><dd>Refresh</dd>
     <dt>j k / ↓ ↑</dt><dd>Move selection</dd>
@@ -908,14 +1086,11 @@ code { font-family: var(--mono); color: var(--text); }
 
 // Single source of truth for the version stamped on the console. The release
 // workflow checks this against the tag, so a tagged build can't ship stale.
-const VERSION = "0.4.1";
+const VERSION = "0.5.0";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
 // What every node boots. Not every region carries it, and it sets a floor on disk.
 const IMAGE = "ubuntu-24-04-x64";
-// The least memory a node may have. Tailscale needs far less; 512 MB is the
-// smallest droplet DigitalOcean sells.
-const MIN_MEMORY_MB = 512;
 const POLL_MS = 2000;          // a node now joins in ~60-90s; 1s (the CLI) invites Tailscale's rate limiter
 const POLL_TIMEOUT_MS = 15 * 60 * 1000;
 const CFG_KEY = "yvpn.cfg";
@@ -926,14 +1101,17 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 let cfg = null;
-let state = {
+const freshState = () => ({
   nodes: [],
-  regions: [],
+  catalogue: null,             // regions, sizes and the image, as DigitalOcean lists them
+  regions: [],                 // datacenters for the add-on picked in the create dialog
   devices: [],
   pending: [],                 // creates in flight, each one a row in the table
   selected: null,              // a row key: "n<droplet id>", or a pending's own key
   expanded: new Set(),         // row keys whose detail panel is open
-};
+  moreOpen: new Set(),         // droplet ids whose "Node details" fold is open
+});
+let state = freshState();
 
 /* ------------------------------ storage ------------------------------ */
 
@@ -1014,24 +1192,186 @@ async function fetchExitNodes() {
   return r.droplets || [];
 }
 
-// A size can run a node if it's big enough and a plain CPU droplet: GPU
-// droplets need their own images and cost dollars an hour.
-const usableSize = (s, minDisk) =>
-  s.available && s.memory >= MIN_MEMORY_MB && s.disk >= minDisk &&
+/* ------------------------------ parity ------------------------------
+   The add-on catalog, the secrets a node is given, and its cloud-init. The CLI
+   has the same in Go (apps/cli/pkg/addons); both are held to the golden files
+   in testdata/parity at the repository root, so either front end builds the
+   same node byte for byte. Change one, change the other, and regenerate with
+   `go test ./pkg/addons -update` from apps/cli. */
+
+// What a node can run. The plain exit node is the entry with no id.
+const ADDONS = [
+  {
+    "id": "",
+    "name": "Exit node",
+    "summary": "Just the VPN: route your traffic out through this datacenter.",
+    "needs": { "vcpus": 1, "memoryMB": 512, "diskGB": 0 }
+  },
+  {
+    "id": "jellyfin",
+    "name": "Jellyfin watch party",
+    "summary": "A private media server: drop in a video, then watch it in sync with family, on your tailnet or through a guest link.",
+    "needs": { "vcpus": 2, "memoryMB": 4096, "diskGB": 50 }
+  }
+];
+
+// A droplet's add-on is in its tags: "yvpn-addon:jellyfin".
+const ADDON_TAG = "yvpn-addon:";
+// The tailnet HTTPS port the node's agent answers on (Jellyfin has 443).
+const AGENT_PORT = 8443;
+
+const addonInfo = (id) => ADDONS.find((a) => a.id === id) || ADDONS[0];
+
+/* Every secret a node has is an HMAC of its droplet name keyed by the
+   DigitalOcean token: never stored, and the same in any browser (or the CLI)
+   signed in with that token. The token itself never reaches the node. */
+async function hmac(key, msg) {
+  const enc = new TextEncoder();
+  const k = await crypto.subtle.importKey("raw", enc.encode(key), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", k, enc.encode(msg)));
+}
+
+const b64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+function base32(bytes) {
+  const abc = "abcdefghijklmnopqrstuvwxyz234567";
+  let bits = 0, value = 0, out = "";
+  for (const b of bytes) {
+    value = (value << 8) | b;
+    bits += 8;
+    while (bits >= 5) { out += abc[(value >>> (bits - 5)) & 31]; bits -= 5; }
+  }
+  if (bits > 0) out += abc[(value << (5 - bits)) & 31];
+  return out;
+}
+
+// Read aloud and typed on a TV remote: syllables, no l, q, x or y, no capitals.
+const CONSONANTS = "bdfghjkmnprstvwz";
+const VOWELS = "aeiou";
+
+async function deriveSecrets(doToken, name) {
+  const mac = (purpose) => hmac(doToken, `yvpn/${purpose}/${name}`);
+  const [agent, admin, guest] = await Promise.all([mac("agent"), mac("admin"), mac("guest")]);
+  const a = base32(admin).slice(0, 20);
+  const parts = [0, 1, 2].map((i) => {
+    const b = guest.slice(4 * i, 4 * i + 4);
+    return CONSONANTS[b[0] % 16] + VOWELS[b[1] % 5] + CONSONANTS[b[2] % 16] + VOWELS[b[3] % 5];
+  });
+  const n = ((guest[12] << 8) | guest[13]) % 90 + 10;
+  return {
+    agentToken: b64url(agent),
+    adminUser: "admin",
+    adminPassword: [a.slice(0, 5), a.slice(5, 10), a.slice(10, 15), a.slice(15, 20)].join("-"),
+    guestUser: "guest",
+    guestPassword: parts.join("-") + "-" + n,
+  };
+}
+
+// The agent's /etc/yvpn/node.json, on one line, keys in this order.
+const nodeConfig = (addon, s) => JSON.stringify({
+  addon, token: s.agentToken, adminUser: s.adminUser, adminPassword: s.adminPassword,
+  guestUser: s.guestUser, guestPassword: s.guestPassword,
+});
+
+const CI_HEAD = `#cloud-config
+
+# DigitalOcean's vendor data runs a ~60 s agent install before any of this, and
+# these nodes are disposable, so it is skipped. Consequence: the image's default
+# user stays "ubuntu" rather than root, and no DO monitoring agent is installed.
+vendor_data:
+  enabled: false
+`;
+const CI_FILES_EXIT = `  - path: /etc/sysctl.d/99-tailscale.conf
+    content: |
+      net.ipv4.ip_forward = 1
+      net.ipv6.conf.all.forwarding = 1
+`;
+const CI_FILES_NODE = `  - path: /etc/yvpn/node.json
+    permissions: '0600'
+    content: |
+      {{NODE_CONFIG}}
+`;
+const CI_RUN_EXIT = `  - sysctl --system
+`;
+const CI_RUN_TAILSCALE = `  # The static tarball, rather than install.sh: no apt repo, no apt-get update,
+  # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches every
+  # non-GPU droplet size. No package_update/package_upgrade either -- an apt
+  # upgrade on first boot cost ~145 s and these nodes live for hours.
+  - mkdir -p /tmp/tailscale
+  - curl -fsSL https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz | tar xz -C /tmp/tailscale --strip-components=1
+  - install -m 0755 /tmp/tailscale/tailscale /usr/bin/tailscale
+  - install -m 0755 /tmp/tailscale/tailscaled /usr/sbin/tailscaled
+  - install -m 0644 /tmp/tailscale/systemd/tailscaled.service /etc/systemd/system/tailscaled.service
+  - install -m 0644 /tmp/tailscale/systemd/tailscaled.defaults /etc/default/tailscaled
+  - systemctl enable --now tailscaled
+`;
+const CI_UP_EXIT = `  # Tailscale installs its own netfilter rules for an exit node, so the manual
+  # iptables FORWARD/MASQUERADE rules that used to be here are not needed.
+  - tailscale up --authkey {{AUTH_KEY}} --advertise-exit-node
+`;
+const CI_UP_PLAIN = `  - tailscale up --authkey {{AUTH_KEY}}
+`;
+const CI_RUN_NODE = `  # The add-on's agent, from the yVPN release this front end belongs to. It
+  # installs the add-on and serves the dashboard's controls on the tailnet only.
+  - curl -fsSL -o /usr/local/bin/yvpn-node https://github.com/bnsmcx/yvpn/releases/download/v{{VERSION}}/yvpn-node-linux-amd64
+  - chmod 0755 /usr/local/bin/yvpn-node
+  - /usr/local/bin/yvpn-node bootstrap
+`;
+const CI_TAIL_EXIT = `final_message: "yVPN exit node ready."
+`;
+const CI_TAIL_NODE = `final_message: "yVPN node ready; its add-on is installing."
+`;
+
+// p: { authKey, exit, addon, nodeConfig, version }. Placeholders are filled by
+// plain replacement, as in Go, so the fragments hold no `${…}`.
+function cloudInit(p) {
+  const fill = (frag, key, val) => frag.split(`{{${key}}}`).join(val);
+  let files = "";
+  if (p.exit) files += CI_FILES_EXIT;
+  if (p.addon) files += fill(CI_FILES_NODE, "NODE_CONFIG", p.nodeConfig);
+
+  let out = CI_HEAD;
+  if (files) out += "\nwrite_files:\n" + files;
+  out += "\nruncmd:\n";
+  if (p.exit) out += CI_RUN_EXIT;
+  out += CI_RUN_TAILSCALE;
+  out += fill(p.exit ? CI_UP_EXIT : CI_UP_PLAIN, "AUTH_KEY", p.authKey);
+  if (p.addon) out += fill(CI_RUN_NODE, "VERSION", p.version) + "\n" + CI_TAIL_NODE;
+  else out += "\n" + CI_TAIL_EXIT;
+  return out;
+}
+
+/* ---------------------------- end of parity ---------------------------- */
+
+// A size can run a node if it's big enough for what the node runs (and for the
+// image), and a plain CPU droplet: GPU droplets need their own images and cost
+// dollars an hour.
+const usableSize = (s, minDisk, needs) =>
+  s.available && s.memory >= needs.memoryMB && (s.vcpus ?? 1) >= needs.vcpus &&
+  s.disk >= Math.max(minDisk, needs.diskGB) &&
   !s.slug.startsWith("gpu-") && !/gpu/i.test(s.description || "");
 
-// Every region a node can be created in, each with the cheapest usable size it
-// offers. Regions without one (no usable size, or no Ubuntu image) are left
-// out rather than failing at create time. Same rules as the CLI.
-async function fetchDatacenters() {
+// The raw catalogue is fetched once per sign-in; which region sells what is
+// then worked out in the page, again for each add-on picked.
+async function fetchCatalogue() {
   const [r, s, i] = await Promise.all([
     doFetch("/regions?per_page=200"),
     doFetch("/sizes?per_page=200"),
     doFetch("/images/" + IMAGE),
   ]);
-  const img = i.image || {};
-  const sizes = (s.sizes || []).filter((x) => usableSize(x, img.min_disk_size || 0));
-  return (r.regions || [])
+  return { regions: r.regions || [], sizes: s.sizes || [], image: i.image || {} };
+}
+
+// Every region a node running `addon` can be created in, each with the
+// cheapest size it sells that is big enough. Regions without one (no such
+// size, or no Ubuntu image) are left out rather than failing at create time.
+// Same rules as the CLI.
+function datacentersFor(cat, addon) {
+  if (!cat) return [];
+  const needs = addonInfo(addon).needs;
+  const img = cat.image;
+  const sizes = cat.sizes.filter((x) => usableSize(x, img.min_disk_size || 0, needs));
+  return cat.regions
     .filter((x) => x.available && (img.regions || []).includes(x.slug))
     .map((x) => {
       const best = sizes
@@ -1043,45 +1383,18 @@ async function fetchDatacenters() {
     .sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
-function cloudInit(authKey) {
-  // Byte-for-byte the script the CLI writes, so both front ends make identical nodes.
-  return `#cloud-config
+// The name is fixed before the droplet exists: the node's secrets derive from it.
+const nodeName = (dc) => `${dc}-yvpn-${Math.floor(Date.now() / 1000)}`;
 
-# DigitalOcean's vendor data runs a ~60 s agent install before any of this, and
-# these nodes are disposable, so it is skipped. Consequence: the image's default
-# user stays "ubuntu" rather than root, and no DO monitoring agent is installed.
-vendor_data:
-  enabled: false
-
-write_files:
-  - path: /etc/sysctl.d/99-tailscale.conf
-    content: |
-      net.ipv4.ip_forward = 1
-      net.ipv6.conf.all.forwarding = 1
-
-runcmd:
-  - sysctl --system
-  # The static tarball, rather than install.sh: no apt repo, no apt-get update,
-  # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches every
-  # non-GPU droplet size. No package_update/package_upgrade either -- an apt
-  # upgrade on first boot cost ~145 s and these nodes live for hours.
-  - mkdir -p /tmp/tailscale
-  - curl -fsSL https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz | tar xz -C /tmp/tailscale --strip-components=1
-  - install -m 0755 /tmp/tailscale/tailscale /usr/bin/tailscale
-  - install -m 0755 /tmp/tailscale/tailscaled /usr/sbin/tailscaled
-  - install -m 0644 /tmp/tailscale/systemd/tailscaled.service /etc/systemd/system/tailscaled.service
-  - install -m 0644 /tmp/tailscale/systemd/tailscaled.defaults /etc/default/tailscaled
-  - systemctl enable --now tailscaled
-  # Tailscale installs its own netfilter rules for an exit node, so the manual
-  # iptables FORWARD/MASQUERADE rules that used to be here are not needed.
-  - tailscale up --authkey ${authKey} --advertise-exit-node
-
-final_message: "yVPN exit node ready."
-`;
-}
-
-async function createDroplet(authKey, dc, signal) {
-  const name = `${dc.slug}-yvpn-${Math.floor(Date.now() / 1000)}`;
+// opts: { addon, exit }.
+async function createDroplet(authKey, dc, opts, signal) {
+  const name = nodeName(dc.slug);
+  const tags = [TAG];
+  const p = { authKey, exit: opts.exit, addon: opts.addon, version: VERSION };
+  if (opts.addon) {
+    p.nodeConfig = nodeConfig(opts.addon, await secretsFor(name));
+    tags.push(ADDON_TAG + opts.addon);
+  }
   const r = await doFetch("/droplets", {
     method: "POST",
     signal,
@@ -1090,8 +1403,8 @@ async function createDroplet(authKey, dc, signal) {
       region: dc.slug,
       size: dc.size,
       image: IMAGE,
-      tags: [TAG],
-      user_data: cloudInit(authKey),
+      tags,
+      user_data: cloudInit(p),
     }),
   });
   return { name, id: r.droplet.id };
@@ -1135,8 +1448,8 @@ const setRoutes = (deviceId, routes, signal) =>
     method: "POST", signal, body: JSON.stringify({ routes }),
   });
 
-/** Wait for the droplet to appear on the tailnet, then approve its advertised routes. */
-async function enableExit(name, signal, onTick) {
+/** Wait for the droplet to appear on the tailnet, then (for an exit node) approve its advertised routes. */
+async function enableExit(name, signal, onTick, exit = true) {
   const started = Date.now();
   const deadline = started + POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
@@ -1144,14 +1457,16 @@ async function enableExit(name, signal, onTick) {
     const devices = await getDevices(signal);
     const match = devices.find((d) => (d.name || "").includes(name) || (d.hostname || "").includes(name));
     if (match) {
-      const routes = await getRoutes(match.id, signal);
-      await setRoutes(match.id, routes.advertisedRoutes || [], signal);
+      if (exit) {
+        const routes = await getRoutes(match.id, signal);
+        await setRoutes(match.id, routes.advertisedRoutes || [], signal);
+      }
       return match;
     }
     if (onTick) onTick(Math.round((Date.now() - started) / 1000));
     await sleep(POLL_MS, signal);
   }
-  throw new Error("Exit node did not appear on the tailnet within " + (POLL_TIMEOUT_MS / 60000) + " minutes.");
+  throw new Error("The node did not appear on the tailnet within " + (POLL_TIMEOUT_MS / 60000) + " minutes.");
 }
 
 function sleep(ms, signal) {
@@ -1263,7 +1578,7 @@ function renderStats() {
     aria-label="Per ${rateUnit === "hr" ? "hour" : "month"}; show per ${other}">/${rateUnit}</button>`;
 
   const cards = [
-    { k: "Exit nodes", v: String(total) + (building.length ? `<small> ${building.length} building</small>` : "") },
+    { k: "Nodes", v: String(total) + (building.length ? `<small> ${building.length} building</small>` : "") },
     { k: "On tailnet", v: `${online}<small> / ${live}</small>` },
     { k: "Current rate", v: rate + unit,
       sub: live ? `if ${live === 1 ? "this node keeps" : `these ${live} nodes keep`} running` : "nothing running" },
@@ -1295,6 +1610,8 @@ function statusPill(d) {
   const dev = d._device;
   if (!dev) return `<span class="pill warn">joining tailnet</span>`;
   if (!isOnline(dev)) return `<span class="pill bad">offline</span>`;
+  // A node that never offered exit routes isn't failing to be an exit node.
+  if (!d._advertisesExit && d._routes && addonOf(d)) return `<span class="pill ok">online</span>`;
   if (d._exit === false) return `<span class="pill warn">route not approved</span>`;
   return `<span class="pill ok">exit node</span>`;
 }
@@ -1339,9 +1656,12 @@ function pendingPill(p) {
 
 const DASH = "—";
 
+const addonOf = (d) => (d.tags || []).find((t) => t.startsWith(ADDON_TAG))?.slice(ADDON_TAG.length) || "";
+const badge = (addon) => (addon ? `<span class="badge">${esc(addon)}</span>` : "");
+
 function nodeCells(d, p) {
   return [
-    `<td class="name"><span class="chev">\u25B8</span>${esc(d.name)}</td>`,
+    `<td class="name"><span class="chev">\u25B8</span>${esc(d.name)}${badge(addonOf(d))}</td>`,
     `<td class="dim">${esc(d.region?.slug || DASH)}</td>`,
     `<td class="dim col-wide">${esc(publicIP(d))}</td>`,
     `<td class="dim col-mid">${esc(d._device?.addresses?.[0] || DASH)}</td>`,
@@ -1357,7 +1677,7 @@ function nodeCells(d, p) {
 // size it sells and what the create is doing; the rest is held open with dashes.
 function buildingCells(p) {
   return [
-    `<td class="name"><span class="chev">\u25B8</span>${esc(p.name || "new exit node")}</td>`,
+    `<td class="name"><span class="chev">\u25B8</span>${esc(p.name || "new node")}${badge(p.addon)}</td>`,
     `<td class="dim">${esc(p.datacenter)}</td>`,
     `<td class="dim col-wide">${DASH}</td>`,
     `<td class="dim col-mid">${DASH}</td>`,
@@ -1395,7 +1715,15 @@ function renderNodes() {
   } else {
     table.classList.remove("hidden");
     empty.classList.add("hidden");
+    // Access cards outlive this repaint (see mountCards); so must the focus in one.
+    const focus = document.activeElement?.closest?.(".card-addon") ? document.activeElement : null;
+    const sel = focus && "selectionStart" in focus ? [focus.selectionStart, focus.selectionEnd] : null;
     body.innerHTML = rows.map(renderRow).join("");
+    mountCards();
+    if (focus?.isConnected) {
+      focus.focus({ preventScroll: true });
+      if (sel) try { focus.setSelectionRange(...sel); } catch {}
+    }
   }
 
   const sel = selectedRow();
@@ -1419,6 +1747,15 @@ function dgroup(title, pairs) {
 }
 
 function renderDetail(r) {
+  // A finished node with an add-on opens on how to use it; what the two APIs
+  // say about the droplet is still there, folded underneath.
+  if (r.droplet && !r.pending && addonOf(r.droplet)) {
+    const id = r.droplet.id;
+    return `<div class="addon-detail"><div data-card="${id}"></div>` +
+      `<details class="more" data-more="${id}" ${state.moreOpen.has(id) ? "open" : ""}>` +
+      `<summary>Node details <span class="muted">droplet, tailnet, routing, billing</span></summary>` +
+      `<div class="node-detail">${detailGroups(r.droplet).join("")}</div></details></div>`;
+  }
   const parts = [];
   if (r.pending) parts.push(buildPanel(r.pending));
   if (r.droplet) parts.push(...detailGroups(r.droplet));
@@ -1538,6 +1875,635 @@ function detailGroups(d) {
   return out;
 }
 
+/* ----------------------------- add-on nodes -----------------------------
+   A node with an add-on runs a small agent (apps/node) that the open row talks
+   to directly, browser to node, over the tailnet: at
+   https://<node>.<tailnet>.ts.net:8443, with the bearer token derived for that
+   node. Nothing goes through this site's relay, and the DigitalOcean token
+   never leaves the page.
+
+   The row's card is a live thing -- an upload's progress, a link half typed, a
+   button with focus -- and the table repaints itself every few seconds while
+   anything builds. So each card is one DOM element per node, built once and
+   moved into each fresh table rather than rebuilt with it. */
+
+const secretCache = new Map();
+const secretsFor = (name) => {
+  if (!secretCache.has(name)) secretCache.set(name, deriveSecrets(cfg.doToken, name));
+  return secretCache.get(name);
+};
+
+const nodeById = (id) => state.nodes.find((n) => n.id === id);
+// The MagicDNS name: what the node's certificate and URLs are for.
+const nodeHost = (d) => (d?._device?.name || "").replace(/\.$/, "");
+const agentBase = (d) => `https://${nodeHost(d)}:${AGENT_PORT}`;
+const jellyfinURL = (d) => `https://${nodeHost(d)}/`;
+
+const agents = new Map();      // droplet id -> what the page knows about its agent
+const cards = new Map();       // droplet id -> its card element
+
+function agentFor(id) {
+  if (!agents.has(id)) {
+    agents.set(id, {
+      status: null, err: null, errMsg: "", next: 0, polling: false,
+      uploads: [], pumping: false, secrets: null, reveal: false,
+      shareWant: null, confirm: null,
+    });
+  }
+  return agents.get(id);
+}
+
+function forgetAgent(id) {
+  const a = agents.get(id);
+  if (a) for (const u of a.uploads) { u.cancelled = true; u.xhr?.abort(); }
+  agents.delete(id);
+  cards.delete(id);
+}
+
+const UPLOAD_CHUNK = 16 << 20;
+const TRANSIENT = ["uploading", "downloading", "queued", "preparing"];
+
+async function agentCall(d, path, opts = {}, timeoutMs = 20000) {
+  const s = await secretsFor(d.name);
+  let res;
+  try {
+    res = await fetch(agentBase(d) + path, {
+      ...opts,
+      signal: opts.signal || AbortSignal.timeout(timeoutMs),
+      headers: { "Authorization": "Bearer " + s.agentToken, "Content-Type": "application/json", ...(opts.headers || {}) },
+    });
+  } catch (e) {
+    throw new ApiError(`This browser can't reach ${nodeHost(d)}.`, 0);
+  }
+  const text = await res.text();
+  let body = null;
+  try { body = text ? JSON.parse(text) : null; } catch {}
+  if (!res.ok) {
+    const err = new ApiError(body?.message || text.slice(0, 300) || res.statusText, res.status);
+    err.body = body;
+    throw err;
+  }
+  return body;
+}
+
+const agentBusy = (a) =>
+  !a.status || a.status.phase !== "ready" || a.status.share?.busy || a.uploads.length > 0 ||
+  (a.status.media || []).some((m) => TRANSIENT.includes(m.state) && m.state !== "uploading");
+
+async function pollAgent(d) {
+  const a = agentFor(d.id);
+  if (a.polling) return;
+  a.polling = true;
+  try {
+    a.status = await agentCall(d, "/v1/status");
+    a.err = null;
+  } catch (e) {
+    a.err = e.status === 401 ? "auth" : e.status === 0 ? "unreachable" : "error";
+    a.errMsg = e.message;
+  } finally {
+    a.polling = false;
+    a.next = Date.now() + (a.err ? 5000 : agentBusy(a) ? 2000 : 8000);
+    paintCard(d.id);
+  }
+}
+
+// One timer for every agent: an open row is kept fresh, quickly while
+// something is moving and lazily once it isn't; so is a closed one that is
+// still uploading, so its card is right the moment it opens.
+function agentTick() {
+  if (!cfg) return;
+  const now = Date.now();
+  for (const d of state.nodes) {
+    if (!addonOf(d) || !nodeHost(d)) continue;
+    const a = agentFor(d.id);
+    const open = state.expanded.has("n" + d.id);
+    if ((open || a.uploads.length) && now >= a.next) pollAgent(d);
+  }
+}
+setInterval(agentTick, 1000);
+
+/* ------------------------------- the card ------------------------------- */
+
+function mountCards() {
+  for (const ph of $$("#nodes-body [data-card]")) {
+    const id = Number(ph.dataset.card);
+    const d = nodeById(id);
+    if (!d) continue;
+    let el = cards.get(id);
+    if (!el) { el = buildCard(d); cards.set(id, el); }
+    ph.replaceWith(el);
+    paintCard(id);
+    // Opening a row asks at once rather than on the next tick.
+    const a = agentFor(id);
+    if (!a.status && !a.polling && nodeHost(d) && Date.now() >= a.next) pollAgent(d);
+  }
+  for (const id of [...cards.keys()]) if (!nodeById(id)) forgetAgent(id);
+}
+
+function buildCard(d) {
+  const id = d.id;
+  const info = addonInfo(addonOf(d));
+  const el = document.createElement("section");
+  el.className = "card-addon";
+  el.dataset.id = id;
+  el.innerHTML = `
+    <div class="ca-head"><h4>${esc(info.name)}</h4><span data-part="state"></span></div>
+    <div class="ca-grid">
+      <div class="ca-col">
+        <div data-part="access"></div>
+        <div data-part="share"></div>
+        <div>
+          <h5 class="ca-sub">How the watch party works</h5>
+          <ol class="ca-how">
+            <li><b>Add a video</b> here. It is converted once, so every phone, laptop and TV plays it
+              without the server straining.</li>
+            <li><b>Open Jellyfin</b> and sign in as <b>admin</b>.</li>
+            <li><b>Share with guests</b>, then copy the invite to the family.</li>
+            <li>Everyone opens the video. You press <b>SyncPlay</b> (the group icon at the top) and
+              start a group; the others join it, and play and pause stay in step.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="ca-col">
+        <div>
+          <h5 class="ca-sub">Videos</h5>
+          <div class="drop" data-part="drop" tabindex="0" role="button"
+               aria-label="Add a video: drop a file here, or press Enter to choose one">
+            <b>Drop a video here</b> or <button type="button" class="linkish" data-act="choose">choose a file</button>
+            <span data-part="drop-note"></span>
+            <input type="file" accept="video/*,.mkv,.avi,.mov,.m4v,.webm,.ts,.wmv,.flv" multiple hidden>
+          </div>
+        </div>
+        <form class="ca-link" data-part="link">
+          <input type="url" placeholder="…or paste a link to a video file" aria-label="Link to a video file" required>
+          <button class="ghost" type="submit">Fetch</button>
+        </form>
+        <div data-part="media"></div>
+        <p data-part="disk"></p>
+      </div>
+    </div>`;
+
+  secretsFor(d.name).then((s) => { agentFor(id).secrets = s; paintCard(id); });
+
+  const drop = el.querySelector(".drop");
+  const input = drop.querySelector("input[type=file]");
+  const take = (files) => {
+    if (!agentReady(id)) { toast("Videos can be added once Jellyfin is ready.", "err"); return; }
+    addFiles(id, [...files]);
+  };
+  drop.addEventListener("dragenter", (e) => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", (e) => { if (!drop.contains(e.relatedTarget)) drop.classList.remove("over"); });
+  drop.addEventListener("drop", (e) => {
+    e.preventDefault();
+    drop.classList.remove("over");
+    if (e.dataTransfer?.files?.length) take(e.dataTransfer.files);
+  });
+  drop.addEventListener("keydown", (e) => {
+    if (e.target !== drop || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    e.stopPropagation();          // not also "open the row" in the table's keymap
+    input.click();
+  });
+  input.addEventListener("change", () => { if (input.files.length) take(input.files); input.value = ""; });
+  // Anywhere on the zone opens the picker; the input's own click bubbles here
+  // too, and must not open it again.
+  drop.addEventListener("click", (e) => {
+    if (e.target === input || e.target.closest("[data-act]")) return;
+    input.click();
+  });
+
+  el.querySelector("[data-part=link]").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const field = e.target.querySelector("input");
+    if (!agentReady(id)) { toast("Links can be fetched once Jellyfin is ready.", "err"); return; }
+    fetchLink(id, field.value.trim()).then((ok) => { if (ok) field.value = ""; });
+  });
+
+  el.addEventListener("click", (e) => {
+    const copy = e.target.closest("[data-copy]");
+    if (copy) { copyText(cardText(id, copy.dataset.copy)); return; }
+    const btn = e.target.closest("[data-act]");
+    if (!btn) return;
+    const a = agentFor(id);
+    switch (btn.dataset.act) {
+      case "choose": input.click(); break;
+      case "reveal": a.reveal = !a.reveal; paintCard(id); break;
+      case "share": setShare(id, btn.dataset.on === "1"); break;
+      case "invite": copyText(cardText(id, "invite")); break;
+      case "retry": retrySetup(id); break;
+      case "cancel-upload": cancelUpload(id, Number(btn.dataset.lid)); break;
+      case "remove": removeMedia(id, btn.dataset.id); break;
+    }
+  });
+  return el;
+}
+
+const agentReady = (id) => {
+  const a = agents.get(id);
+  return !!(a && !a.err && a.status?.phase === "ready");
+};
+
+// Painting is cheap but upload progress fires constantly: once a frame is plenty.
+const paintQueued = new Set();
+function schedulePaint(id) {
+  if (paintQueued.has(id)) return;
+  paintQueued.add(id);
+  requestAnimationFrame(() => { paintQueued.delete(id); paintCard(id); });
+}
+
+function paintCard(id) {
+  const el = cards.get(id);
+  const d = nodeById(id);
+  if (!el || !d) return;
+  const a = agentFor(id);
+  const part = (name) => el.querySelector(`[data-part="${name}"]`);
+  part("state").innerHTML = statePill(d, a);
+  part("access").innerHTML = accessPart(d, a);
+  part("share").innerHTML = sharePart(d, a);
+  part("media").innerHTML = mediaPart(a);
+  const ready = agentReady(id);
+  part("drop").setAttribute("aria-disabled", String(!ready));
+  part("drop-note").textContent = ready
+    ? "Any common format. It is converted to play on every device."
+    : "Videos can be added once Jellyfin is ready.";
+  const disk = a.status?.disk;
+  part("disk").innerHTML = (disk?.total ? `${fmtBytes(disk.free)} free on the node. ` : "") +
+    "Everything here is deleted with the node.";
+}
+
+function statePill(d, a) {
+  if (!nodeHost(d) || !isOnline(d._device)) return `<span class="pill warn">waiting for the node</span>`;
+  if (a.err === "unreachable") return `<span class="pill bad">can't reach it</span>`;
+  if (a.err) return `<span class="pill bad">${a.err === "auth" ? "wrong token" : "error"}</span>`;
+  const st = a.status;
+  if (!st) return `<span class="pill busy">connecting</span>`;
+  if (st.phase === "failed") return `<span class="pill bad">setup failed</span>`;
+  if (st.phase !== "ready") return `<span class="pill busy">installing</span>`;
+  return `<span class="pill ok">ready${st.share?.enabled ? " · shared with guests" : ""}</span>`;
+}
+
+const ageSecs = (d) => (Date.now() - new Date(d.created_at).getTime()) / 1000;
+
+function accessPart(d, a) {
+  const host = nodeHost(d);
+  if (!host || !isOnline(d._device)) {
+    return `<p>The node is still joining your tailnet. Jellyfin installs once it has, which takes a
+      few minutes; this fills in by itself.</p>`;
+  }
+  if (a.err === "unreachable") {
+    // The agent opens its port a minute or so after the node joins.
+    if (ageSecs(d) < 240) return `<p>Starting up: the node's controls open a minute or two after it joins.</p>`;
+    return `<div class="ca-guide"><p><b>This browser can't reach <code>${esc(host)}</code>.</b> These
+      controls talk to the node directly, over your tailnet, so:</p><ul>
+      <li>Tailscale must be running on this computer, signed in to the same tailnet.</li>
+      <li><b>MagicDNS</b> and <b>HTTPS certificates</b> must be on, in the
+        <a href="https://login.tailscale.com/admin/dns" target="_blank" rel="noreferrer">Tailscale admin
+        console &rarr; DNS</a>. The node notices within a minute of turning them on.</li>
+      <li>If the browser asked whether this page may reach devices on your local network, allow it.</li>
+      <li>Failing all that, the node may not have its agent: it downloads it at boot from this
+        version's release, <a href="https://github.com/bnsmcx/yvpn/releases/tag/v${esc(VERSION)}"
+        target="_blank" rel="noreferrer">v${esc(VERSION)}</a>, so check that release exists.</li>
+      </ul></div>`;
+  }
+  if (a.err === "auth") {
+    return `<p class="err">This node was set up with a different DigitalOcean token from the one
+      you signed in with, so its passwords can't be worked out here. Sign in with that token to
+      use it.</p>`;
+  }
+  if (a.err) return `<p class="err">${esc(a.errMsg)}</p>`;
+  const st = a.status;
+  if (!st) return `<p>Connecting to the node…</p>`;
+  if (st.phase === "failed") {
+    return `<p class="err">Setup failed: ${esc(st.error)}</p>` +
+      `<pre class="ca-log">${esc((st.log || []).slice(-12).join("\n"))}</pre>` +
+      `<p><button class="ghost" data-act="retry">Try again</button></p>`;
+  }
+  if (st.phase !== "ready") {
+    return `<p>Installing &mdash; <b>${esc(st.step)}</b> &middot; ${fmtDuration(ageSecs(d))} since the
+      node was created. It is usually ready within five minutes.</p>`;
+  }
+  const s = a.secrets;
+  const url = jellyfinURL(d);
+  return `<h5 class="ca-sub">Open</h5><dl class="dl">
+    <dt>Jellyfin</dt><dd><a href="${esc(url)}" target="_blank" rel="noreferrer">${esc(host)}</a>
+      <button class="mini" data-copy="url">copy</button></dd>
+    <dt>User</dt><dd><code>${esc(s?.adminUser || "admin")}</code></dd>
+    <dt>Password</dt><dd><code>${s ? esc(a.reveal ? s.adminPassword : "•".repeat(14)) : DASH}</code>
+      <button class="mini" data-act="reveal">${a.reveal ? "hide" : "show"}</button>
+      <button class="mini" data-copy="admin">copy</button></dd>
+  </dl>`;
+}
+
+function sharePart(d, a) {
+  const st = a.status;
+  if (a.err || st?.phase !== "ready") return "";
+  const on = !!st.share?.enabled;
+  const busy = !!st.share?.busy || a.shareWant != null;
+  const s = a.secrets;
+  const head = `<div class="share-row"><h5 class="ca-sub">Share with guests</h5>
+    <span class="sw" role="group" aria-label="Share with guests">
+      <button type="button" data-act="share" data-on="0" aria-pressed="${!on}" ${busy ? "disabled" : ""}>off</button>
+      <button type="button" data-act="share" data-on="1" aria-pressed="${on}" ${busy ? "disabled" : ""}>on</button>
+    </span>${busy ? `<span class="muted small">${a.shareWant ?? !on ? "opening" : "closing"}…</span>` : ""}</div>`;
+  const err = st.share?.error ? `<p class="err">${linkTailscale(st.share.error)}</p>` : "";
+  if (!on) {
+    return head + err + `<p>Only your tailnet can open Jellyfin now. Turn this on for a link and a
+      guest login that work from anywhere: Jellyfin goes on the internet through Tailscale Funnel,
+      behind that login. Uploads and these controls stay private.</p>`;
+  }
+  return head + err + `<dl class="dl">
+    <dt>Guest link</dt><dd><a href="${esc(jellyfinURL(d))}" target="_blank" rel="noreferrer">${esc(jellyfinURL(d))}</a></dd>
+    <dt>User</dt><dd><code>${esc(s?.guestUser || "guest")}</code></dd>
+    <dt>Password</dt><dd><code>${esc(s?.guestPassword || DASH)}</code>
+      <button class="mini" data-copy="guest">copy</button></dd>
+  </dl>
+  <p style="margin-top:8px"><button class="ghost" data-act="invite">Copy invite</button>
+    &nbsp;a message with the link, the login and how to join the party.</p>`;
+}
+
+// Tailscale's "allow it here" links, in an agent's message, become links.
+const linkTailscale = (msg) => esc(msg).replace(/https:\/\/login\.tailscale\.com\/[^\s"'<&]+/g,
+  (u) => `<a href="${u}" target="_blank" rel="noreferrer">${u}</a>`);
+
+function mediaPart(a) {
+  const server = a.status?.media || [];
+  const mine = new Set(a.uploads.map((u) => u.serverId).filter(Boolean));
+  const rows = [
+    ...a.uploads.map(localRow),
+    ...server.filter((m) => !mine.has(m.id)).map((m) => serverRow(m, a)),
+  ];
+  if (!rows.length) return `<p class="muted">No videos yet.</p>`;
+  return `<ul class="media">${rows.join("")}</ul>`;
+}
+
+const bar = (f) => `<span class="bar"><i style="width:${Math.round(Math.max(0, Math.min(1, f)) * 100)}%"></i></span>`;
+const pct = (f) => Math.floor(Math.max(0, Math.min(1, f)) * 100) + "%";
+
+function localRow(u) {
+  let st, cls = "", progress = null;
+  switch (u.state) {
+    case "waiting": st = "Waiting to upload"; break;
+    case "uploading":
+      st = `Uploading ${pct(u.sent / u.size)} · ${fmtBytes(u.sent)} of ${fmtBytes(u.size)}`;
+      progress = u.sent / u.size; break;
+    case "retrying":
+      st = `Connection lost at ${pct(u.sent / u.size)}; retrying…`;
+      progress = u.sent / u.size; break;
+    default: st = "Upload failed: " + u.error; cls = "err";
+  }
+  return `<li><span class="m-name" title="${esc(u.name)}">${esc(u.name)}</span>` +
+    `<button class="mini" data-act="cancel-upload" data-lid="${u.lid}">${u.state === "failed" ? "dismiss" : "cancel"}</button>` +
+    `<span class="m-state ${cls}">${esc(st)}</span>${progress == null ? "" : bar(progress)}</li>`;
+}
+
+function serverRow(m, a) {
+  let st, cls = "", progress = null;
+  switch (m.state) {
+    case "uploading":
+      st = `Upload paused at ${pct(m.received / m.size)}. Drop the same file again to carry on.`;
+      progress = m.received / m.size; break;
+    case "downloading":
+      st = m.size ? `Downloading ${pct(m.progress)} · ${fmtBytes(m.received)} of ${fmtBytes(m.size)}`
+                  : `Downloading · ${fmtBytes(m.received)}`;
+      progress = m.size ? m.progress : null; break;
+    case "queued": st = "Waiting its turn to be converted"; break;
+    case "preparing": st = `Converting so every device can play it · ${pct(m.progress)}`; progress = m.progress; break;
+    case "ready": st = "Ready to watch" + (m.file && m.file !== m.name ? ` as “${m.file}”` : ""); cls = "ok"; break;
+    default: st = m.error || "Failed"; cls = "err";
+  }
+  const confirming = a.confirm === m.id;
+  return `<li><span class="m-name" title="${esc(m.name)}">${esc(m.name)}</span>` +
+    `<button class="mini" data-act="remove" data-id="${esc(m.id)}">${confirming ? "remove it?" : "remove"}</button>` +
+    `<span class="m-state ${cls}">${esc(st)}</span>${progress == null ? "" : bar(progress)}</li>`;
+}
+
+function fmtBytes(n) {
+  if (!n) return "0 B";
+  const u = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.min(u.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
+  return (n / 1024 ** i).toFixed(i >= 3 ? 1 : 0) + " " + u[i];
+}
+
+/* ------------------------------- actions -------------------------------- */
+
+function cardText(id, what) {
+  const d = nodeById(id);
+  const s = agentFor(id).secrets || {};
+  const url = jellyfinURL(d);
+  switch (what) {
+    case "url": return url;
+    case "admin": return s.adminPassword;
+    case "guest": return s.guestPassword;
+    case "invite": return `You're invited to a watch party!
+
+1. Open ${url}
+2. Sign in as "${s.guestUser}" with the password ${s.guestPassword}
+3. Open the video, then press the SyncPlay button (the group icon at the top) and join the group, so we all play and pause together.
+
+The link works for as long as the party's on.`;
+  }
+  return "";
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("Copied.", "ok");
+  } catch {
+    toast("Couldn't copy here; select it by hand.", "err");
+  }
+}
+
+async function setShare(id, enabled) {
+  const d = nodeById(id);
+  const a = agentFor(id);
+  if (!d || a.shareWant != null) return;
+  a.shareWant = enabled;
+  paintCard(id);
+  try {
+    a.status = await agentCall(d, "/v1/share", { method: "POST", body: JSON.stringify({ enabled }) }, 120000);
+    toast(enabled ? "Shared: the guest link works from anywhere now." : "Sharing off: Jellyfin is back on your tailnet only.", "ok");
+  } catch (e) {
+    if (e.body?.status) a.status = e.body.status;
+    toast((enabled ? "Couldn't share: " : "Couldn't stop sharing: ") + e.message, "err");
+  } finally {
+    a.shareWant = null;
+    paintCard(id);
+  }
+}
+
+async function retrySetup(id) {
+  const d = nodeById(id);
+  try {
+    await agentCall(d, "/v1/retry", { method: "POST" });
+    agentFor(id).next = 0;
+  } catch (e) {
+    toast("Couldn't retry: " + e.message, "err");
+  }
+}
+
+async function fetchLink(id, url) {
+  const d = nodeById(id);
+  try {
+    await agentCall(d, "/v1/fetch", { method: "POST", body: JSON.stringify({ url }) });
+    agentFor(id).next = 0;
+    return true;
+  } catch (e) {
+    toast("Couldn't fetch that link: " + e.message, "err");
+    return false;
+  }
+}
+
+// Removing a finished video takes a second click, since getting it back means
+// uploading it again; anything else goes at once.
+async function removeMedia(id, mediaId) {
+  const d = nodeById(id);
+  const a = agentFor(id);
+  const m = (a.status?.media || []).find((x) => x.id === mediaId);
+  if (m?.state === "ready" && a.confirm !== mediaId) {
+    a.confirm = mediaId;
+    paintCard(id);
+    setTimeout(() => { if (a.confirm === mediaId) { a.confirm = null; paintCard(id); } }, 4000);
+    return;
+  }
+  a.confirm = null;
+  try {
+    await agentCall(d, "/v1/media/" + encodeURIComponent(mediaId), { method: "DELETE" });
+    if (a.status) a.status.media = a.status.media.filter((x) => x.id !== mediaId);
+    paintCard(id);
+    a.next = 0;
+  } catch (e) {
+    toast("Couldn't remove it: " + e.message, "err");
+  }
+}
+
+/* -------------------------------- uploads -------------------------------
+   Resumable: the node's agent keeps every byte that arrives and says where an
+   upload stands, so a lost connection, a sleeping laptop or a closed tab cost
+   nothing but the chunk in flight. Dropping the same file again carries on. */
+
+let uploadSeq = 0;
+
+function addFiles(id, files) {
+  const a = agentFor(id);
+  for (const file of files) {
+    a.uploads.push({ lid: ++uploadSeq, file, name: file.name, size: file.size, sent: 0, state: "waiting" });
+  }
+  paintCard(id);
+  pumpUploads(id);
+}
+
+async function pumpUploads(id) {
+  const a = agentFor(id);
+  if (a.pumping) return;
+  a.pumping = true;
+  try {
+    let u;
+    while ((u = a.uploads.find((x) => x.state === "waiting")) && agents.get(id) === a) {
+      await runUpload(id, u);
+    }
+  } finally {
+    a.pumping = false;
+  }
+}
+
+async function runUpload(id, u) {
+  const a = agentFor(id);
+  let tries = 0;
+  u.state = "uploading";
+  schedulePaint(id);
+  while (!u.cancelled) {
+    const d = nodeById(id);
+    if (!d) { u.state = "failed"; u.error = "the node is gone"; break; }
+    try {
+      if (!u.size) throw new ApiError("the file is empty", 400);
+      const start = await agentCall(d, "/v1/uploads", { method: "POST", body: JSON.stringify({ name: u.name, size: u.size }) });
+      u.serverId = start.id;
+      let offset = start.offset;
+      u.sent = offset;
+      while (offset < u.size) {
+        if (u.cancelled) return;
+        const blob = u.file.slice(offset, Math.min(offset + UPLOAD_CHUNK, u.size));
+        const base = offset;
+        offset = await sendChunk(d, u, start.id, offset, blob, (loaded) => {
+          u.sent = base + loaded;
+          schedulePaint(id);
+        });
+        u.sent = offset;
+        tries = 0;
+        if (u.state === "retrying") u.state = "uploading";
+        schedulePaint(id);
+      }
+      // Done: the agent's own list takes it from here (converting, then ready).
+      a.uploads = a.uploads.filter((x) => x !== u);
+      a.next = 0;
+      schedulePaint(id);
+      return;
+    } catch (e) {
+      if (u.cancelled) return;
+      if (e.status === 409) continue;                        // out of step: ask where it stands
+      if (e.status >= 400 && e.status < 500 || e.status === 507) {
+        u.state = "failed"; u.error = e.message; break;
+      }
+      if (++tries > 8) { u.state = "failed"; u.error = e.message + " (gave up after 8 tries; drop it again to carry on)"; break; }
+      u.state = "retrying";
+      schedulePaint(id);
+      await new Promise((r) => setTimeout(r, Math.min(2 ** tries, 30) * 1000));
+    }
+  }
+  schedulePaint(id);
+}
+
+// XHR rather than fetch for the one thing fetch can't do: report upload progress.
+function sendChunk(d, u, uploadId, offset, blob, onProgress) {
+  return secretsFor(d.name).then((s) => new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    u.xhr = xhr;
+    xhr.open("PATCH", `${agentBase(d)}/v1/uploads/${encodeURIComponent(uploadId)}`);
+    xhr.setRequestHeader("Authorization", "Bearer " + s.agentToken);
+    xhr.setRequestHeader("Upload-Offset", String(offset));
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.upload.onprogress = (e) => onProgress(e.loaded);
+    xhr.onload = () => {
+      let body = null;
+      try { body = JSON.parse(xhr.responseText); } catch {}
+      if (xhr.status === 200 && body) return resolve(body.offset);
+      const err = new ApiError(body?.message || xhr.statusText || "upload failed", xhr.status);
+      err.body = body;
+      reject(err);
+    };
+    xhr.onerror = xhr.ontimeout = () => reject(new ApiError(`lost the connection to ${nodeHost(d)}`, 0));
+    xhr.onabort = () => reject(new ApiError("cancelled", 0));
+    xhr.send(blob);
+  }));
+}
+
+function cancelUpload(id, lid) {
+  const a = agentFor(id);
+  const u = a.uploads.find((x) => x.lid === lid);
+  if (!u) return;
+  u.cancelled = true;
+  u.xhr?.abort();
+  a.uploads = a.uploads.filter((x) => x !== u);
+  const d = nodeById(id);
+  if (u.serverId && d && u.state !== "failed") {
+    agentCall(d, "/v1/media/" + encodeURIComponent(u.serverId), { method: "DELETE" }).catch(() => {});
+  }
+  paintCard(id);
+}
+
+// A file dropped beside the drop zone would otherwise open in the tab, taking
+// the dashboard (and any upload in flight) with it.
+for (const type of ["dragover", "drop"]) {
+  window.addEventListener(type, (e) => {
+    if (e.dataTransfer?.types?.includes("Files") && !e.target.closest?.(".drop")) {
+      e.preventDefault();
+      if (type === "dragover") e.dataTransfer.dropEffect = "none";
+    }
+  });
+}
+
 /* ------------------------------- loading ------------------------------ */
 
 // A create in flight refreshes on its own schedule, so several of these can now
@@ -1566,7 +2532,9 @@ async function refresh() {
         try {
           // The open row reports both route lists, so keep the whole response.
           d._routes = await getRoutes(d._device.id);
-          d._exit = (d._routes.enabledRoutes || []).some((x) => x === "0.0.0.0/0" || x === "::/0");
+          const exitRoute = (x) => x === "0.0.0.0/0" || x === "::/0";
+          d._exit = (d._routes.enabledRoutes || []).some(exitRoute);
+          d._advertisesExit = (d._routes.advertisedRoutes || []).some(exitRoute);
         } catch { d._routes = undefined; d._exit = undefined; }
       }));
     } catch (e) {
@@ -1576,7 +2544,7 @@ async function refresh() {
     renderStats();
     renderNodes();
   } catch (e) {
-    toast("Could not load exit nodes: " + e.message, "err");
+    toast("Could not load nodes: " + e.message, "err");
   } finally {
     if (--refreshing === 0) {
       btn.disabled = false;
@@ -1587,17 +2555,56 @@ async function refresh() {
 
 async function loadRegions() {
   try {
-    state.regions = await fetchDatacenters();
+    state.catalogue = await fetchCatalogue();
   } catch (e) {
     toast("Could not load datacenters: " + e.message, "err");
-    state.regions = [];
+    state.catalogue = null;
   }
-  $("#regions").innerHTML = state.regions.map((r, i) => `
-    <label class="region">
-      <input type="radio" name="region" value="${esc(r.slug)}" ${i === 0 ? "checked" : ""}>
-      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><em>${fmtDollars(r.price_monthly)}/mo</em></span>
-    </label>`).join("") || `<p class="muted small">No datacenters available.</p>`;
+  renderCreate();
 }
+
+// The add-on is asked first because it decides the rest: which datacenters
+// can run it, and what each one charges for a droplet big enough.
+let pickedAddon = "";
+
+const needsText = (n) =>
+  `${n.vcpus} vCPU · ${fmtMem(n.memoryMB)}` + (n.diskGB ? ` · ${n.diskGB} GB disk` : "") + " or more";
+
+function renderCreate() {
+  $("#addons").innerHTML = ADDONS.map((a) => `
+    <label>
+      <input type="radio" name="addon" value="${esc(a.id)}" ${a.id === pickedAddon ? "checked" : ""}>
+      <span><b>${esc(a.name)}</b><i>${esc(needsText(a.needs))}</i><em>${esc(a.summary)}</em></span>
+    </label>`).join("");
+  renderExitChoice();
+  renderRegions();
+}
+
+// Without an add-on a node is an exit node or nothing, so the box is held on.
+function renderExitChoice() {
+  const box = $("#exit");
+  box.disabled = !pickedAddon;
+  if (!pickedAddon) box.checked = true;
+}
+
+function renderRegions() {
+  const prev = $("#regions input:checked")?.value;
+  state.regions = datacentersFor(state.catalogue, pickedAddon);
+  const keep = state.regions.some((r) => r.slug === prev) ? prev : state.regions[0]?.slug;
+  $("#size-hint").textContent = pickedAddon ? "priced for " + addonInfo(pickedAddon).name : "";
+  $("#regions").innerHTML = state.regions.map((r) => `
+    <label class="region">
+      <input type="radio" name="region" value="${esc(r.slug)}" ${r.slug === keep ? "checked" : ""}>
+      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><em>${fmtDollars(r.price_monthly)}/mo</em><s>${esc(r.size)}</s></span>
+    </label>`).join("") || `<p class="muted small">No datacenters available${pickedAddon ? " for this add-on" : ""}.</p>`;
+}
+
+$("#addons").addEventListener("change", (e) => {
+  if (e.target.name !== "addon") return;
+  pickedAddon = e.target.value;
+  renderExitChoice();
+  renderRegions();
+});
 
 /* ------------------------------- create ------------------------------- */
 /* Creating a node used to happen behind a modal that narrated five steps and
@@ -1675,14 +2682,16 @@ function cancelPending(p) {
   renderNodes();
 }
 
-// `dc` is an entry from fetchDatacenters(): the region, and the cheapest size
-// it sells. Both are known before the droplet exists, so the building row can
-// show them from its first paint.
-async function runCreate(dc) {
+// `dc` is an entry from datacentersFor(): the region, and the cheapest size it
+// sells that can run the add-on. Both are known before the droplet exists, so
+// the building row can show them from its first paint. opts: { addon, exit }.
+async function runCreate(dc, opts) {
+  const addon = addonInfo(opts.addon);
   const p = {
     key: "p" + ++pendingSeq,
     datacenter: dc.slug,
     size: dc.size,
+    addon: opts.addon,
     name: null,
     dropletId: null,
     phase: "requesting key",
@@ -1705,22 +2714,23 @@ async function runCreate(dc) {
     keyId = key.id;
 
     setPhase(p, "provisioning");
-    plog(p, `Provisioning a ${dc.size} droplet in the ${dc.slug} datacenter…`);
-    const droplet = await createDroplet(key.key, dc, signal);
+    plog(p, `Provisioning a ${dc.size} droplet in the ${dc.slug} datacenter` +
+      (opts.addon ? `, to run ${addon.name}${opts.exit ? " and be an exit node" : ""}…` : "…"));
+    const droplet = await createDroplet(key.key, dc, opts, signal);
     p.name = droplet.name;
     p.dropletId = droplet.id;         // the row shows the droplet from here on
     plog(p, `Droplet ${droplet.name} created (id ${droplet.id}).`);
     setPhase(p, "booting");
     await refresh();
 
-    plog(p, "Waiting for the new exit node to phone home to Tailscale…");
+    plog(p, "Waiting for the new node to phone home to Tailscale…");
     setPhase(p, "joining tailnet");
     // One line every ~15s: enough to show progress without burying the log.
     let nextTick = 15;
     const dev = await enableExit(droplet.name, signal, (secs) => {
       if (secs >= nextTick) { plog(p, `  …still waiting (${secs}s)`); nextTick = secs + 15; }
-    });
-    plog(p, `Node joined as ${dev.name} — exit routes approved.`, "ok");
+    }, opts.exit);
+    plog(p, `Node joined as ${dev.name}` + (opts.exit ? " — exit routes approved." : "."), "ok");
 
     setPhase(p, "revoking key");
     plog(p, "Deleting the Tailscale auth key…");
@@ -1728,8 +2738,16 @@ async function runCreate(dc) {
     keyId = null;
 
     const secs = Math.round((Date.now() - p.startedAt) / 1000);
-    plog(p, `Exit node ready in ${secs}s.`, "ok");
-    toast(`Exit node ${droplet.name} is ready.`, "ok");
+    if (opts.addon) {
+      // The node is up; its add-on carries on installing on its own, and its
+      // row takes over reporting that from here.
+      plog(p, `Node up in ${secs}s. ${addon.name} is installing on it now, which takes a few ` +
+        `minutes; its row shows how it is going.`, "ok");
+      toast(`${droplet.name} is up; ${addon.name} is installing.`, "ok");
+    } else {
+      plog(p, `Exit node ready in ${secs}s.`, "ok");
+      toast(`Exit node ${droplet.name} is ready.`, "ok");
+    }
 
     // Done: let go of the row. It keeps its place, its selection and its open
     // panel, and is now drawn like any other node.
@@ -1878,7 +2896,9 @@ $("#btn-logout").addEventListener("click", () => {
   clearCfg();
   cfg = null;
   for (const p of state.pending) p.ctrl.abort();
-  state = { nodes: [], regions: [], devices: [], pending: [], selected: null, expanded: new Set() };
+  for (const id of [...agents.keys()]) forgetAgent(id);
+  secretCache.clear();
+  state = freshState();
   stopTicker();
   $("#credentials").value = "";
   $("#do-token").value = "";
@@ -1906,6 +2926,13 @@ $("#nodes-body").addEventListener("click", (e) => {
   renderNodes();
 });
 
+// <details> toggles don't bubble; listen on the way down.
+$("#nodes-body").addEventListener("toggle", (e) => {
+  const id = Number(e.target.dataset?.more);
+  if (!id) return;
+  if (e.target.open) state.moreOpen.add(id); else state.moreOpen.delete(id);
+}, true);
+
 const openCreate = () => $("#dlg-create").showModal();
 
 $("#btn-new").addEventListener("click", openCreate);
@@ -1921,9 +2948,9 @@ $("#dlg-create").addEventListener("close", () => {
   if ($("#dlg-create").returnValue !== "go") return;
   const picked = $("#regions input:checked");
   // The radio carries the slug; the build needs the whole datacenter, since it
-  // is what knows which size that region sells.
+  // is what knows which size that region sells for this add-on.
   const dc = picked && state.regions.find((r) => r.slug === picked.value);
-  if (dc) runCreate(dc);
+  if (dc) runCreate(dc, { addon: pickedAddon, exit: $("#exit").checked });
 });
 
 /* Delete is the same key whatever the selected row is doing: a finished node
@@ -1935,6 +2962,9 @@ $("#btn-delete").addEventListener("click", () => {
   const node = row.droplet;
   $("#delete-sub").innerHTML =
     `Destroy <code>${esc(node.name)}</code> in ${esc(node.region?.slug || "?")} (DO id ${node.id})?`;
+  $("#delete-addon").textContent = addonOf(node)
+    ? ", and everything on it goes too: " + addonInfo(addonOf(node)).name + ", its videos, and any guest link"
+    : "";
   $("#dlg-delete").showModal();
 });
 
@@ -1945,7 +2975,8 @@ $("#dlg-delete").addEventListener("close", async (e) => {
   const { id, name } = row.droplet;
   try {
     await deleteDroplet(id);
-    toast(`Exit node ${name || id} deleted.`, "ok");
+    forgetAgent(id);
+    toast(`Node ${name || id} deleted.`, "ok");
     state.selected = null;
     state.expanded.delete("n" + id);
     await refresh();
@@ -1981,7 +3012,7 @@ $$("#display-sel .seg").forEach((b) =>
 document.addEventListener("keydown", (e) => {
   if (e.target.matches("input, textarea, select")) return;
   // Enter and Space belong to whatever control has focus, if one does.
-  if ((e.key === "Enter" || e.key === " ") && e.target.closest("button, a")) return;
+  if ((e.key === "Enter" || e.key === " ") && e.target.closest("button, a, summary")) return;
   // Leave browser shortcuts alone (Ctrl+K, Ctrl+R, …) now that j/k call preventDefault.
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if ($("#view-dash").classList.contains("hidden")) return;

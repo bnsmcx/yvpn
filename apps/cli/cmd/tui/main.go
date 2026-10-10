@@ -21,7 +21,7 @@ import (
 	"golang.org/x/term"
 )
 
-var VERSION = "0.4.1"
+var VERSION = "0.5.0"
 
 func main() {
 	if _, err := tea.LogToFile("debug.log", "simple"); err != nil {
@@ -38,7 +38,7 @@ func main() {
 		runTUI()
 	case "ssh":
 		serveOverSSH("0.0.0.0", "1337")
-	case "list", "datacenters", "create", "delete":
+	case "list", "datacenters", "create", "delete", "access":
 		runCLI(os.Args[1:])
 	case "--help", "-h", "help":
 		printUsage()

@@ -50,7 +50,7 @@ func handleFetchTSKey(tailscaleAPI string) {
 }
 
 func handleFetchDatacenters(digitalOceanToken string) {
-	datacenters, err := digital_ocean.FetchDatacenters(digitalOceanToken)
+	datacenters, err := digital_ocean.FetchDatacenters(digitalOceanToken, "")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -69,7 +69,7 @@ func handleCreate(digitalOceanToken, tailscaleAPI, datacenter string) {
 		os.Exit(1)
   }
 
-	name, id, err := digital_ocean.Create(digitalOceanToken, tailscaleAuth, datacenter)
+	name, id, err := digital_ocean.Create(digitalOceanToken, tailscaleAuth, datacenter, digital_ocean.Options{Exit: true})
 	if err != nil {
     fmt.Println("creating droplet:", err)
 		os.Exit(1)
