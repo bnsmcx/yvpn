@@ -229,11 +229,16 @@ matches the page's version.
 
 Per node, in the nine columns: region, public IP, tailnet IP, droplet status,
 tailnet reachability, whether exit routes are actually approved, size, cost so
-far, and age. Across the fleet: node count (and how many are still building),
-how many are live on the tailnet, the current rate (what those nodes would cost
-over a month left running; click the unit to switch between `/mo` and `/hr`,
-kept in `localStorage` under `yvpn.rate`), and the cost so far of the nodes that
-exist.
+far, and age.
+
+Above the table, the counts the table already shows give way to a map. The
+wordmark sits on the left over what the running nodes burn per hour (and what
+that comes to over a month if left on). On the right is the world in phosphor
+dots, sampled from Natural Earth's 1:50m land every 2.5 degrees and embedded as
+a 1.3 KB bitmask, with one light per datacenter in the colour of its worst
+node: olive when healthy, ochre while joining or with its route unapproved,
+rust when offline, blinking amber while building. Clicking a light opens its
+node; pointing at a row lights its datacenter.
 
 ### Opening a row
 
