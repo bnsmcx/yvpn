@@ -499,25 +499,6 @@ dialog {
   & .disclosure { color: var(--dim); }
 }
 
-.regions {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
-  gap: 9px; max-height: 310px; overflow-y: auto; padding: 2px;
-}
-.region {
-  & input { position: absolute; opacity: 0; pointer-events: none; }
-  & span {
-    display: block; border: 1px solid var(--line); background: var(--inset);
-    padding: 9px 11px; cursor: pointer; font-size: 12.5px;
-    transition: border-color .12s, background .12s;
-  }
-  & span b { display: block; font-size: 13px; }
-  & span i { font-style: normal; color: var(--dim); font-size: 11px; }
-  & span em { display: block; font-style: normal; color: var(--muted); font-size: 11px; margin-top: 3px; }
-  & input:checked + span { border-color: var(--amber); background: var(--sel-bg); }
-  & input:checked + span b { color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
-  & input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: 2px; }
-}
-
 /* The build log. It used to be the whole of a modal; now it lives inside the
    row of the node it is describing. */
 .log {
@@ -540,29 +521,76 @@ dialog {
   color: var(--muted); margin: 0 0 8px;
   & .hint { letter-spacing: .04em; text-transform: none; color: var(--dim); margin-left: 6px; }
 }
-.dlg-label + .regions { margin-bottom: 0; }
-.addons {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 9px; margin-bottom: 12px;
-}
-/* Same lit-when-picked look as a datacenter. */
-.addons label {
+/* Both questions are lists, one row per choice. A row opens when it is picked
+   to say more about it; the rest stay one line so the whole list can be read
+   down at a glance. */
+.picklist {
+  border: 1px solid var(--line); background: var(--inset);
+  & label { display: block; cursor: pointer; border-top: 1px solid var(--rule); }
+  & > label:first-child, & .pick-head + label { border-top: 0; }
   & input { position: absolute; opacity: 0; pointer-events: none; }
-  & span {
-    display: block; height: 100%; border: 1px solid var(--line); background: var(--inset);
-    padding: 10px 12px; cursor: pointer; font-size: 12px; line-height: 1.5;
-    transition: border-color .12s, background .12s;
+  & .pick-row {
+    display: grid; align-items: baseline; gap: 4px 14px; padding: 8px 12px 8px 30px;
+    position: relative; font-size: 12px; transition: background .12s;
   }
-  & span b { display: block; font-size: 13px; }
-  & span i { display: block; font-style: normal; color: var(--dim); font-size: 11px; margin: 1px 0 4px; }
-  & span em { display: block; font-style: normal; color: var(--muted); font-size: 11px; }
-  & input:checked + span { border-color: var(--amber); background: var(--sel-bg); }
-  & input:checked + span b { color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
-  & input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: 2px; }
+  /* the radio, drawn: a ring that fills with amber when picked */
+  & .pick-row::before {
+    content: ""; position: absolute; left: 11px; top: 13px;
+    width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--dim);
+    transition: background .12s, border-color .12s, box-shadow .12s;
+  }
+  & label:not(:has(input:checked)):hover .pick-row { background: var(--panel); }
+  & b { font-size: 12.5px; }
+  & i { font-style: normal; color: var(--dim); font-size: 11px; }
+  & .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  & input:checked + .pick-row b { color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
+  & input:checked + .pick-row::before {
+    border-color: var(--amber); background: var(--amber); box-shadow: 0 0 7px var(--glow-c);
+  }
+  /* a checkbox is drawn square, and ticks rather than fills */
+  & input[type=checkbox] + .pick-row::before {
+    border-radius: 1px; width: 10px; height: 10px; top: 12px; left: 10px;
+    font-size: 9px; line-height: 10px; text-align: center; font-weight: 700;
+  }
+  & input[type=checkbox]:checked + .pick-row::before { content: "\2713"; color: var(--amber-fg); }
+  /* held on: ticked, but plainly not something to click */
+  & label:has(input:disabled) { cursor: default; }
+  & input:disabled:checked + .pick-row::before { opacity: .55; box-shadow: none; }
+  & label:has(input:checked) { background: var(--sel-bg); box-shadow: inset 2px 0 0 var(--amber); }
+  & label:has(input:focus-visible) { outline: 2px solid var(--amber); outline-offset: -2px; }
 }
-#exit-wrap { margin: 0 0 16px; }
-#exit-wrap:has(input:disabled) { cursor: default; color: var(--muted); }
-.region span s { display: block; text-decoration: none; color: var(--dim); font-size: 10.5px; }
+/* The fold under a row (or under a whole list). Animating grid rows from 0fr
+   to 1fr opens it to exactly its content's height, whatever that is. */
+.fold {
+  display: grid; grid-template-rows: 0fr; opacity: 0;
+  transition: grid-template-rows .24s ease, opacity .24s ease;
+  & > * { overflow: hidden; min-height: 0; }
+}
+.picklist input[name]:checked ~ .fold, .fold.open { grid-template-rows: 1fr; opacity: 1; }
+.pick-more { display: block; padding: 0 12px 9px 30px; font-size: 11px; line-height: 1.6; color: var(--muted); }
+
+#addons .pick-row { grid-template-columns: minmax(0, 1fr) auto; }
+#addons { margin-bottom: 16px; }
+
+/* The datacenter list reads like the node table: a header, then a row each. */
+#regions {
+  max-height: 300px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--dim) transparent;
+  & .pick-row, & .pick-head { grid-template-columns: 4.5em minmax(0, 1fr) minmax(0, 15em) 5.5em; }
+  & .pick-head {
+    display: grid; gap: 14px; padding: 6px 12px 6px 30px; position: sticky; top: 0; z-index: 1;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+    font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted);
+  }
+  & .pick-row i, & .pick-row s { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  & s { text-decoration: none; color: var(--dim); font-size: 11px; }
+  & > p { padding: 10px 12px; margin: 0; }
+}
+@media (max-width: 560px) {
+  #regions .pick-row, #regions .pick-head { grid-template-columns: 4.5em minmax(0, 1fr) 5.5em; }
+  #regions .col-size { display: none; }   /* the open row names it */
+  #addons .pick-row { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* What a node runs, beside its name in the table. */
 .badge {
@@ -771,10 +799,8 @@ code { font-family: var(--mono); color: var(--text); }
 <header class="rail">
   <span class="screw"></span>
   <span class="brand">yVPN</span>
-  <span class="stamp">exit node control</span>
-  <span class="stamp-dim ver" id="ver-header">v0.6.1</span>
+  <span class="stamp-dim ver" id="ver-header">v0.6.2</span>
   <span class="spacer"></span>
-  <span id="who" class="stamp-dim hidden"></span>
   <button id="btn-guide" title="Getting started">guide</button>
   <button id="btn-help" popovertarget="help" title="Keyboard shortcuts (?)" aria-label="Help">?</button>
   <button id="btn-logout" class="hidden">sign out</button>
@@ -919,7 +945,7 @@ code { font-family: var(--mono); color: var(--text); }
     <span><span class="cap">?</span><span class="stamp">help</span></span>
   </span>
   <span class="spacer"></span>
-  <span class="stamp-dim ver" id="ver-footer">v0.6.1</span>
+  <span class="stamp-dim ver" id="ver-footer">v0.6.2</span>
   <span class="display">
     <span class="stamp" id="display-label">display</span>
     <span class="sel" role="group" aria-labelledby="display-label" id="display-sel">
@@ -940,14 +966,19 @@ code { font-family: var(--mono); color: var(--text); }
         table, where you can watch it and cancel it.</p>
     </div>
     <div class="dlg-body">
-      <h3 class="dlg-label">What it runs</h3>
-      <div id="addons" class="addons" role="radiogroup" aria-label="What it runs"></div>
-      <label class="check" id="exit-wrap">
-        <input type="checkbox" id="exit" checked>
-        <span>Also an exit node <span class="muted">(your devices can send their traffic through it)</span></span>
-      </label>
+      <h3 class="dlg-label">On the node</h3>
+      <div id="addons" class="picklist" role="group" aria-label="On the node">
+        <label id="exit-wrap">
+          <input type="checkbox" id="exit" checked>
+          <span class="pick-row"><b>Exit node</b><i>your devices can send their traffic through it</i></span>
+          <!-- A node with nothing else on it has nothing else to be. -->
+          <span class="fold" id="exit-lock"><span><span class="pick-more">On until something else is: a node
+            with nothing else on it has nothing else to do.</span></span></span>
+        </label>
+        <div id="addon-rows"></div>
+      </div>
       <h3 class="dlg-label">Datacenter <span class="hint" id="size-hint"></span></h3>
-      <div id="regions" class="regions"></div>
+      <div id="regions" class="picklist" role="radiogroup" aria-label="Datacenter"></div>
     </div>
     <div class="dlg-foot">
       <button value="cancel" id="btn-create-cancel" class="ghost">Cancel</button>
@@ -1163,7 +1194,7 @@ code { font-family: var(--mono); color: var(--text); }
 
 // Single source of truth for the version stamped on the console. The release
 // workflow checks this against the tag, so a tagged build can't ship stale.
-const VERSION = "0.6.1";
+const VERSION = "0.6.2";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
 // What every node boots. Not every region carries it, and it sets a floor on disk.
@@ -1453,7 +1484,10 @@ function datacentersFor(cat, addon) {
       const best = sizes
         .filter((z) => (z.regions || []).includes(x.slug))
         .reduce((a, z) => (!a || z.price_hourly < a.price_hourly ? z : a), null);
-      return best && { slug: x.slug, name: x.name, size: best.slug, price_monthly: best.price_monthly };
+      return best && {
+        slug: x.slug, name: x.name, size: best.slug, price_monthly: best.price_monthly,
+        price_hourly: best.price_hourly, vcpus: best.vcpus, memory: best.memory, disk: best.disk,
+      };
     })
     .filter(Boolean)
     .sort((a, b) => a.slug.localeCompare(b.slug));
@@ -2735,18 +2769,22 @@ async function loadRegions() {
   renderCreate();
 }
 
-// The add-on is asked first because it decides the rest: which datacenters
-// can run it, and what each one charges for a droplet big enough.
+// Add-ons are asked first because they decide the rest: which datacenters can
+// run them, and what each one charges for a droplet big enough. Each is a
+// toggle of its own, alongside being an exit node; a node carries at most one
+// add-on for now, so turning one on turns any other off.
 let pickedAddon = "";
 
 const needsText = (n) =>
   `${n.vcpus} vCPU · ${fmtMem(n.memoryMB)}` + (n.diskGB ? ` · ${n.diskGB} GB disk` : "") + " or more";
 
 function renderCreate() {
-  $("#addons").innerHTML = ADDONS.map((a) => `
+  // The plain exit node is ADDONS[0]; it is the #exit row, not one of these.
+  $("#addon-rows").innerHTML = ADDONS.filter((a) => a.id).map((a) => `
     <label>
-      <input type="radio" name="addon" value="${esc(a.id)}" ${a.id === pickedAddon ? "checked" : ""}>
-      <span><b>${esc(a.name)}</b><i>${esc(needsText(a.needs))}</i><em>${esc(a.summary)}</em></span>
+      <input type="checkbox" name="addon" value="${esc(a.id)}" ${a.id === pickedAddon ? "checked" : ""}>
+      <span class="pick-row"><b>${esc(a.name)}</b><i>${esc(needsText(a.needs))}</i></span>
+      <span class="fold"><span><span class="pick-more">${esc(a.summary)}</span></span></span>
     </label>`).join("");
   renderExitChoice();
   renderRegions();
@@ -2757,6 +2795,7 @@ function renderExitChoice() {
   const box = $("#exit");
   box.disabled = !pickedAddon;
   if (!pickedAddon) box.checked = true;
+  $("#exit-lock").classList.toggle("open", !pickedAddon);
 }
 
 function renderRegions() {
@@ -2764,16 +2803,35 @@ function renderRegions() {
   state.regions = datacentersFor(state.catalogue, pickedAddon);
   const keep = state.regions.some((r) => r.slug === prev) ? prev : state.regions[0]?.slug;
   $("#size-hint").textContent = pickedAddon ? "priced for " + addonInfo(pickedAddon).name : "";
-  $("#regions").innerHTML = state.regions.map((r) => `
+  const rows = state.regions.map((r) => `
     <label class="region">
       <input type="radio" name="region" value="${esc(r.slug)}" ${r.slug === keep ? "checked" : ""}>
-      <span><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><em>${fmtDollars(r.price_monthly)}/mo</em><s>${esc(r.size)}</s></span>
-    </label>`).join("") || `<p class="muted small">No datacenters available${pickedAddon ? " for this add-on" : ""}.</p>`;
+      <span class="pick-row"><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><s class="col-size">${esc(r.size)}</s><span class="num">${fmtDollars(r.price_monthly)}/mo</span></span>
+      <span class="fold"><span><span class="pick-more">${esc(sizeText(r))}</span></span></span>
+    </label>`).join("");
+  $("#regions").innerHTML = rows
+    ? `<div class="pick-head"><span>Slug</span><span>Location</span><span class="col-size">Size</span><span class="num">Price</span></div>` + rows
+    : `<p class="muted small">No datacenters available${pickedAddon ? " for this add-on" : ""}.</p>`;
 }
+
+// What the open datacenter row says: the droplet it will get, and what it bills.
+function sizeText(r) {
+  const spec = [r.vcpus && `${r.vcpus} vCPU`, fmtMem(r.memory), r.disk && `${r.disk} GB disk`].filter(Boolean);
+  const hourly = r.price_hourly ? ` · $${r.price_hourly.toFixed(3)}/hr` : "";
+  return `${r.size}: ${spec.join(" · ")}${hourly}, billed hourly up to ${fmtDollars(r.price_monthly)}/mo`;
+}
+
+// A row that opens near the bottom of the scrolling list would open out of
+// sight; follow it once it has finished opening.
+$("#regions").addEventListener("change", (e) => {
+  const row = e.target.closest("label");
+  setTimeout(() => row?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 260);
+});
 
 $("#addons").addEventListener("change", (e) => {
   if (e.target.name !== "addon") return;
-  pickedAddon = e.target.value;
+  for (const box of $$("#addon-rows input")) if (box !== e.target) box.checked = false;
+  pickedAddon = e.target.checked ? e.target.value : "";
   renderExitChoice();
   renderRegions();
 });
@@ -2964,9 +3022,6 @@ function showDash() {
     $("#view-login").classList.add("hidden");
     $("#view-dash").classList.remove("hidden");
     $("#btn-logout").classList.remove("hidden");
-    const who = $("#who");
-    who.textContent = cfg.profile ? cfg.profile : "signed in";
-    who.classList.remove("hidden");
   });
   refresh();
   loadRegions();
@@ -2977,7 +3032,6 @@ function showLogin() {
     $("#view-dash").classList.add("hidden");
     $("#view-login").classList.remove("hidden");
     $("#btn-logout").classList.add("hidden");
-    $("#who").classList.add("hidden");
   });
 }
 
