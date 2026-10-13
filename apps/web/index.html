@@ -799,10 +799,8 @@ code { font-family: var(--mono); color: var(--text); }
 <header class="rail">
   <span class="screw"></span>
   <span class="brand">yVPN</span>
-  <span class="stamp">exit node control</span>
   <span class="stamp-dim ver" id="ver-header">v0.6.1</span>
   <span class="spacer"></span>
-  <span id="who" class="stamp-dim hidden"></span>
   <button id="btn-guide" title="Getting started">guide</button>
   <button id="btn-help" popovertarget="help" title="Keyboard shortcuts (?)" aria-label="Help">?</button>
   <button id="btn-logout" class="hidden">sign out</button>
@@ -3024,9 +3022,6 @@ function showDash() {
     $("#view-login").classList.add("hidden");
     $("#view-dash").classList.remove("hidden");
     $("#btn-logout").classList.remove("hidden");
-    const who = $("#who");
-    who.textContent = cfg.profile ? cfg.profile : "signed in";
-    who.classList.remove("hidden");
   });
   refresh();
   loadRegions();
@@ -3037,7 +3032,6 @@ function showLogin() {
     $("#view-dash").classList.add("hidden");
     $("#view-login").classList.remove("hidden");
     $("#btn-logout").classList.add("hidden");
-    $("#who").classList.add("hidden");
   });
 }
 
