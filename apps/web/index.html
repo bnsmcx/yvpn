@@ -527,7 +527,7 @@ dialog {
 .picklist {
   border: 1px solid var(--line); background: var(--inset);
   & label { display: block; cursor: pointer; border-top: 1px solid var(--rule); }
-  & label:first-child { border-top: 0; }
+  & > label:first-child, & .pick-head + label { border-top: 0; }
   & input { position: absolute; opacity: 0; pointer-events: none; }
   & .pick-row {
     display: grid; align-items: baseline; gap: 4px 14px; padding: 8px 12px 8px 30px;
@@ -547,6 +547,15 @@ dialog {
   & input:checked + .pick-row::before {
     border-color: var(--amber); background: var(--amber); box-shadow: 0 0 7px var(--glow-c);
   }
+  /* a checkbox is drawn square, and ticks rather than fills */
+  & input[type=checkbox] + .pick-row::before {
+    border-radius: 1px; width: 10px; height: 10px; top: 12px; left: 10px;
+    font-size: 9px; line-height: 10px; text-align: center; font-weight: 700;
+  }
+  & input[type=checkbox]:checked + .pick-row::before { content: "\2713"; color: var(--amber-fg); }
+  /* held on: ticked, but plainly not something to click */
+  & label:has(input:disabled) { cursor: default; }
+  & input:disabled:checked + .pick-row::before { opacity: .55; box-shadow: none; }
   & label:has(input:checked) { background: var(--sel-bg); box-shadow: inset 2px 0 0 var(--amber); }
   & label:has(input:focus-visible) { outline: 2px solid var(--amber); outline-offset: -2px; }
 }
@@ -557,13 +566,11 @@ dialog {
   transition: grid-template-rows .24s ease, opacity .24s ease;
   & > * { overflow: hidden; min-height: 0; }
 }
-.picklist input:checked ~ .fold, .fold.open { grid-template-rows: 1fr; opacity: 1; }
+.picklist input[name]:checked ~ .fold, .fold.open { grid-template-rows: 1fr; opacity: 1; }
 .pick-more { display: block; padding: 0 12px 9px 30px; font-size: 11px; line-height: 1.6; color: var(--muted); }
 
-#addons { margin-bottom: 4px; }
 #addons .pick-row { grid-template-columns: minmax(0, 1fr) auto; }
-#exit-fold { margin-bottom: 14px; }
-#exit-wrap { margin: 6px 0 0 30px; }
+#addons { margin-bottom: 16px; }
 
 /* The datacenter list reads like the node table: a header, then a row each. */
 #regions {
@@ -961,15 +968,17 @@ code { font-family: var(--mono); color: var(--text); }
         table, where you can watch it and cancel it.</p>
     </div>
     <div class="dlg-body">
-      <h3 class="dlg-label">What it runs</h3>
-      <div id="addons" class="picklist" role="radiogroup" aria-label="What it runs"></div>
-      <!-- Only an add-on node has a choice here; a plain one is an exit node or nothing. -->
-      <div class="fold" id="exit-fold"><div>
-        <label class="check" id="exit-wrap">
+      <h3 class="dlg-label">On the node</h3>
+      <div id="addons" class="picklist" role="group" aria-label="On the node">
+        <label id="exit-wrap">
           <input type="checkbox" id="exit" checked>
-          <span>Also an exit node <span class="muted">(your devices can send their traffic through it)</span></span>
+          <span class="pick-row"><b>Exit node</b><i>your devices can send their traffic through it</i></span>
+          <!-- A node with nothing else on it has nothing else to be. -->
+          <span class="fold" id="exit-lock"><span><span class="pick-more">On until something else is: a node
+            with nothing else on it has nothing else to do.</span></span></span>
         </label>
-      </div></div>
+        <div id="addon-rows"></div>
+      </div>
       <h3 class="dlg-label">Datacenter <span class="hint" id="size-hint"></span></h3>
       <div id="regions" class="picklist" role="radiogroup" aria-label="Datacenter"></div>
     </div>
@@ -2762,17 +2771,20 @@ async function loadRegions() {
   renderCreate();
 }
 
-// The add-on is asked first because it decides the rest: which datacenters
-// can run it, and what each one charges for a droplet big enough.
+// Add-ons are asked first because they decide the rest: which datacenters can
+// run them, and what each one charges for a droplet big enough. Each is a
+// toggle of its own, alongside being an exit node; a node carries at most one
+// add-on for now, so turning one on turns any other off.
 let pickedAddon = "";
 
 const needsText = (n) =>
   `${n.vcpus} vCPU · ${fmtMem(n.memoryMB)}` + (n.diskGB ? ` · ${n.diskGB} GB disk` : "") + " or more";
 
 function renderCreate() {
-  $("#addons").innerHTML = ADDONS.map((a) => `
+  // The plain exit node is ADDONS[0]; it is the #exit row, not one of these.
+  $("#addon-rows").innerHTML = ADDONS.filter((a) => a.id).map((a) => `
     <label>
-      <input type="radio" name="addon" value="${esc(a.id)}" ${a.id === pickedAddon ? "checked" : ""}>
+      <input type="checkbox" name="addon" value="${esc(a.id)}" ${a.id === pickedAddon ? "checked" : ""}>
       <span class="pick-row"><b>${esc(a.name)}</b><i>${esc(needsText(a.needs))}</i></span>
       <span class="fold"><span><span class="pick-more">${esc(a.summary)}</span></span></span>
     </label>`).join("");
@@ -2785,7 +2797,7 @@ function renderExitChoice() {
   const box = $("#exit");
   box.disabled = !pickedAddon;
   if (!pickedAddon) box.checked = true;
-  $("#exit-fold").classList.toggle("open", !!pickedAddon);
+  $("#exit-lock").classList.toggle("open", !pickedAddon);
 }
 
 function renderRegions() {
@@ -2820,7 +2832,8 @@ $("#regions").addEventListener("change", (e) => {
 
 $("#addons").addEventListener("change", (e) => {
   if (e.target.name !== "addon") return;
-  pickedAddon = e.target.value;
+  for (const box of $$("#addon-rows input")) if (box !== e.target) box.checked = false;
+  pickedAddon = e.target.checked ? e.target.value : "";
   renderExitChoice();
   renderRegions();
 });

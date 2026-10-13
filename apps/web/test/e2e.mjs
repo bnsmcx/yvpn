@@ -647,8 +647,8 @@ const waitCard = (re, timeout = 20000) =>
 await page.click('#btn-new');
 await page.waitForSelector('#dlg-create[open]');
 await page.waitForTimeout(200);
-check('create dialog offers the add-on catalog', (await page.$$('#addons label')).length === 2);
-check('a plain exit node is the default', await page.isChecked('#addons input[value=""]'));
+check('create dialog offers the add-on catalog', (await page.$$('#addon-rows input[name=addon]')).length === 1);
+check('a plain exit node is the default', !(await page.isChecked('#addons input[value="jellyfin"]')));
 check('a plain node is held to being an exit node', (await page.isChecked('#exit')) && (await page.isDisabled('#exit')));
 await page.click('#addons label:has-text("Jellyfin") span');
 const jfRegions = await page.$$eval('#regions .region b', (els) => els.map((e) => e.textContent));
@@ -659,11 +659,12 @@ check('prices follow the add-on', (await page.textContent('#regions .region:has-
 check('each region names the size it will get', (await page.textContent('#regions .region:has-text("fra1")')).includes('s-2vcpu-4gb'));
 check('the dialog says what it is priced for', /Jellyfin/.test(await page.textContent('#size-hint')));
 check('an add-on node may skip being an exit node', !(await page.isDisabled('#exit')));
-await page.click('#addons label:has-text("Exit node") span');
+await page.click('#addons label:has-text("Jellyfin") span');
 check('back to a plain node, prices drop again', (await page.textContent('#regions .region:has-text("fra1")')).includes('$4/mo'));
 check('and it is held to being an exit node again', (await page.isChecked('#exit')) && (await page.isDisabled('#exit')));
 await page.click('#addons label:has-text("Jellyfin") span');
-await page.uncheck('#exit');
+await page.click('#exit-wrap .pick-row');
+check('an add-on node can be made not an exit node', !(await page.isChecked('#exit')));
 await page.click('#regions .region:has-text("fra1") span');
 await page.screenshot({ path: SHOTS + '/shot-create-addon.png' });
 const routesBefore = state.routesPosted || 0;
