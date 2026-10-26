@@ -32,7 +32,8 @@ the sign-in form and paste each token separately; it fills Credentials for you.
 
 Credentials live in `sessionStorage` and are wiped when the tab closes. Tick
 *Keep me signed in* to move them to `localStorage` instead. **Sign out** clears
-both. Nothing is ever sent anywhere except DigitalOcean and the relay on the site serving the page.
+both. Nothing is ever sent anywhere except DigitalOcean and the relay on the site serving the page,
+and, only while the speed test is open, Cloudflare's speed test (which never sees a token).
 
 Rotating a credential is a password-manager operation: change it there, sign out,
 sign back in. The app has no state to migrate.
@@ -99,11 +100,11 @@ calls will fail — it needs to be served by one of the above.
 | CLI | Web |
 |---|---|
 | `yvpn list` | The node table; open a row for everything both APIs report about that node |
-| `yvpn datacenters [--addon x]` | The datacenter picker in the create dialog, with each region's monthly price for what the node will run |
-| `yvpn create <dc> [--addon x] [--no-exit]` | **New node** — same cloud-init, same droplet spec, built in the table |
+| `yvpn datacenters [--addon x] [--premium]` | The datacenter picker in the create dialog, with each region's monthly price for what the node will run |
+| `yvpn create <dc> [--addon x] [--no-exit] [--premium]` | **New node** — same cloud-init, same droplet spec, built in the table |
 | `yvpn access <id>` | An add-on node's open row: its links and passwords, and much more (uploads, sharing) |
 | `yvpn delete <id>` | **Delete**, with a confirmation dialog |
-| TUI keymap | `n` new · `d` delete · `r` refresh · `j`/`k` or `↓`/`↑` select · `Enter`/`o` open · `?` help · `Esc` close or deselect |
+| TUI keymap | `n` new · `d` delete · `r` refresh · `s` speed test (web only) · `j`/`k` or `↓`/`↑` select · `Enter`/`o` open · `?` help · `Esc` close or deselect |
 
 Create runs the identical sequence to `cmd/tui/cli.go`: request an ephemeral
 single-use auth key → provision the droplet with the same cloud-init → wait for
@@ -177,8 +178,42 @@ since somebody will read it aloud and type it on a TV remote.
 The add-on catalog, the secrets and the cloud-init exist twice: in JavaScript
 here and in Go in `apps/cli/pkg/addons`. Both are held to the golden files in
 [`testdata/parity`](../../testdata/parity), by the Go tests and by `e2e.mjs`, so
-either front end builds exactly the same node. A plain exit node's cloud-init is
-byte-for-byte what it was before add-ons existed.
+either front end builds exactly the same node.
+
+## Exit node speed
+
+An exit node forwards every packet through `tailscaled`, which encrypts it on
+the CPU, so on a one-core droplet the CPU is what caps throughput. Two things
+follow from that:
+
+- **Every exit node turns on UDP GRO forwarding** on its public interface at
+  boot (`ethtool -K … rx-udp-gro-forwarding on rx-gro-list off`), as
+  [Tailscale recommends](https://tailscale.com/kb/1320/performance-best-practices)
+  for Linux exit nodes. The kernel hands `tailscaled` packets in batches, and
+  forwarding costs much less CPU. It costs nothing, and without it `tailscale
+  status` on the node warns that UDP GRO forwarding is suboptimally configured.
+- **Premium CPU** in the create dialog (`--premium` in the CLI) picks the
+  cheapest premium Basic droplet (an `-amd` or `-intel` size: newer CPUs) instead
+  of the cheapest of all. It is off by default, and regions that sell none drop
+  out of the list.
+
+**Speed test** on the top rail (or `s`) measures what that buys. It says where
+this browser's traffic is leaving from right now, matched against your nodes'
+public addresses, so it knows "through `fra1-yvpn-…`" from "direct", and
+checks again every few seconds while open, so switching exit nodes in the
+Tailscale app shows up live. **Run test** measures latency, download and upload
+against `speed.cloudflare.com`, called straight from the browser (it sends
+`access-control-allow-origin: *`). Each run is a row with the exit, its size and
+hourly price, and how it compares with the latest direct run; once nodes of two
+sizes have been run, a line under the table prices the difference ("2.0× the
+speed for 1.8× the price, $3.00 more a month"). Runs are kept in this browser's
+`localStorage` (`yvpn.speed`), without the IP address. A run during which the
+exit changes is thrown away rather than blending two paths into one number.
+
+What it measures is the whole path: this device, its network, Tailscale (direct
+or through a DERP relay), the node and its datacenter. That is the speed anyone
+actually gets, so it is the right number to compare, but it is a number for
+this connection, not a datasheet figure for the droplet.
 
 ## Creating a node happens in the table
 

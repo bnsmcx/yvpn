@@ -63,8 +63,9 @@ type Datacenter struct {
 // usable reports whether a size can run a node: big enough for what the node
 // will run (and for the image), and a plain CPU droplet. GPU droplets need
 // their own images and cost dollars an hour.
-func usable(s godo.Size, minDisk int, needs addons.Needs) bool {
+func usable(s godo.Size, minDisk int, needs addons.Needs, premium bool) bool {
 	return s.Available &&
+		(!premium || Premium(s.Slug)) &&
 		s.Memory >= needs.MemoryMB &&
 		s.Vcpus >= needs.VCPUs &&
 		s.Disk >= max(minDisk, needs.DiskGB) &&
@@ -72,11 +73,19 @@ func usable(s godo.Size, minDisk int, needs addons.Needs) bool {
 		!strings.Contains(strings.ToUpper(s.Description), "GPU")
 }
 
+// Premium reports whether a size is one of DigitalOcean's premium Basic
+// droplets: newer AMD or Intel CPUs (and NVMe). An exit node's throughput
+// follows its CPU, since tailscaled encrypts every packet it forwards.
+func Premium(slug string) bool {
+	return strings.HasSuffix(slug, "-amd") || strings.HasSuffix(slug, "-intel")
+}
+
 // FetchDatacenters lists every region a node running addon ("" for a plain
 // exit node) can be created in, sorted by slug, each with the cheapest size
-// there that is big enough for it. Regions without one (no such size, or no
-// Ubuntu image) are left out rather than failing later at create time.
-func FetchDatacenters(token, addon string) ([]Datacenter, error) {
+// there that is big enough for it, and premium when premium is set. Regions
+// without one (no such size, or no Ubuntu image) are left out rather than
+// failing later at create time.
+func FetchDatacenters(token, addon string, premium bool) ([]Datacenter, error) {
 	a, ok := addons.Lookup(addon)
 	if !ok {
 		return nil, fmt.Errorf("no add-on called %q; there is %s", addon, strings.Join(addons.IDs(), ", "))
@@ -98,11 +107,11 @@ func FetchDatacenters(token, addon string) ([]Datacenter, error) {
 		return nil, err
 	}
 
-	return pickDatacenters(regions, sizes, img, a.Needs), nil
+	return pickDatacenters(regions, sizes, img, a.Needs, premium), nil
 }
 
 // pickDatacenters is FetchDatacenters without the API calls.
-func pickDatacenters(regions []godo.Region, sizes []godo.Size, img *godo.Image, needs addons.Needs) []Datacenter {
+func pickDatacenters(regions []godo.Region, sizes []godo.Size, img *godo.Image, needs addons.Needs, premium bool) []Datacenter {
 	var datacenters []Datacenter
 	for _, r := range regions {
 		if !r.Available || !slices.Contains(img.Regions, r.Slug) {
@@ -110,7 +119,7 @@ func pickDatacenters(regions []godo.Region, sizes []godo.Size, img *godo.Image, 
 		}
 		var best *godo.Size
 		for i, s := range sizes {
-			if !usable(s, img.MinDiskSize, needs) || !slices.Contains(s.Regions, r.Slug) {
+			if !usable(s, img.MinDiskSize, needs, premium) || !slices.Contains(s.Regions, r.Slug) {
 				continue
 			}
 			if best == nil || s.PriceHourly < best.PriceHourly {
@@ -139,6 +148,7 @@ func pickDatacenters(regions []godo.Region, sizes []godo.Size, img *godo.Image, 
 type Options struct {
 	Addon   string // catalog ID, or "" for a plain exit node
 	Exit    bool   // advertise it as an exit node
+	Premium bool   // the cheapest premium (AMD/Intel) size rather than the cheapest
 	Version string // the yVPN release its add-on agent is downloaded from
 }
 
@@ -155,7 +165,7 @@ func Create(token, tailscaleAuth, datacenter string, opts Options) (string, int,
 	if opts.Addon == "" && !opts.Exit {
 		return "", 0, fmt.Errorf("a node with no add-on has to be an exit node")
 	}
-	datacenters, err := FetchDatacenters(token, opts.Addon)
+	datacenters, err := FetchDatacenters(token, opts.Addon, opts.Premium)
 	if err != nil {
 		return "", 0, err
 	}

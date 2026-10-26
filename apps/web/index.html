@@ -513,6 +513,35 @@ dialog {
   & .row.ok { color: var(--ok); text-shadow: 0 0 9px var(--ok-glow); }
 }
 
+/* ================= speed test ================= */
+
+#dlg-speed {
+  width: min(760px, calc(100vw - 32px));
+  & .dlg-foot .spacer { flex: 1; }
+  & .dlg-label { margin-top: 4px; }
+}
+.sp-exit {
+  border: 1px solid var(--line); background: var(--inset); padding: 10px 12px; margin-bottom: 14px;
+  font-size: 12px; line-height: 1.6;
+  & .where { color: var(--muted); font-size: 11px; }
+}
+.sp-live {
+  font-size: 11.5px; color: var(--muted); min-height: 1.6em; margin: -6px 0 10px;
+  font-variant-numeric: tabular-nums;
+  & b { color: var(--amber); text-shadow: 0 0 9px var(--glow-c); }
+}
+.sp-runs {
+  border: 1px solid var(--line); background: var(--inset); max-height: 260px; overflow-y: auto;
+  margin-bottom: 8px;
+  & th, & td { padding: 7px 10px; font-size: 11.5px; }
+  & tbody tr { cursor: default; }
+  & .better { color: var(--ok); }
+  & .worse { color: var(--danger); }
+  & > p { padding: 10px 12px; margin: 0; }
+}
+#sp-sum { line-height: 1.6; margin: 0; & b { color: var(--text); } }
+@media (max-width: 560px) { .sp-runs .col-wide { display: none; } }
+
 /* ================= add-ons ================= */
 
 /* The create dialog's two questions: what the node runs, then where. */
@@ -569,8 +598,8 @@ dialog {
 .picklist input[name]:checked ~ .fold, .fold.open { grid-template-rows: 1fr; opacity: 1; }
 .pick-more { display: block; padding: 0 12px 9px 30px; font-size: 11px; line-height: 1.6; color: var(--muted); }
 
-#addons .pick-row { grid-template-columns: minmax(0, 1fr) auto; }
-#addons { margin-bottom: 16px; }
+#addons .pick-row, #cpu .pick-row { grid-template-columns: minmax(0, 1fr) auto; }
+#addons, #cpu { margin-bottom: 16px; }
 
 /* The datacenter list reads like the node table: a header, then a row each. */
 #regions {
@@ -589,7 +618,7 @@ dialog {
 @media (max-width: 560px) {
   #regions .pick-row, #regions .pick-head { grid-template-columns: 4.5em minmax(0, 1fr) 5.5em; }
   #regions .col-size { display: none; }   /* the open row names it */
-  #addons .pick-row { grid-template-columns: minmax(0, 1fr); }
+  #addons .pick-row, #cpu .pick-row { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* What a node runs, beside its name in the table. */
@@ -799,8 +828,9 @@ code { font-family: var(--mono); color: var(--text); }
 <header class="rail">
   <span class="screw"></span>
   <span class="brand">yVPN</span>
-  <span class="stamp-dim ver" id="ver-header">v0.6.2</span>
+  <span class="stamp-dim ver" id="ver-header">v0.7.0</span>
   <span class="spacer"></span>
+  <button id="btn-speed" title="Speed test (s)">speed test</button>
   <button id="btn-guide" title="Getting started">guide</button>
   <button id="btn-help" popovertarget="help" title="Keyboard shortcuts (?)" aria-label="Help">?</button>
   <button id="btn-logout" class="hidden">sign out</button>
@@ -945,7 +975,7 @@ code { font-family: var(--mono); color: var(--text); }
     <span><span class="cap">?</span><span class="stamp">help</span></span>
   </span>
   <span class="spacer"></span>
-  <span class="stamp-dim ver" id="ver-footer">v0.6.2</span>
+  <span class="stamp-dim ver" id="ver-footer">v0.7.0</span>
   <span class="display">
     <span class="stamp" id="display-label">display</span>
     <span class="sel" role="group" aria-labelledby="display-label" id="display-sel">
@@ -976,6 +1006,16 @@ code { font-family: var(--mono); color: var(--text); }
             with nothing else on it has nothing else to do.</span></span></span>
         </label>
         <div id="addon-rows"></div>
+      </div>
+      <h3 class="dlg-label">CPU</h3>
+      <div id="cpu" class="picklist" role="group" aria-label="CPU">
+        <label>
+          <input type="checkbox" id="premium" name="premium">
+          <span class="pick-row"><b>Premium CPU</b><i>newer AMD or Intel, for a few dollars more a month</i></span>
+          <span class="fold"><span><span class="pick-more">An exit node's speed follows its CPU: Tailscale
+            encrypts every packet the node forwards. Regions that sell no premium droplet drop out of
+            the list. <b>Speed test</b> on the top rail measures the difference.</span></span></span>
+        </label>
       </div>
       <h3 class="dlg-label">Datacenter <span class="hint" id="size-hint"></span></h3>
       <div id="regions" class="picklist" role="radiogroup" aria-label="Datacenter"></div>
@@ -1139,6 +1179,32 @@ code { font-family: var(--mono); color: var(--text); }
   </form>
 </dialog>
 
+<dialog id="dlg-speed">
+  <form method="dialog">
+    <div class="dlg-head">
+      <h2>Speed test</h2>
+      <p class="sub">Measures this browser's connection, through whatever exit it is using right now,
+        against Cloudflare's speed test (<code>speed.cloudflare.com</code>). Run it once with no exit
+        node, then pick one of your nodes in the Tailscale app and run it again: each run is a row
+        below, with how it compares to going direct. Nothing is sent there until you open this.</p>
+    </div>
+    <div class="dlg-body">
+      <h3 class="dlg-label">Leaving from <span class="hint">checked every few seconds while this is open</span></h3>
+      <div class="sp-exit" id="sp-exit" aria-live="polite"><span class="pill busy">looking…</span></div>
+      <div class="sp-live" id="sp-live" aria-live="polite"></div>
+      <h3 class="dlg-label">Runs <span class="hint">kept in this browser</span></h3>
+      <div class="tablewrap sp-runs" id="sp-runs"></div>
+      <p class="small muted" id="sp-sum"></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="ghost" id="btn-speed-clear">Clear runs</button>
+      <span class="spacer"></span>
+      <button value="close" class="ghost">Close</button>
+      <button type="button" class="primary" id="btn-speed-run">Run test</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlg-delete">
   <form method="dialog">
     <div class="dlg-head">
@@ -1165,6 +1231,7 @@ code { font-family: var(--mono); color: var(--text); }
     <dt>n</dt><dd>New node</dd>
     <dt>d</dt><dd>Delete selected node</dd>
     <dt>r</dt><dd>Refresh</dd>
+    <dt>s</dt><dd>Speed test</dd>
     <dt>j k / ↓ ↑</dt><dd>Move selection</dd>
     <dt>Enter / o</dt><dd>Open the selected node's details</dd>
     <dt>?</dt><dd>This panel</dd>
@@ -1194,7 +1261,7 @@ code { font-family: var(--mono); color: var(--text); }
 
 // Single source of truth for the version stamped on the console. The release
 // workflow checks this against the tag, so a tagged build can't ship stale.
-const VERSION = "0.6.2";
+const VERSION = "0.7.0";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
 // What every node boots. Not every region carries it, and it sets a floor on disk.
@@ -1399,6 +1466,11 @@ const CI_FILES_NODE = `  - path: /etc/yvpn/node.json
       {{NODE_CONFIG}}
 `;
 const CI_RUN_EXIT = `  - sysctl --system
+  # Tailscale's advice for every Linux exit node: let the kernel batch forwarded
+  # UDP (GRO) on the public interface. Forwarding then costs far less CPU, which
+  # on a one-core droplet is what caps throughput. If the NIC can't, ethtool
+  # just says so and the boot carries on.
+  - ethtool -K "$(ip -o route get 8.8.8.8 | cut -f 5 -d ' ')" rx-udp-gro-forwarding on rx-gro-list off
 `;
 const CI_RUN_TAILSCALE = `  # The static tarball, rather than install.sh: no apt repo, no apt-get update,
   # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches every
@@ -1450,11 +1522,15 @@ function cloudInit(p) {
 
 /* ---------------------------- end of parity ---------------------------- */
 
+// Premium Basic droplets: newer AMD or Intel CPUs. Same test as the CLI's.
+const isPremium = (slug) => /-(amd|intel)$/.test(slug);
+
 // A size can run a node if it's big enough for what the node runs (and for the
 // image), and a plain CPU droplet: GPU droplets need their own images and cost
-// dollars an hour.
-const usableSize = (s, minDisk, needs) =>
-  s.available && s.memory >= needs.memoryMB && (s.vcpus ?? 1) >= needs.vcpus &&
+// dollars an hour. With premium, only the AMD and Intel sizes count.
+const usableSize = (s, minDisk, needs, premium) =>
+  s.available && (!premium || isPremium(s.slug)) &&
+  s.memory >= needs.memoryMB && (s.vcpus ?? 1) >= needs.vcpus &&
   s.disk >= Math.max(minDisk, needs.diskGB) &&
   !s.slug.startsWith("gpu-") && !/gpu/i.test(s.description || "");
 
@@ -1470,14 +1546,14 @@ async function fetchCatalogue() {
 }
 
 // Every region a node running `addon` can be created in, each with the
-// cheapest size it sells that is big enough. Regions without one (no such
-// size, or no Ubuntu image) are left out rather than failing at create time.
-// Same rules as the CLI.
-function datacentersFor(cat, addon) {
+// cheapest size it sells that is big enough (and premium, if asked). Regions
+// without one (no such size, or no Ubuntu image) are left out rather than
+// failing at create time. Same rules as the CLI.
+function datacentersFor(cat, addon, premium = false) {
   if (!cat) return [];
   const needs = addonInfo(addon).needs;
   const img = cat.image;
-  const sizes = cat.sizes.filter((x) => usableSize(x, img.min_disk_size || 0, needs));
+  const sizes = cat.sizes.filter((x) => usableSize(x, img.min_disk_size || 0, needs, premium));
   return cat.regions
     .filter((x) => x.available && (img.regions || []).includes(x.slug))
     .map((x) => {
@@ -2710,6 +2786,304 @@ for (const type of ["dragover", "drop"]) {
   });
 }
 
+/* ----------------------------- speed test ----------------------------- */
+/* The page's own A/B test: where this browser's traffic leaves from, and how
+   fast it goes, run once direct and once through a node. Cloudflare's speed
+   test endpoints send `access-control-allow-origin: *` and expose the headers
+   this needs, so the browser calls them directly, and only while the dialog
+   is open. What it measures is the whole path (this device, its network, the
+   node, the node's datacenter), which is the speed anyone actually gets. */
+
+const SPEED = "https://speed.cloudflare.com";
+const SPEED_KEY = "yvpn.speed";          // past runs; a convenience, kept per browser
+const SPEED_RUNS_MAX = 50;
+const EXIT_POLL_MS = 4000;
+const PING_COUNT = 8;
+// Each direction escalates its transfer size until one takes about a second,
+// and stops at whichever comes first of the time and the data budget.
+const SPEED_LEGS = {
+  down: { budgetMs: 7000, maxBytes: 200e6, maxSize: 100e6 },
+  up:   { budgetMs: 6000, maxBytes: 60e6,  maxSize: 25e6 },
+};
+
+const speed = { exit: null, exitErr: "", timer: null, ctrl: null, live: "", runs: loadRuns() };
+
+function loadRuns() {
+  try { return JSON.parse(localStorage.getItem(SPEED_KEY)) || []; } catch { return []; }
+}
+function saveRuns() {
+  try { localStorage.setItem(SPEED_KEY, JSON.stringify(speed.runs.slice(-SPEED_RUNS_MAX))); } catch {}
+}
+
+const sfetch = (path, opts = {}) => fetch(SPEED + path, { cache: "no-store", ...opts });
+
+// The address Cloudflare sees this browser at, and roughly where that is.
+async function whereAmI(signal) {
+  const res = await sfetch("/cdn-cgi/trace", { signal });
+  const kv = {};
+  for (const line of (await res.text()).split("\n")) {
+    const i = line.indexOf("=");
+    if (i > 0) kv[line.slice(0, i)] = line.slice(i + 1);
+  }
+  if (!kv.ip) throw new Error("no address in Cloudflare's answer");
+  return { ip: kv.ip, country: kv.loc, colo: kv.colo };
+}
+
+// Which of your nodes, if any, has that address. Anything else is either no
+// exit node at all, or an exit node yVPN didn't make.
+function nodeAt(ip) {
+  const want = ip.toLowerCase();
+  return state.nodes.find((d) =>
+    [...(d.networks?.v4 || []), ...(d.networks?.v6 || [])]
+      .some((n) => n.type === "public" && n.ip_address?.toLowerCase() === want));
+}
+
+function describeExit(w) {
+  const d = nodeAt(w.ip);
+  return d
+    ? { kind: "node", node: d.name, region: d.region?.slug, size: d.size?.slug,
+        price: d.size?.price_hourly, ip: w.ip, country: w.country, colo: w.colo }
+    : { kind: "direct", ip: w.ip, country: w.country, colo: w.colo };
+}
+
+const countryName = (cc) => {
+  try { return new Intl.DisplayNames(undefined, { type: "region" }).of(cc); } catch { return cc; }
+};
+const exitLabel = (x) => x.kind === "node" ? x.node : "direct";
+
+async function checkExit() {
+  try {
+    speed.exit = describeExit(await whereAmI());
+    speed.exitErr = "";
+  } catch (e) {
+    speed.exit = null;
+    speed.exitErr = "Couldn't reach speed.cloudflare.com: " + (e.message || e);
+  }
+  paintExit();
+}
+
+function paintExit() {
+  const x = speed.exit;
+  if (!x) {
+    $("#sp-exit").innerHTML = speed.exitErr
+      ? `<span class="pill bad">${esc(speed.exitErr)}</span>`
+      : `<span class="pill busy">looking…</span>`;
+    return;
+  }
+  const where = [x.country && countryName(x.country), x.colo && `Cloudflare ${x.colo}`].filter(Boolean).join(" · ");
+  $("#sp-exit").innerHTML = x.kind === "node"
+    ? `<span class="pill ok">through <b>${esc(x.node)}</b></span>
+       <div class="where">${esc(x.ip)} · ${esc(x.region || "?")} · ${esc(x.size || "?")}` +
+      `${x.price ? ` · $${x.price.toFixed(4)}/hr` : ""} · ${esc(where)}</div>`
+    : `<span class="pill warn">not through any of your nodes</span>
+       <div class="where">${esc(x.ip)} · ${esc(where)}. No exit node is selected in Tailscale, or
+       it is one yVPN didn't make${state.nodes.length ? "" : " (sign in to match your nodes)"}.</div>`;
+}
+
+const median = (xs) => {
+  const s = [...xs].sort((a, b) => a - b);
+  return s.length ? s[Math.floor((s.length - 1) / 2)] : NaN;
+};
+const p90 = (xs) => {
+  const s = [...xs].sort((a, b) => a - b);
+  return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * 0.9))] : NaN;
+};
+const mbps = (bytes, ms) => (bytes * 8) / ms / 1000;
+
+// Time the Worker behind the endpoint spent, which is not network.
+function serverMs(res) {
+  const m = /cfSpeedWorker;dur=([\d.]+)/.exec(res.headers.get("server-timing") || "");
+  return m ? Number(m[1]) : 0;
+}
+
+// The browser's own timing of the request (Cloudflare sends timing-allow-origin)
+// leaves out its queueing and fetch overhead; wall time is the fallback.
+let pingSeq = 0;
+async function pingOnce(signal) {
+  const path = `/__down?bytes=0&p=${++pingSeq}`;
+  const t = performance.now();
+  const res = await sfetch(path, { signal });
+  await res.arrayBuffer();
+  const wall = performance.now() - t;
+  const rt = performance.getEntriesByName(SPEED + path).pop();
+  const ms = rt?.responseStart > 0 ? rt.responseStart - rt.requestStart : wall;
+  return Math.max(0.1, ms - serverMs(res));
+}
+
+// Timed from the response's headers to its last byte, so the round trip and
+// the server's own time are left out.
+async function downOnce(bytes, signal) {
+  const res = await sfetch(`/__down?bytes=${bytes}`, { signal });
+  if (!res.ok) throw new Error(`download answered ${res.status}`);
+  const t = performance.now();
+  // Read and drop: a 100 MB transfer need not sit in memory.
+  const rd = res.body.getReader();
+  while (!(await rd.read()).done);
+  return performance.now() - t;
+}
+
+let upBuf = null;
+async function upOnce(bytes, signal, rtt) {
+  if (!upBuf || upBuf.length < bytes) upBuf = new Uint8Array(SPEED_LEGS.up.maxSize);
+  const t = performance.now();
+  const res = await sfetch("/__up", { method: "POST", body: upBuf.subarray(0, bytes), signal });
+  if (!res.ok) throw new Error(`upload answered ${res.status}`);
+  await res.arrayBuffer();
+  return Math.max(1, performance.now() - t - rtt);
+}
+
+// One direction: escalate from 100 kB, ×4 while a transfer takes under a
+// second. Short transfers never leave TCP's slow start, so only those that
+// ran a while count, and the 90th percentile of them is the result.
+async function leg(kind, once, signal) {
+  const L = SPEED_LEGS[kind];
+  const t0 = performance.now();
+  const all = [], long = [];
+  let size = 1e5, sent = 0;
+  while (performance.now() - t0 < L.budgetMs && sent + size <= L.maxBytes) {
+    const ms = await once(size, signal);
+    sent += size;
+    const rate = mbps(size, ms);
+    all.push(rate);
+    if (ms >= 250) long.push(rate);
+    speed.live = `${kind === "down" ? "Download" : "Upload"} <b>${rate.toFixed(0)} Mbps</b> · ${fmtBytes(sent)} so far`;
+    paintLive();
+    if (ms < 1000) size = Math.min(size * 4, L.maxSize);
+  }
+  return p90(long.length ? long : all);
+}
+
+async function runSpeed() {
+  if (speed.ctrl) { speed.ctrl.abort(); return; }
+  const ctrl = new AbortController();
+  speed.ctrl = ctrl;
+  const btn = $("#btn-speed-run");
+  btn.textContent = "Stop";
+  try {
+    speed.live = "Finding the exit…"; paintLive();
+    const before = describeExit(await whereAmI(ctrl.signal));
+    speed.exit = before; paintExit();
+
+    speed.live = "Latency…"; paintLive();
+    await pingOnce(ctrl.signal);       // opens the connection; not counted
+    const pings = [];
+    for (let i = 0; i < PING_COUNT; i++) pings.push(await pingOnce(ctrl.signal));
+    const latency = median(pings);
+
+    const down = await leg("down", (n, s) => downOnce(n, s), ctrl.signal);
+    const up = await leg("up", (n, s) => upOnce(n, s, latency), ctrl.signal);
+
+    // Switching exit nodes mid-run would blend two paths into one number.
+    const after = describeExit(await whereAmI(ctrl.signal));
+    if (after.ip !== before.ip) {
+      speed.live = "The exit changed during the run, so it wasn't kept. Run it again.";
+      speed.exit = after; paintExit();
+      return;
+    }
+    speed.runs.push({ at: Date.now(), ...before, ip: undefined, latency, down, up });
+    saveRuns();
+    speed.live = `Done: <b>${down.toFixed(0)} Mbps</b> down, <b>${up.toFixed(0)} Mbps</b> up, ${latency.toFixed(0)} ms.` +
+      (before.kind === "direct" ? " Now pick a node in Tailscale and run it again." : "");
+    paintRuns();
+  } catch (e) {
+    speed.live = e.name === "AbortError" ? "Stopped." : "The test failed: " + esc(e.message || e);
+  } finally {
+    speed.ctrl = null;
+    btn.textContent = "Run test";
+    paintLive();
+  }
+}
+
+function paintLive() { $("#sp-live").innerHTML = speed.live; }
+
+// Each run against the latest direct run before it: what going through that
+// node costs (or gains) on this connection.
+function baselineFor(i) {
+  for (let j = i; j >= 0; j--) if (speed.runs[j].kind === "direct") return speed.runs[j];
+  return speed.runs.find((r) => r.kind === "direct");
+}
+
+function delta(v, base, higherIsBetter = true) {
+  if (!base || !isFinite(v) || !isFinite(base) || base <= 0) return "";
+  const pct = Math.round((v / base - 1) * 100);
+  const good = higherIsBetter ? pct >= 0 : pct <= 0;
+  return ` <span class="${good ? "better" : "worse"}">${pct >= 0 ? "+" : ""}${pct}%</span>`;
+}
+
+function paintRuns() {
+  const runs = speed.runs;
+  if (!runs.length) {
+    $("#sp-runs").innerHTML = `<p class="muted small">No runs yet. Press <b>Run test</b>.</p>`;
+    $("#sp-sum").innerHTML = "";
+    return;
+  }
+  const rows = runs.map((r, i) => {
+    const base = r.kind === "node" ? baselineFor(i) : null;
+    return `<tr>
+      <td class="dim">${esc(new Date(r.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))}</td>
+      <td class="name">${esc(exitLabel(r))}</td>
+      <td class="dim col-wide">${esc(r.kind === "node" ? r.size : DASH)}</td>
+      <td class="num col-wide">${r.price ? "$" + r.price.toFixed(4) : DASH}</td>
+      <td class="num">${r.latency.toFixed(0)} ms${delta(r.latency, base?.latency, false)}</td>
+      <td class="num">${r.down.toFixed(0)}${delta(r.down, base?.down)}</td>
+      <td class="num">${r.up.toFixed(0)}${delta(r.up, base?.up)}</td>
+    </tr>`;
+  }).reverse().join("");
+  $("#sp-runs").innerHTML = `<table>
+    <thead><tr><th>When</th><th>Exit</th><th class="col-wide">Size</th><th class="num col-wide">$/hr</th>
+      <th class="num">Latency</th><th class="num">Down Mbps</th><th class="num">Up Mbps</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+  $("#sp-sum").innerHTML = priceSummary();
+}
+
+// What a faster droplet bought, from runs on this connection rather than a
+// datasheet: the median download per size, set against the cheapest size run.
+function priceSummary() {
+  const bySize = new Map();
+  for (const r of speed.runs) {
+    if (r.kind !== "node" || !r.size || !r.price) continue;
+    const s = bySize.get(r.size) || { size: r.size, price: r.price, downs: [] };
+    s.downs.push(r.down);
+    bySize.set(r.size, s);
+  }
+  const sizes = [...bySize.values()].map((s) => ({ ...s, down: median(s.downs) }))
+    .sort((a, b) => a.price - b.price);
+  if (sizes.length < 2) {
+    return sizes.length
+      ? "Run a node of another size (a premium CPU, say) to see what more money buys on this connection."
+      : "";
+  }
+  const [cheap, ...rest] = sizes;
+  return "On this connection: " + rest.map((s) =>
+    `<b>${esc(s.size)}</b> downloads at ${(s.down / cheap.down).toFixed(1)}× the speed of ` +
+    `<b>${esc(cheap.size)}</b> for ${(s.price / cheap.price).toFixed(1)}× the price ` +
+    `($${((s.price - cheap.price) * MONTHLY_CAP_HOURS).toFixed(2)} more a month, left on)`).join("; ") + ".";
+}
+
+function openSpeed() {
+  const dlg = $("#dlg-speed");
+  if (dlg.open) return;
+  paintExit();
+  paintLive();
+  paintRuns();
+  dlg.showModal();
+  checkExit();
+  speed.timer = setInterval(() => { if (!speed.ctrl) checkExit(); }, EXIT_POLL_MS);
+}
+
+$("#btn-speed").addEventListener("click", openSpeed);
+$("#btn-speed-run").addEventListener("click", runSpeed);
+$("#btn-speed-clear").addEventListener("click", () => {
+  speed.runs = [];
+  saveRuns();
+  paintRuns();
+});
+$("#dlg-speed").addEventListener("close", () => {
+  clearInterval(speed.timer);
+  speed.timer = null;
+  speed.ctrl?.abort();
+});
+
 /* ------------------------------- loading ------------------------------ */
 
 // A create in flight refreshes on its own schedule, so several of these can now
@@ -2800,9 +3174,11 @@ function renderExitChoice() {
 
 function renderRegions() {
   const prev = $("#regions input:checked")?.value;
-  state.regions = datacentersFor(state.catalogue, pickedAddon);
+  const premium = $("#premium").checked;
+  state.regions = datacentersFor(state.catalogue, pickedAddon, premium);
   const keep = state.regions.some((r) => r.slug === prev) ? prev : state.regions[0]?.slug;
-  $("#size-hint").textContent = pickedAddon ? "priced for " + addonInfo(pickedAddon).name : "";
+  const priced = [pickedAddon && addonInfo(pickedAddon).name, premium && "a premium CPU"].filter(Boolean);
+  $("#size-hint").textContent = priced.length ? "priced for " + priced.join(" on ") : "";
   const rows = state.regions.map((r) => `
     <label class="region">
       <input type="radio" name="region" value="${esc(r.slug)}" ${r.slug === keep ? "checked" : ""}>
@@ -2811,7 +3187,7 @@ function renderRegions() {
     </label>`).join("");
   $("#regions").innerHTML = rows
     ? `<div class="pick-head"><span>Slug</span><span>Location</span><span class="col-size">Size</span><span class="num">Price</span></div>` + rows
-    : `<p class="muted small">No datacenters available${pickedAddon ? " for this add-on" : ""}.</p>`;
+    : `<p class="muted small">No datacenters available${pickedAddon ? " for this add-on" : ""}${premium ? " with a premium CPU" : ""}.</p>`;
 }
 
 // What the open datacenter row says: the droplet it will get, and what it bills.
@@ -2827,6 +3203,8 @@ $("#regions").addEventListener("change", (e) => {
   const row = e.target.closest("label");
   setTimeout(() => row?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 260);
 });
+
+$("#premium").addEventListener("change", renderRegions);
 
 $("#addons").addEventListener("change", (e) => {
   if (e.target.name !== "addon") return;
@@ -3252,6 +3630,7 @@ document.addEventListener("keydown", (e) => {
     case "n": openCreate(); break;
     case "d": if (state.selected != null) $("#btn-delete").click(); break;
     case "r": refresh(); break;
+    case "s": openSpeed(); break;
     case "?": $("#help").togglePopover(); break;
     case "j":
     case "ArrowDown":

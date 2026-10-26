@@ -50,7 +50,7 @@ func handleFetchTSKey(tailscaleAPI string) {
 }
 
 func handleFetchDatacenters(digitalOceanToken string) {
-	datacenters, err := digital_ocean.FetchDatacenters(digitalOceanToken, "")
+	datacenters, err := digital_ocean.FetchDatacenters(digitalOceanToken, "", false)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

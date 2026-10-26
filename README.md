@@ -101,6 +101,9 @@ yvpn datacenters
 # Create a new exit node
 yvpn create nyc1
 
+# Create an exit node on a premium (AMD/Intel) CPU: faster, a few dollars more a month
+yvpn create nyc1 --premium
+
 # Create a node that runs Jellyfin for a watch party, and isn't an exit node
 yvpn create nyc1 --addon jellyfin --no-exit
 
