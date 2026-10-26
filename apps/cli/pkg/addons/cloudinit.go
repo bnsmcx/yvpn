@@ -34,6 +34,11 @@ vendor_data:
       {{NODE_CONFIG}}
 `
 	ciRunExit = `  - sysctl --system
+  # Tailscale's advice for every Linux exit node: let the kernel batch forwarded
+  # UDP (GRO) on the public interface. Forwarding then costs far less CPU, which
+  # on a one-core droplet is what caps throughput. If the NIC can't, ethtool
+  # just says so and the boot carries on.
+  - ethtool -K "$(ip -o route get 8.8.8.8 | cut -f 5 -d ' ')" rx-udp-gro-forwarding on rx-gro-list off
 `
 	ciRunTailscale = `  # The static tarball, rather than install.sh: no apt repo, no apt-get update,
   # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches every

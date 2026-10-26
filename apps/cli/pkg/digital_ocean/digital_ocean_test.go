@@ -46,7 +46,7 @@ func TestPickDatacenters(t *testing.T) {
 	img := &godo.Image{MinDiskSize: 7, Regions: []string{"nyc1", "mem1", "lon1", "atl1"}}
 
 	plain, _ := addons.Lookup("")
-	got := pickDatacenters(regions, sizes, img, plain.Needs)
+	got := pickDatacenters(regions, sizes, img, plain.Needs, false)
 	want := []Datacenter{
 		{Slug: "mem1", Name: "Memphis 1", Size: "s-1vcpu-2gb", PriceHourly: 0.018},
 		{Slug: "nyc1", Name: "New York 1", Size: "s-1vcpu-512mb-10gb", PriceHourly: 0.006},
@@ -78,8 +78,33 @@ func TestPickDatacentersForAddon(t *testing.T) {
 	img := &godo.Image{MinDiskSize: 7, Regions: []string{"nyc1", "lon1"}}
 	jf, _ := addons.Lookup("jellyfin")
 
-	got := pickDatacenters(regions, sizes, img, jf.Needs)
+	got := pickDatacenters(regions, sizes, img, jf.Needs, false)
 	want := []Datacenter{{Slug: "nyc1", Name: "New York 1", Size: "s-2vcpu-4gb", PriceHourly: 0.036}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got  %+v\nwant %+v", got, want)
+	}
+}
+
+// Premium keeps to the AMD and Intel sizes, cheapest first, and drops regions
+// that sell none.
+func TestPickDatacentersPremium(t *testing.T) {
+	regions := []godo.Region{
+		{Slug: "nyc1", Name: "New York 1", Available: true},
+		{Slug: "lon1", Name: "London 1", Available: true},
+	}
+	sizes := []godo.Size{
+		{Slug: "s-1vcpu-512mb-10gb", Memory: 512, Vcpus: 1, Disk: 10, PriceHourly: 0.006, Available: true,
+			Regions: []string{"nyc1", "lon1"}},
+		{Slug: "s-1vcpu-1gb-intel", Memory: 1024, Vcpus: 1, Disk: 25, PriceHourly: 0.0119, Available: true,
+			Regions: []string{"nyc1"}},
+		{Slug: "s-1vcpu-1gb-amd", Memory: 1024, Vcpus: 1, Disk: 25, PriceHourly: 0.0104, Available: true,
+			Regions: []string{"nyc1"}},
+	}
+	img := &godo.Image{MinDiskSize: 7, Regions: []string{"nyc1", "lon1"}}
+	plain, _ := addons.Lookup("")
+
+	got := pickDatacenters(regions, sizes, img, plain.Needs, true)
+	want := []Datacenter{{Slug: "nyc1", Name: "New York 1", Size: "s-1vcpu-1gb-amd", PriceHourly: 0.0104}}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got  %+v\nwant %+v", got, want)
 	}

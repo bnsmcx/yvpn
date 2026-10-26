@@ -67,6 +67,9 @@ const SIZES = [
     price_monthly: 24, transfer: 4, regions: ['nyc1', 'fra1', 'mem1'] },
   { slug: 's-1vcpu-2gb', memory: 2048, vcpus: 1, disk: 50, price_hourly: 0.01786, available: true,
     price_monthly: 12, transfer: 2, regions: ['nyc1', 'fra1', 'mem1'] },
+  // A premium CPU, sold in two regions only.
+  { slug: 's-1vcpu-1gb-amd', memory: 1024, vcpus: 1, disk: 25, price_hourly: 0.01042, available: true,
+    price_monthly: 7, transfer: 1, regions: ['nyc1', 'fra1'] },
   // Memory enough for Jellyfin, one core, and cheaper than s-2vcpu-4gb: not enough.
   { slug: 'm-1vcpu-8gb', memory: 8192, vcpus: 1, disk: 25, price_hourly: 0.03, available: true,
     price_monthly: 20, transfer: 4, regions: ['nyc1', 'fra1', 'sfo3'] },
@@ -90,6 +93,23 @@ const browser = await chromium.launch();
 const page = await browser.newPage();
 page.on('console', (m) => log.push(`[console.${m.type()}] ${m.text()}`));
 page.on('pageerror', (e) => { log.push(`[pageerror] ${e.message}`); check('no page errors', false, e.message); });
+
+// ---------- Cloudflare's speed test mock ----------
+// The address the page appears at, as the speed test reports it; tests move
+// it onto a node's public IP to stand for picking that exit node.
+let speedIp = '198.51.100.7';
+await page.route('https://speed.cloudflare.com/**', async (route) => {
+  const req = route.request();
+  const url = new URL(req.url());
+  const headers = { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'server-timing',
+    'server-timing': 'cfSpeedEdge;dur=1, cfSpeedWorker;dur=2' };
+  if (url.pathname === '/cdn-cgi/trace')
+    return route.fulfill({ status: 200, headers, body: `fl=1\nh=speed.cloudflare.com\nip=${speedIp}\nloc=DE\ncolo=FRA\n` });
+  if (url.pathname === '/__down')
+    return route.fulfill({ status: 200, headers, body: Buffer.alloc(Number(url.searchParams.get('bytes')) || 0) });
+  if (url.pathname === '/__up') return route.fulfill({ status: 200, headers, body: '' });
+  return route.fulfill({ status: 404, headers, body: '' });
+});
 
 // ---------- DigitalOcean mock ----------
 await page.route('https://api.digitalocean.com/**', async (route) => {
@@ -573,8 +593,71 @@ await page.click('#btn-new');
 await page.waitForSelector('#dlg-create[open]');
 check('Create is armed when the dialog reopens', !(await page.isDisabled('#btn-create-go')));
 check('region picker visible again', await page.isVisible('#regions'));
+
+// --- a premium CPU narrows the regions to those selling one ---
+check('a premium CPU is not the default', !(await page.isChecked('#premium')));
+await page.click('#cpu .pick-row');
+{
+  const regions = await page.$$eval('#regions .region b', (els) => els.map((e) => e.textContent));
+  check('premium keeps only the regions that sell it', JSON.stringify(regions) === JSON.stringify(['fra1', 'nyc1']), regions.join(','));
+  check('premium picks the AMD/Intel size', (await page.textContent('#regions .region:has-text("nyc1")')).includes('s-1vcpu-1gb-amd'));
+  check('the dialog says it is priced for a premium CPU', /premium/.test(await page.textContent('#size-hint')));
+}
+await page.click('#cpu .pick-row');
+check('without premium, the cheapest size again', (await page.textContent('#regions .region:has-text("nyc1")')).includes('s-1vcpu-512mb-10gb'));
 await page.click('#btn-create-cancel');
 await page.waitForTimeout(300);
+
+// --- speed test: direct, then through the node, side by side ---
+{
+  const node = state.droplets[0];
+  const nodeIp = node.networks.v4.find((n) => n.type === 'public').ip_address;
+  await page.evaluate(() => {
+    localStorage.removeItem('yvpn.speed');
+    speed.runs = [];
+    // Mocked transfers are instant, so keep the escalation short.
+    Object.assign(SPEED_LEGS.down, { maxBytes: 3e6, maxSize: 1e6 });
+    Object.assign(SPEED_LEGS.up, { maxBytes: 3e6, maxSize: 1e6 });
+  });
+  await page.keyboard.press('s');
+  await page.waitForSelector('#dlg-speed[open]');
+  check('s opens the speed test', true);
+  await page.waitForFunction(() => /not through any of your nodes/.test(document.querySelector('#sp-exit').textContent), null, { timeout: 5000 });
+  check('a direct connection reads as not through a node', (await page.textContent('#sp-exit')).includes('198.51.100.7'));
+  check('no runs yet', /No runs yet/.test(await page.textContent('#sp-runs')));
+  await page.click('#btn-speed-run');
+  await page.waitForFunction(() => document.querySelectorAll('#sp-runs tbody tr').length === 1, null, { timeout: 15000 });
+  check('a run lands in the table', (await page.textContent('#sp-runs tbody tr')).includes('direct'));
+  check('a direct run says what to do next', /pick a node/.test(await page.textContent('#sp-live')));
+
+  speedIp = nodeIp;
+  await page.waitForFunction((n) => document.querySelector('#sp-exit').textContent.includes(n), node.name, { timeout: 8000 });
+  check('picking the node shows through it, live', (await page.textContent('#sp-exit')).includes('s-1vcpu-512mb-10gb'));
+  await page.click('#btn-speed-run');
+  await page.waitForFunction(() => document.querySelectorAll('#sp-runs tbody tr').length === 2, null, { timeout: 15000 });
+  const top = await page.textContent('#sp-runs tbody tr');
+  check('the node run is named and sized', top.includes(node.name) && top.includes('s-1vcpu-512mb-10gb'), top.replace(/\s+/g, ' '));
+  check('the node run is set against the direct one', /[+-]\d+%/.test(top));
+  check('runs are kept in this browser', (await page.evaluate(() => JSON.parse(localStorage.getItem('yvpn.speed')).length)) === 2);
+  check('runs keep no IP address', !(await page.evaluate(() => localStorage.getItem('yvpn.speed'))).includes(nodeIp));
+  check('one size run asks for another to compare', /another size/.test(await page.textContent('#sp-sum')));
+
+  // Two sizes: the summary prices the difference.
+  await page.evaluate(() => {
+    speed.runs.push({ ...speed.runs[1], at: Date.now(), size: 's-1vcpu-1gb-amd', price: 0.01042, down: speed.runs[1].down * 2 });
+    paintRuns();
+  });
+  check('two sizes are priced against each other', /2\.0× the speed of/.test(await page.textContent('#sp-sum')), await page.textContent('#sp-sum'));
+  await page.screenshot({ path: SHOTS + '/shot-speed.png' });
+
+  await page.click('#btn-speed-clear');
+  check('runs can be cleared', /No runs yet/.test(await page.textContent('#sp-runs')));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  check('the speed test closes', !(await page.evaluate(() => document.querySelector('#dlg-speed').open)));
+  check('it stops checking once closed', await page.evaluate(() => speed.timer === null));
+  speedIp = '198.51.100.7';
+}
 
 // --- keyboard: j/k and arrows / Esc / d ---
 const selected = async () => (await page.getAttribute('#nodes-body tr', 'aria-selected')) === 'true';

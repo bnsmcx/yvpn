@@ -53,6 +53,7 @@ func runCLI(args []string) {
 	a := parseArgs(args[1:])
 	jsonOutput := a.has("--json")
 	addon := a.flags["--addon"]
+	premium := a.has("--premium")
 	if _, ok := addons.Lookup(addon); !ok {
 		fmt.Fprintf(os.Stderr, "Error: no add-on called %q (there is: %s)\n", addon, strings.Join(addons.IDs(), ", "))
 		os.Exit(1)
@@ -64,11 +65,11 @@ func runCLI(args []string) {
 		cmdList(doToken, jsonOutput)
 	case "datacenters":
 		doToken := requireEnv("DIGITAL_OCEAN_TOKEN")
-		cmdDatacenters(doToken, addon, jsonOutput)
+		cmdDatacenters(doToken, addon, premium, jsonOutput)
 	case "create":
 		if len(a.pos) < 1 {
 			fmt.Fprintln(os.Stderr, "Error: datacenter argument required")
-			fmt.Fprintln(os.Stderr, "Usage: yvpn create <datacenter> [--addon jellyfin] [--no-exit]")
+			fmt.Fprintln(os.Stderr, "Usage: yvpn create <datacenter> [--addon jellyfin] [--no-exit] [--premium]")
 			os.Exit(1)
 		}
 		exit := !a.has("--no-exit")
@@ -78,7 +79,7 @@ func runCLI(args []string) {
 		}
 		doToken := requireEnv("DIGITAL_OCEAN_TOKEN")
 		tsToken := requireEnv("TAILSCALE_API")
-		cmdCreate(doToken, tsToken, a.pos[0], digital_ocean.Options{Addon: addon, Exit: exit, Version: VERSION}, jsonOutput)
+		cmdCreate(doToken, tsToken, a.pos[0], digital_ocean.Options{Addon: addon, Exit: exit, Premium: premium, Version: VERSION}, jsonOutput)
 	case "delete", "access":
 		if len(a.pos) < 1 {
 			fmt.Fprintln(os.Stderr, "Error: id argument required")
@@ -120,9 +121,11 @@ Usage:
   yvpn list [--json]          List existing nodes
   yvpn datacenters [--json]   List available datacenters
         [--addon <name>]      ...priced for a node running that add-on
+        [--premium]           ...with a premium (AMD/Intel) CPU
   yvpn create <datacenter>    Create a new exit node in datacenter
         [--addon <name>]      ...also running an add-on (jellyfin)
         [--no-exit]           ...not as an exit node (needs --addon)
+        [--premium]           ...on a premium (AMD/Intel) CPU: faster, costs more
   yvpn access <id> [--json]   Show how to reach a node's add-on, and its passwords
   yvpn delete <id>            Delete a node by ID
   yvpn ssh                    Start SSH server mode
@@ -172,8 +175,8 @@ func cmdList(token string, jsonOutput bool) {
 	}
 }
 
-func cmdDatacenters(token, addon string, jsonOutput bool) {
-	datacenters, err := digital_ocean.FetchDatacenters(token, addon)
+func cmdDatacenters(token, addon string, premium, jsonOutput bool) {
+	datacenters, err := digital_ocean.FetchDatacenters(token, addon, premium)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
