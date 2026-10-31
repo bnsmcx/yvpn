@@ -111,6 +111,17 @@ await page.route('https://speed.cloudflare.com/**', async (route) => {
   return route.fulfill({ status: 404, headers, body: '' });
 });
 
+// ---------- datacenter ping mock ----------
+// Each region's Spaces host answers after a delay of its own; mem1 has no
+// Spaces and fails, so its ping stays blank.
+const PING_DELAY = { fra1: 30, nyc3: 90, sfo3: 140 };
+await page.route((u) => u.hostname.endsWith('.digitaloceanspaces.com'), async (route) => {
+  const r = new URL(route.request().url()).hostname.split('.')[0];
+  if (!(r in PING_DELAY)) return route.abort();
+  await new Promise((ok) => setTimeout(ok, PING_DELAY[r]));
+  return route.fulfill({ status: 200, body: '' });
+});
+
 // ---------- DigitalOcean mock ----------
 await page.route('https://api.digitalocean.com/**', async (route) => {
   const req = route.request();
@@ -466,6 +477,16 @@ const regionText = await page.textContent('#regions');
 check('no GPU-only, image-less or unavailable regions', !/atl1|syd9|lon1/.test(regionText));
 check('region shows its cheapest monthly price', (await page.textContent('#regions .region:has-text("fra1")')).includes('$4/mo'));
 check('region without small sizes falls back to the next cheapest', (await page.textContent('#regions .region:has-text("mem1")')).includes('$12/mo'));
+await page.waitForFunction(() => /ms/.test(document.querySelector('#regions .region:has(input[value="fra1"]) .ping')?.textContent || ''), null, { timeout: 10000 });
+await page.waitForFunction(() => /ms/.test(document.querySelector('#regions .region:has(input[value="nyc1"]) .ping')?.textContent || ''), null, { timeout: 10000 });
+{
+  const ping = async (r) => page.textContent(`#regions .region:has(input[value="${r}"]) .ping`);
+  const fra = parseInt(await ping('fra1')), nyc = parseInt(await ping('nyc1'));
+  check('each region shows its ping', fra >= 30 && fra < nyc, `fra1 ${fra}, nyc1 ${nyc}`);
+  check('nyc1 borrows nyc3 for its ping', nyc >= 90, `nyc1 ${nyc}`);
+  check('fastest region is marked', await page.$eval('#regions .region:has(input[value="fra1"]) .ping', (e) => e.classList.contains('best')));
+  check('region without a ping host stays blank', (await ping('mem1')).trim() === '…', await ping('mem1'));
+}
 check('regions sorted by slug', (await page.textContent('#regions')).indexOf('fra1') < (await page.textContent('#regions')).indexOf('nyc1'));
 
 await page.click('#regions .region:has-text("fra1") span');

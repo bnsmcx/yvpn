@@ -235,6 +235,16 @@ or through a relay), the node and its datacenter. That is the speed anyone
 actually gets, so it is the right number to compare, but it is a number for
 this connection, not a datasheet figure for the droplet.
 
+## Ping to each datacenter
+
+The datacenter picker has a **Ping** column: the best round trip from your
+browser to each region, with the fastest in bold. DigitalOcean retired its
+`speedtest-<region>` hosts, so the page times HTTPS requests to
+`<region>.digitaloceanspaces.com`, which sits in that datacenter. It warms the
+connection once, then keeps the fastest of four requests, which is about one
+round trip. nyc1 and nyc2 borrow nyc3; regions without Spaces show `…`. It is a
+floor: the path through Tailscale can only add to it, especially via a relay.
+
 ## Creating a node happens in the table
 
 Picking a datacenter is the only thing the create dialog does. Press **Create**

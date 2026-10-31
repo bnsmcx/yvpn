@@ -610,7 +610,7 @@ dialog {
 #regions {
   max-height: 300px; overflow-y: auto;
   scrollbar-width: thin; scrollbar-color: var(--dim) transparent;
-  & .pick-row, & .pick-head { grid-template-columns: 4.5em minmax(0, 1fr) minmax(0, 15em) 5.5em; }
+  & .pick-row, & .pick-head { grid-template-columns: 4.5em minmax(0, 1fr) minmax(0, 15em) 4.5em 5.5em; }
   & .pick-head {
     display: grid; gap: 14px; padding: 6px 12px 6px 30px; position: sticky; top: 0; z-index: 1;
     background: var(--panel); border-bottom: 1px solid var(--line);
@@ -618,10 +618,11 @@ dialog {
   }
   & .pick-row i, & .pick-row s { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   & s { text-decoration: none; color: var(--dim); font-size: 11px; }
+  & .ping.best { color: var(--text); font-weight: 600; }
   & > p { padding: 10px 12px; margin: 0; }
 }
 @media (max-width: 560px) {
-  #regions .pick-row, #regions .pick-head { grid-template-columns: 4.5em minmax(0, 1fr) 5.5em; }
+  #regions .pick-row, #regions .pick-head { grid-template-columns: 4.5em minmax(0, 1fr) 4em 5.5em; }
   #regions .col-size { display: none; }   /* the open row names it */
   #addons .pick-row, #cpu .pick-row { grid-template-columns: minmax(0, 1fr); }
 }
@@ -1295,6 +1296,7 @@ const freshState = () => ({
   nodes: [],
   catalogue: null,             // regions, sizes and the image, as DigitalOcean lists them
   regions: [],                 // datacenters for the add-on picked in the create dialog
+  ping: {},                    // region slug -> best round trip in ms from this browser
   devices: [],
   pending: [],                 // creates in flight, each one a row in the table
   selected: null,              // a row key: "n<droplet id>", or a pending's own key
@@ -3177,6 +3179,41 @@ async function loadRegions() {
     state.catalogue = null;
   }
   renderCreate();
+  pingRegions();
+}
+
+// Best-case latency to each datacenter, from this browser. DigitalOcean
+// retired its speedtest-<region> hosts, but every region with Spaces answers
+// HTTPS at <region>.digitaloceanspaces.com, in that datacenter. The first
+// request pays for DNS, TCP and TLS; the rest reuse the connection, so the
+// fastest of them is about one round trip. Regions without Spaces borrow a
+// neighbour in the same metro; any other is left blank. The real path through
+// Tailscale can only be slower (a relay adds a hop), so this is a floor.
+const PING_HOST = { nyc1: "nyc3", nyc2: "nyc3", sfo1: "sfo3" };
+const pingHost = (slug) => `https://${PING_HOST[slug] || slug}.digitaloceanspaces.com/`;
+async function pingOnce(url) {
+  const t = performance.now();
+  await fetch(url, { mode: "no-cors", cache: "no-store", signal: AbortSignal.timeout(3000) });
+  return performance.now() - t;
+}
+async function pingRegion(slug, tries = 4) {
+  const url = pingHost(slug);
+  let best = Infinity;
+  try {
+    await pingOnce(url);                        // warm: DNS, TCP, TLS
+    for (let i = 0; i < tries; i++) best = Math.min(best, await pingOnce(url));
+  } catch { return null; }
+  return Math.round(best);
+}
+let pinging = null;
+function pingRegions() {
+  if (pinging || !state.catalogue) return pinging;
+  const slugs = state.catalogue.regions.filter((r) => r.available).map((r) => r.slug);
+  pinging = Promise.all(slugs.map(async (slug) => {
+    const ms = await pingRegion(slug);
+    if (ms != null) { state.ping[slug] = ms; renderRegions(); }
+  })).finally(() => { pinging = null; });
+  return pinging;
 }
 
 // Add-ons are asked first because they decide the rest: which datacenters can
@@ -3215,14 +3252,21 @@ function renderRegions() {
   const keep = state.regions.some((r) => r.slug === prev) ? prev : state.regions[0]?.slug;
   const priced = [pickedAddon && addonInfo(pickedAddon).name, premium && "a premium CPU where sold"].filter(Boolean);
   $("#size-hint").textContent = priced.length ? "priced for " + priced.join(" on ") : "";
+  const pings = state.regions.map((r) => state.ping[r.slug]).filter((v) => v != null);
+  const fastest = pings.length ? Math.min(...pings) : null;
+  const pingCell = (r) => {
+    const ms = state.ping[r.slug];
+    return ms == null ? `<s class="ping num">…</s>`
+      : `<s class="ping num${ms === fastest ? " best" : ""}" title="best round trip from this browser">${ms} ms</s>`;
+  };
   const rows = state.regions.map((r) => `
     <label class="region">
       <input type="radio" name="region" value="${esc(r.slug)}" ${r.slug === keep ? "checked" : ""}>
-      <span class="pick-row"><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><s class="col-size">${esc(r.size)}</s><span class="num">${fmtDollars(r.price_monthly)}/mo</span></span>
+      <span class="pick-row"><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><s class="col-size">${esc(r.size)}</s>${pingCell(r)}<span class="num">${fmtDollars(r.price_monthly)}/mo</span></span>
       <span class="fold"><span><span class="pick-more">${esc(sizeText(r))}</span></span></span>
     </label>`).join("");
   $("#regions").innerHTML = rows
-    ? `<div class="pick-head"><span>Slug</span><span>Location</span><span class="col-size">Size</span><span class="num">Price</span></div>` + rows
+    ? `<div class="pick-head"><span>Slug</span><span>Location</span><span class="col-size">Size</span><span class="num">Ping</span><span class="num">Price</span></div>` + rows
     : `<p class="muted small">No datacenters available${pickedAddon ? " for this add-on" : ""}.</p>`;
 }
 
