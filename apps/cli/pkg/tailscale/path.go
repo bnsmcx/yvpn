@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"sort"
 	"strings"
 )
 
@@ -72,13 +73,39 @@ func LocalPath(name string) (PeerPath, error) {
 	if err != nil {
 		return PeerPath{}, err
 	}
-	for _, p := range paths {
-		if (name == "" && p.ExitNode) || (name != "" && strings.HasPrefix(p.Name, name)) {
-			return p, nil
-		}
-	}
+	return pickPath(paths, name)
+}
+
+// pickPath finds the exit node in use when name is "", otherwise the peer
+// called name, or the only peer whose hostname starts with it.
+func pickPath(paths []PeerPath, name string) (PeerPath, error) {
 	if name == "" {
+		for _, p := range paths {
+			if p.ExitNode {
+				return p, nil
+			}
+		}
 		return PeerPath{}, fmt.Errorf("this device isn't using an exit node")
 	}
-	return PeerPath{}, fmt.Errorf("no peer called %q on this tailnet", name)
+	var matches []PeerPath
+	for _, p := range paths {
+		if p.Name == name {
+			return p, nil
+		}
+		if strings.HasPrefix(p.Name, name) {
+			matches = append(matches, p)
+		}
+	}
+	switch len(matches) {
+	case 0:
+		return PeerPath{}, fmt.Errorf("no peer called %q on this tailnet", name)
+	case 1:
+		return matches[0], nil
+	}
+	names := make([]string, len(matches))
+	for i, m := range matches {
+		names[i] = m.Name
+	}
+	sort.Strings(names)
+	return PeerPath{}, fmt.Errorf("%q matches %s; give more of the name", name, strings.Join(names, ", "))
 }

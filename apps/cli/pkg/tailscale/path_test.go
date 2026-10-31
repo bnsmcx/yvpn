@@ -26,3 +26,22 @@ func TestParsePaths(t *testing.T) {
 		t.Errorf("exit node row wrong: %+v", got[2])
 	}
 }
+
+func TestPickPath(t *testing.T) {
+	paths := []PeerPath{{Name: "nyc1-yvpn-12"}, {Name: "nyc1-yvpn-1", ExitNode: true}, {Name: "fra1-yvpn-2"}}
+	if p, err := pickPath(paths, "nyc1-yvpn-1"); err != nil || p.Name != "nyc1-yvpn-1" {
+		t.Errorf("exact match: got %+v, %v", p, err)
+	}
+	if p, err := pickPath(paths, "fra"); err != nil || p.Name != "fra1-yvpn-2" {
+		t.Errorf("unique prefix: got %+v, %v", p, err)
+	}
+	if _, err := pickPath(paths, "nyc1"); err == nil {
+		t.Error("ambiguous prefix: want an error")
+	}
+	if p, err := pickPath(paths, ""); err != nil || !p.ExitNode {
+		t.Errorf("exit node: got %+v, %v", p, err)
+	}
+	if _, err := pickPath(paths, "lon"); err == nil {
+		t.Error("no match: want an error")
+	}
+}

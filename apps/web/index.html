@@ -2902,6 +2902,8 @@ function paintExit() {
       : `<span class="pill busy">looking…</span>`;
     return;
   }
+  // A path checked for one exit says nothing about the next.
+  if (speed.pathIp !== x.ip) { speed.pathIp = x.ip; $("#sp-path").value = ""; }
   const where = [x.country && countryName(x.country), x.colo && `Cloudflare ${x.colo}`].filter(Boolean).join(" · ");
   $("#sp-exit").innerHTML = x.kind === "node"
     ? `<span class="pill ok">through <b>${esc(x.node)}</b></span>
