@@ -153,7 +153,7 @@ func (m Dash) buildTable() table.Model {
 }
 
 func NewDash(renderer *lipgloss.Renderer, h, w int, tokenDO, tokenTS string) (Dash, error) {
-	datacenters, err := digital_ocean.FetchDatacenters(tokenDO, "", false)
+	datacenters, err := digital_ocean.FetchDatacenters(tokenDO, "", true)
 	if err != nil {
 		return Dash{}, fmt.Errorf("fetching available datacenters: %s", err.Error())
 	}

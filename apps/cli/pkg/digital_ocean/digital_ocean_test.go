@@ -85,8 +85,8 @@ func TestPickDatacentersForAddon(t *testing.T) {
 	}
 }
 
-// Premium keeps to the AMD and Intel sizes, cheapest first, and drops regions
-// that sell none.
+// Premium prefers the AMD and Intel sizes, cheapest first, and falls back to
+// the cheapest of all in regions that sell none.
 func TestPickDatacentersPremium(t *testing.T) {
 	regions := []godo.Region{
 		{Slug: "nyc1", Name: "New York 1", Available: true},
@@ -104,7 +104,10 @@ func TestPickDatacentersPremium(t *testing.T) {
 	plain, _ := addons.Lookup("")
 
 	got := pickDatacenters(regions, sizes, img, plain.Needs, true)
-	want := []Datacenter{{Slug: "nyc1", Name: "New York 1", Size: "s-1vcpu-1gb-amd", PriceHourly: 0.0104}}
+	want := []Datacenter{
+		{Slug: "lon1", Name: "London 1", Size: "s-1vcpu-512mb-10gb", PriceHourly: 0.006},
+		{Slug: "nyc1", Name: "New York 1", Size: "s-1vcpu-1gb-amd", PriceHourly: 0.0104},
+	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got  %+v\nwant %+v", got, want)
 	}

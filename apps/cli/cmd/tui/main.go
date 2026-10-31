@@ -38,7 +38,7 @@ func main() {
 		runTUI()
 	case "ssh":
 		serveOverSSH("0.0.0.0", "1337")
-	case "list", "datacenters", "create", "delete", "access":
+	case "list", "datacenters", "create", "delete", "access", "path":
 		runCLI(os.Args[1:])
 	case "--help", "-h", "help":
 		printUsage()

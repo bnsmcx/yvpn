@@ -67,9 +67,9 @@ const SIZES = [
     price_monthly: 24, transfer: 4, regions: ['nyc1', 'fra1', 'mem1'] },
   { slug: 's-1vcpu-2gb', memory: 2048, vcpus: 1, disk: 50, price_hourly: 0.01786, available: true,
     price_monthly: 12, transfer: 2, regions: ['nyc1', 'fra1', 'mem1'] },
-  // A premium CPU, sold in two regions only.
+  // A premium CPU, sold in two regions only (not fra1, where the tests build).
   { slug: 's-1vcpu-1gb-amd', memory: 1024, vcpus: 1, disk: 25, price_hourly: 0.01042, available: true,
-    price_monthly: 7, transfer: 1, regions: ['nyc1', 'fra1'] },
+    price_monthly: 7, transfer: 1, regions: ['nyc1', 'sfo3'] },
   // Memory enough for Jellyfin, one core, and cheaper than s-2vcpu-4gb: not enough.
   { slug: 'm-1vcpu-8gb', memory: 8192, vcpus: 1, disk: 25, price_hourly: 0.03, available: true,
     price_monthly: 20, transfer: 4, regions: ['nyc1', 'fra1', 'sfo3'] },
@@ -146,7 +146,9 @@ await page.route('https://api.digitalocean.com/**', async (route) => {
     check('create sends yVPN tag', b.tags?.includes('yVPN'));
     check('create sends ubuntu-24-04-x64', b.image === 'ubuntu-24-04-x64');
     if (!b.tags.some((t) => t.startsWith('yvpn-addon:'))) {
-      check('create sends the cheapest usable size in the region', b.size === 's-1vcpu-512mb-10gb', b.size);
+      // Premium is the default: the AMD size where the region sells one (nyc1), else the cheapest.
+      const want = b.region === 'nyc1' ? 's-1vcpu-1gb-amd' : 's-1vcpu-512mb-10gb';
+      check('create sends the right size for the region', b.size === want, b.region + ' ' + b.size);
       check('cloud-init advertises exit node', b.user_data?.includes('--advertise-exit-node'));
     }
     check('cloud-init carries the auth key', b.user_data?.includes('tskey-auth-FAKE'));
@@ -594,17 +596,18 @@ await page.waitForSelector('#dlg-create[open]');
 check('Create is armed when the dialog reopens', !(await page.isDisabled('#btn-create-go')));
 check('region picker visible again', await page.isVisible('#regions'));
 
-// --- a premium CPU narrows the regions to those selling one ---
-check('a premium CPU is not the default', !(await page.isChecked('#premium')));
-await page.click('#cpu .pick-row');
+// --- a premium CPU is the default, where a region sells one ---
+check('a premium CPU is the default', await page.isChecked('#premium'));
 {
   const regions = await page.$$eval('#regions .region b', (els) => els.map((e) => e.textContent));
-  check('premium keeps only the regions that sell it', JSON.stringify(regions) === JSON.stringify(['fra1', 'nyc1']), regions.join(','));
-  check('premium picks the AMD/Intel size', (await page.textContent('#regions .region:has-text("nyc1")')).includes('s-1vcpu-1gb-amd'));
+  check('premium keeps every region', regions.includes('fra1') && regions.includes('nyc1'), regions.join(','));
+  check('premium picks the AMD/Intel size where sold', (await page.textContent('#regions .region:has-text("nyc1")')).includes('s-1vcpu-1gb-amd'));
+  check('and the cheapest where not', (await page.textContent('#regions .region:has-text("fra1")')).includes('s-1vcpu-512mb-10gb'));
   check('the dialog says it is priced for a premium CPU', /premium/.test(await page.textContent('#size-hint')));
 }
 await page.click('#cpu .pick-row');
-check('without premium, the cheapest size again', (await page.textContent('#regions .region:has-text("nyc1")')).includes('s-1vcpu-512mb-10gb'));
+check('unticked, the cheapest size again', (await page.textContent('#regions .region:has-text("nyc1")')).includes('s-1vcpu-512mb-10gb'));
+await page.click('#cpu .pick-row');
 await page.click('#btn-create-cancel');
 await page.waitForTimeout(300);
 
@@ -633,10 +636,12 @@ await page.waitForTimeout(300);
   speedIp = nodeIp;
   await page.waitForFunction((n) => document.querySelector('#sp-exit').textContent.includes(n), node.name, { timeout: 8000 });
   check('picking the node shows through it, live', (await page.textContent('#sp-exit')).includes('s-1vcpu-512mb-10gb'));
+  await page.selectOption('#sp-path', 'direct');
   await page.click('#btn-speed-run');
   await page.waitForFunction(() => document.querySelectorAll('#sp-runs tbody tr').length === 2, null, { timeout: 15000 });
   const top = await page.textContent('#sp-runs tbody tr');
   check('the node run is named and sized', top.includes(node.name) && top.includes('s-1vcpu-512mb-10gb'), top.replace(/\s+/g, ' '));
+  check('the node run records its path', (await page.evaluate(() => speed.runs[1].path)) === 'direct');
   check('the node run is set against the direct one', /[+-]\d+%/.test(top));
   check('runs are kept in this browser', (await page.evaluate(() => JSON.parse(localStorage.getItem('yvpn.speed')).length)) === 2);
   check('runs keep no IP address', !(await page.evaluate(() => localStorage.getItem('yvpn.speed'))).includes(nodeIp));
@@ -648,6 +653,9 @@ await page.waitForTimeout(300);
     paintRuns();
   });
   check('two sizes are priced against each other', /2\.0× the speed of/.test(await page.textContent('#sp-sum')), await page.textContent('#sp-sum'));
+  check('only direct runs are compared once one is marked', /direct runs only/.test(await page.textContent('#sp-sum')));
+  await page.evaluate(() => { speed.runs.push({ ...speed.runs[2], at: Date.now(), path: 'DERP', down: 1 }); paintRuns(); });
+  check('a DERP run does not drag the comparison down', /2\.0× the speed of/.test(await page.textContent('#sp-sum')));
   await page.screenshot({ path: SHOTS + '/shot-speed.png' });
 
   await page.click('#btn-speed-clear');
