@@ -187,11 +187,15 @@ the CPU, so on a one-core droplet the CPU is what caps throughput. Two things
 follow from that:
 
 - **Every exit node turns on UDP GRO forwarding** on its public interface at
-  boot (`ethtool -K … rx-udp-gro-forwarding on rx-gro-list off`), as
+  every boot (`ethtool -K … rx-udp-gro-forwarding on rx-gro-list off`, from a
+  small `yvpn-gro.service` unit, since ethtool settings don't survive a reboot), as
   [Tailscale recommends](https://tailscale.com/kb/1320/performance-best-practices)
   for Linux exit nodes. The kernel hands `tailscaled` packets in batches, and
   forwarding costs much less CPU. It costs nothing, and without it `tailscale
   status` on the node warns that UDP GRO forwarding is suboptimally configured.
+- **IPv6**: every node gets a public IPv6 address and forwards IPv6, so IPv6
+  traffic through the exit node works instead of being dropped (apps would
+  otherwise wait on IPv6 and fall back to IPv4). It's free.
 - **Premium CPU** is the default: the create dialog (and the CLI) picks the
   cheapest premium Basic droplet (an `-amd` or `-intel` size: newer CPUs, and a
   10 Gbps network cap rather than 2) where the region sells one, and the

@@ -197,6 +197,9 @@ func Create(token, tailscaleAuth, datacenter string, opts Options) (string, int,
 		Image: godo.DropletCreateImage{
 			Slug: image,
 		},
+		// A public IPv6 address, so IPv6 traffic through the exit node is
+		// forwarded instead of dropped (free; forwarding is on in cloud-init).
+		IPv6: true,
 		// The same script the web app writes, held to it by the parity tests
 		// in pkg/addons.
 		UserData: addons.CloudInit(params),
