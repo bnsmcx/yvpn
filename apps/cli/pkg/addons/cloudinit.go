@@ -27,6 +27,22 @@ vendor_data:
     content: |
       net.ipv4.ip_forward = 1
       net.ipv6.conf.all.forwarding = 1
+  # Tailscale's advice for every Linux exit node: let the kernel batch forwarded
+  # UDP (GRO) on the public interface. Forwarding then costs far less CPU, which
+  # on a one-core droplet is what caps throughput. ethtool settings don't survive
+  # a reboot, so a unit applies it at every boot. If the NIC can't, ethtool just
+  # says so and the boot carries on.
+  - path: /etc/systemd/system/yvpn-gro.service
+    content: |
+      [Unit]
+      Description=UDP GRO forwarding on the public interface (Tailscale exit node)
+      Wants=network-online.target
+      After=network-online.target
+      [Service]
+      Type=oneshot
+      ExecStart=-/bin/sh -c 'ethtool -K "$$(ip -o route get 8.8.8.8 | cut -f 5 -d " ")" rx-udp-gro-forwarding on rx-gro-list off'
+      [Install]
+      WantedBy=multi-user.target
 `
 	ciFilesNode = `  - path: /etc/yvpn/node.json
     permissions: '0600'
@@ -34,11 +50,7 @@ vendor_data:
       {{NODE_CONFIG}}
 `
 	ciRunExit = `  - sysctl --system
-  # Tailscale's advice for every Linux exit node: let the kernel batch forwarded
-  # UDP (GRO) on the public interface. Forwarding then costs far less CPU, which
-  # on a one-core droplet is what caps throughput. If the NIC can't, ethtool
-  # just says so and the boot carries on.
-  - ethtool -K "$(ip -o route get 8.8.8.8 | cut -f 5 -d ' ')" rx-udp-gro-forwarding on rx-gro-list off
+  - systemctl enable --now yvpn-gro.service
 `
 	ciRunTailscale = `  # The static tarball, rather than install.sh: no apt repo, no apt-get update,
   # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches every

@@ -63,9 +63,8 @@ type Datacenter struct {
 // usable reports whether a size can run a node: big enough for what the node
 // will run (and for the image), and a plain CPU droplet. GPU droplets need
 // their own images and cost dollars an hour.
-func usable(s godo.Size, minDisk int, needs addons.Needs, premium bool) bool {
+func usable(s godo.Size, minDisk int, needs addons.Needs) bool {
 	return s.Available &&
-		(!premium || Premium(s.Slug)) &&
 		s.Memory >= needs.MemoryMB &&
 		s.Vcpus >= needs.VCPUs &&
 		s.Disk >= max(minDisk, needs.DiskGB) &&
@@ -82,9 +81,10 @@ func Premium(slug string) bool {
 
 // FetchDatacenters lists every region a node running addon ("" for a plain
 // exit node) can be created in, sorted by slug, each with the cheapest size
-// there that is big enough for it, and premium when premium is set. Regions
-// without one (no such size, or no Ubuntu image) are left out rather than
-// failing later at create time.
+// there that is big enough for it. With premium, the cheapest premium size
+// wins where the region sells one, and the cheapest of all where it doesn't,
+// so no region drops out. Regions with no usable size (or no Ubuntu image)
+// are left out rather than failing later at create time.
 func FetchDatacenters(token, addon string, premium bool) ([]Datacenter, error) {
 	a, ok := addons.Lookup(addon)
 	if !ok {
@@ -117,14 +117,20 @@ func pickDatacenters(regions []godo.Region, sizes []godo.Size, img *godo.Image, 
 		if !r.Available || !slices.Contains(img.Regions, r.Slug) {
 			continue
 		}
-		var best *godo.Size
+		var best, bestPremium *godo.Size
 		for i, s := range sizes {
-			if !usable(s, img.MinDiskSize, needs, premium) || !slices.Contains(s.Regions, r.Slug) {
+			if !usable(s, img.MinDiskSize, needs) || !slices.Contains(s.Regions, r.Slug) {
 				continue
 			}
 			if best == nil || s.PriceHourly < best.PriceHourly {
 				best = &sizes[i]
 			}
+			if Premium(s.Slug) && (bestPremium == nil || s.PriceHourly < bestPremium.PriceHourly) {
+				bestPremium = &sizes[i]
+			}
+		}
+		if premium && bestPremium != nil {
+			best = bestPremium
 		}
 		if best == nil {
 			continue
@@ -148,7 +154,7 @@ func pickDatacenters(regions []godo.Region, sizes []godo.Size, img *godo.Image, 
 type Options struct {
 	Addon   string // catalog ID, or "" for a plain exit node
 	Exit    bool   // advertise it as an exit node
-	Premium bool   // the cheapest premium (AMD/Intel) size rather than the cheapest
+	Premium bool   // prefer the cheapest premium (AMD/Intel) size; false is the cheapest of all
 	Version string // the yVPN release its add-on agent is downloaded from
 }
 
@@ -191,6 +197,9 @@ func Create(token, tailscaleAuth, datacenter string, opts Options) (string, int,
 		Image: godo.DropletCreateImage{
 			Slug: image,
 		},
+		// A public IPv6 address, so IPv6 traffic through the exit node is
+		// forwarded instead of dropped (free; forwarding is on in cloud-init).
+		IPv6: true,
 		// The same script the web app writes, held to it by the parity tests
 		// in pkg/addons.
 		UserData: addons.CloudInit(params),

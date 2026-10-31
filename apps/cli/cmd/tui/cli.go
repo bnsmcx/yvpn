@@ -53,13 +53,21 @@ func runCLI(args []string) {
 	a := parseArgs(args[1:])
 	jsonOutput := a.has("--json")
 	addon := a.flags["--addon"]
-	premium := a.has("--premium")
+	// A premium CPU is the default: an exit node's speed follows its CPU.
+	// --basic asks for the cheapest droplet instead. --premium is still accepted.
+	premium := !a.has("--basic")
 	if _, ok := addons.Lookup(addon); !ok {
 		fmt.Fprintf(os.Stderr, "Error: no add-on called %q (there is: %s)\n", addon, strings.Join(addons.IDs(), ", "))
 		os.Exit(1)
 	}
 
 	switch cmd {
+	case "path":
+		name := ""
+		if len(a.pos) > 0 {
+			name = a.pos[0]
+		}
+		cmdPath(name, jsonOutput)
 	case "list":
 		doToken := requireEnv("DIGITAL_OCEAN_TOKEN")
 		cmdList(doToken, jsonOutput)
@@ -69,7 +77,7 @@ func runCLI(args []string) {
 	case "create":
 		if len(a.pos) < 1 {
 			fmt.Fprintln(os.Stderr, "Error: datacenter argument required")
-			fmt.Fprintln(os.Stderr, "Usage: yvpn create <datacenter> [--addon jellyfin] [--no-exit] [--premium]")
+			fmt.Fprintln(os.Stderr, "Usage: yvpn create <datacenter> [--addon jellyfin] [--no-exit] [--basic]")
 			os.Exit(1)
 		}
 		exit := !a.has("--no-exit")
@@ -121,11 +129,14 @@ Usage:
   yvpn list [--json]          List existing nodes
   yvpn datacenters [--json]   List available datacenters
         [--addon <name>]      ...priced for a node running that add-on
-        [--premium]           ...with a premium (AMD/Intel) CPU
+        [--basic]             ...on the cheapest CPU, not premium
   yvpn create <datacenter>    Create a new exit node in datacenter
         [--addon <name>]      ...also running an add-on (jellyfin)
         [--no-exit]           ...not as an exit node (needs --addon)
-        [--premium]           ...on a premium (AMD/Intel) CPU: faster, costs more
+        [--basic]             ...on the cheapest CPU rather than a premium
+                              (AMD/Intel) one: slower, a few $/mo less
+  yvpn path [node] [--json]   How this device reaches a node (default: the
+                              exit node in use): direct, peer relay or DERP
   yvpn access <id> [--json]   Show how to reach a node's add-on, and its passwords
   yvpn delete <id>            Delete a node by ID
   yvpn ssh                    Start SSH server mode
@@ -355,4 +366,25 @@ func cmdDelete(token string, id int, jsonOutput bool) {
 	}
 
 	fmt.Printf("Node %d deleted\n", id)
+}
+
+// cmdPath says how this device reaches a node right now. Only a direct path
+// gets the node's full speed, so check it before trusting a speed run.
+func cmdPath(name string, jsonOutput bool) {
+	p, err := tailscale.LocalPath(name)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+	if jsonOutput {
+		json.NewEncoder(os.Stdout).Encode(p)
+		return
+	}
+	fmt.Printf("%s: %s (%s)\n", p.Name, p.Path, p.Via)
+	switch p.Path {
+	case tailscale.PathDERP:
+		fmt.Println("Relayed through Tailscale's DERP servers: slow. Something on this network blocks UDP.")
+	case tailscale.PathIdle:
+		fmt.Printf("No traffic lately. Run: tailscale ping %s\n", p.Name)
+	}
 }

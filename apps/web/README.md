@@ -100,8 +100,8 @@ calls will fail — it needs to be served by one of the above.
 | CLI | Web |
 |---|---|
 | `yvpn list` | The node table; open a row for everything both APIs report about that node |
-| `yvpn datacenters [--addon x] [--premium]` | The datacenter picker in the create dialog, with each region's monthly price for what the node will run |
-| `yvpn create <dc> [--addon x] [--no-exit] [--premium]` | **New node** — same cloud-init, same droplet spec, built in the table |
+| `yvpn datacenters [--addon x] [--basic]` | The datacenter picker in the create dialog, with each region's monthly price for what the node will run |
+| `yvpn create <dc> [--addon x] [--no-exit] [--basic]` | **New node** — same cloud-init, same droplet spec, built in the table |
 | `yvpn access <id>` | An add-on node's open row: its links and passwords, and much more (uploads, sharing) |
 | `yvpn delete <id>` | **Delete**, with a confirmation dialog |
 | TUI keymap | `n` new · `d` delete · `r` refresh · `s` speed test (web only) · `j`/`k` or `↓`/`↑` select · `Enter`/`o` open · `?` help · `Esc` close or deselect |
@@ -187,15 +187,20 @@ the CPU, so on a one-core droplet the CPU is what caps throughput. Two things
 follow from that:
 
 - **Every exit node turns on UDP GRO forwarding** on its public interface at
-  boot (`ethtool -K … rx-udp-gro-forwarding on rx-gro-list off`), as
+  every boot (`ethtool -K … rx-udp-gro-forwarding on rx-gro-list off`, from a
+  small `yvpn-gro.service` unit, since ethtool settings don't survive a reboot), as
   [Tailscale recommends](https://tailscale.com/kb/1320/performance-best-practices)
   for Linux exit nodes. The kernel hands `tailscaled` packets in batches, and
   forwarding costs much less CPU. It costs nothing, and without it `tailscale
   status` on the node warns that UDP GRO forwarding is suboptimally configured.
-- **Premium CPU** in the create dialog (`--premium` in the CLI) picks the
-  cheapest premium Basic droplet (an `-amd` or `-intel` size: newer CPUs) instead
-  of the cheapest of all. It is off by default, and regions that sell none drop
-  out of the list.
+- **IPv6**: every node gets a public IPv6 address and forwards IPv6, so IPv6
+  traffic through the exit node works instead of being dropped (apps would
+  otherwise wait on IPv6 and fall back to IPv4). It's free.
+- **Premium CPU** is the default: the create dialog (and the CLI) picks the
+  cheapest premium Basic droplet (an `-amd` or `-intel` size: newer CPUs, and a
+  10 Gbps network cap rather than 2) where the region sells one, and the
+  cheapest of all where it doesn't. Untick it (`--basic` in the CLI) for the
+  cheapest droplet everywhere.
 
 **Speed test** on the top rail (or `s`) measures what that buys. It says where
 this browser's traffic is leaving from right now, matched against your nodes'
@@ -210,10 +215,35 @@ speed for 1.8× the price, $3.00 more a month"). Runs are kept in this browser's
 `localStorage` (`yvpn.speed`), without the IP address. A run during which the
 exit changes is thrown away rather than blending two paths into one number.
 
+**Path.** Only a direct connection gets the node's full speed; through a DERP
+relay (or a peer relay) the run measures the relay. The browser can't see which
+it is, so the dialog asks: run `yvpn path` (or `tailscale ping <node>`) on the
+same device and pick *direct*, *peer relay* or *DERP*. The path is saved with
+the run and shown in the table, and once any run is marked direct the size
+comparison uses direct runs only.
+
+For a number without a browser in the way, `iperf3` from the device to a
+server near the node, with the node as exit node, measures the forwarding path:
+
+```bash
+yvpn path                      # must say: direct
+iperf3 -c <server> -t 20 -P 4  # upload; add -R for download
+```
+
 What it measures is the whole path: this device, its network, Tailscale (direct
-or through a DERP relay), the node and its datacenter. That is the speed anyone
+or through a relay), the node and its datacenter. That is the speed anyone
 actually gets, so it is the right number to compare, but it is a number for
 this connection, not a datasheet figure for the droplet.
+
+## Ping to each datacenter
+
+The datacenter picker has a **Ping** column: the best round trip from your
+browser to each region, with the fastest in bold. DigitalOcean retired its
+`speedtest-<region>` hosts, so the page times HTTPS requests to
+`<region>.digitaloceanspaces.com`, which sits in that datacenter. It warms the
+connection once, then keeps the fastest of four requests, which is about one
+round trip. nyc1 and nyc2 borrow nyc3; regions without Spaces show `…`. It is a
+floor: the path through Tailscale can only add to it, especially via a relay.
 
 ## Creating a node happens in the table
 

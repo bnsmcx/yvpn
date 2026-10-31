@@ -525,6 +525,11 @@ dialog {
   font-size: 12px; line-height: 1.6;
   & .where { color: var(--muted); font-size: 11px; }
 }
+.sp-path {
+  display: block; margin: -4px 0 14px; line-height: 1.6;
+  & select { margin: 0 8px 4px; }
+  & .muted { display: block; font-size: 11px; }
+}
 .sp-live {
   font-size: 11.5px; color: var(--muted); min-height: 1.6em; margin: -6px 0 10px;
   font-variant-numeric: tabular-nums;
@@ -605,7 +610,7 @@ dialog {
 #regions {
   max-height: 300px; overflow-y: auto;
   scrollbar-width: thin; scrollbar-color: var(--dim) transparent;
-  & .pick-row, & .pick-head { grid-template-columns: 4.5em minmax(0, 1fr) minmax(0, 15em) 5.5em; }
+  & .pick-row, & .pick-head { grid-template-columns: 4.5em minmax(0, 1fr) minmax(0, 15em) 4.5em 5.5em; }
   & .pick-head {
     display: grid; gap: 14px; padding: 6px 12px 6px 30px; position: sticky; top: 0; z-index: 1;
     background: var(--panel); border-bottom: 1px solid var(--line);
@@ -613,10 +618,11 @@ dialog {
   }
   & .pick-row i, & .pick-row s { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   & s { text-decoration: none; color: var(--dim); font-size: 11px; }
+  & .ping.best { color: var(--text); font-weight: 600; }
   & > p { padding: 10px 12px; margin: 0; }
 }
 @media (max-width: 560px) {
-  #regions .pick-row, #regions .pick-head { grid-template-columns: 4.5em minmax(0, 1fr) 5.5em; }
+  #regions .pick-row, #regions .pick-head { grid-template-columns: 4.5em minmax(0, 1fr) 4em 5.5em; }
   #regions .col-size { display: none; }   /* the open row names it */
   #addons .pick-row, #cpu .pick-row { grid-template-columns: minmax(0, 1fr); }
 }
@@ -828,7 +834,7 @@ code { font-family: var(--mono); color: var(--text); }
 <header class="rail">
   <span class="screw"></span>
   <span class="brand">yVPN</span>
-  <span class="stamp-dim ver" id="ver-header">v0.7.0</span>
+  <span class="stamp-dim ver" id="ver-header">v0.8.0</span>
   <span class="spacer"></span>
   <button id="btn-speed" title="Speed test (s)">speed test</button>
   <button id="btn-guide" title="Getting started">guide</button>
@@ -975,7 +981,7 @@ code { font-family: var(--mono); color: var(--text); }
     <span><span class="cap">?</span><span class="stamp">help</span></span>
   </span>
   <span class="spacer"></span>
-  <span class="stamp-dim ver" id="ver-footer">v0.7.0</span>
+  <span class="stamp-dim ver" id="ver-footer">v0.8.0</span>
   <span class="display">
     <span class="stamp" id="display-label">display</span>
     <span class="sel" role="group" aria-labelledby="display-label" id="display-sel">
@@ -1010,11 +1016,11 @@ code { font-family: var(--mono); color: var(--text); }
       <h3 class="dlg-label">CPU</h3>
       <div id="cpu" class="picklist" role="group" aria-label="CPU">
         <label>
-          <input type="checkbox" id="premium" name="premium">
-          <span class="pick-row"><b>Premium CPU</b><i>newer AMD or Intel, for a few dollars more a month</i></span>
+          <input type="checkbox" id="premium" name="premium" checked>
+          <span class="pick-row"><b>Premium CPU</b><i>newer AMD or Intel, for a few dollars more a month. Untick for the cheapest</i></span>
           <span class="fold"><span><span class="pick-more">An exit node's speed follows its CPU: Tailscale
-            encrypts every packet the node forwards. Regions that sell no premium droplet drop out of
-            the list. <b>Speed test</b> on the top rail measures the difference.</span></span></span>
+            encrypts every packet the node forwards. Regions that sell no premium droplet get the
+            cheapest one instead. <b>Speed test</b> on the top rail measures the difference.</span></span></span>
         </label>
       </div>
       <h3 class="dlg-label">Datacenter <span class="hint" id="size-hint"></span></h3>
@@ -1191,6 +1197,17 @@ code { font-family: var(--mono); color: var(--text); }
     <div class="dlg-body">
       <h3 class="dlg-label">Leaving from <span class="hint">checked every few seconds while this is open</span></h3>
       <div class="sp-exit" id="sp-exit" aria-live="polite"><span class="pill busy">looking…</span></div>
+      <label class="sp-path small">Path to the node
+        <select id="sp-path">
+          <option value="">not checked</option>
+          <option value="direct">direct</option>
+          <option value="peer relay">peer relay</option>
+          <option value="DERP">DERP relay</option>
+        </select>
+        <span class="muted">Run <code>yvpn path</code> or <code>tailscale ping &lt;node&gt;</code> on this
+          device: <code>via 1.2.3.4:41641</code> is direct, <code>via peer-relay(…)</code> a peer relay,
+          <code>via DERP(…)</code> a DERP relay. Only direct runs show the node's real speed.</span>
+      </label>
       <div class="sp-live" id="sp-live" aria-live="polite"></div>
       <h3 class="dlg-label">Runs <span class="hint">kept in this browser</span></h3>
       <div class="tablewrap sp-runs" id="sp-runs"></div>
@@ -1261,7 +1278,7 @@ code { font-family: var(--mono); color: var(--text); }
 
 // Single source of truth for the version stamped on the console. The release
 // workflow checks this against the tag, so a tagged build can't ship stale.
-const VERSION = "0.7.0";
+const VERSION = "0.8.0";
 const DO_API = "https://api.digitalocean.com/v2";
 const TAG = "yVPN";
 // What every node boots. Not every region carries it, and it sets a floor on disk.
@@ -1279,6 +1296,7 @@ const freshState = () => ({
   nodes: [],
   catalogue: null,             // regions, sizes and the image, as DigitalOcean lists them
   regions: [],                 // datacenters for the add-on picked in the create dialog
+  ping: {},                    // region slug -> best round trip in ms from this browser
   devices: [],
   pending: [],                 // creates in flight, each one a row in the table
   selected: null,              // a row key: "n<droplet id>", or a pending's own key
@@ -1459,6 +1477,22 @@ const CI_FILES_EXIT = `  - path: /etc/sysctl.d/99-tailscale.conf
     content: |
       net.ipv4.ip_forward = 1
       net.ipv6.conf.all.forwarding = 1
+  # Tailscale's advice for every Linux exit node: let the kernel batch forwarded
+  # UDP (GRO) on the public interface. Forwarding then costs far less CPU, which
+  # on a one-core droplet is what caps throughput. ethtool settings don't survive
+  # a reboot, so a unit applies it at every boot. If the NIC can't, ethtool just
+  # says so and the boot carries on.
+  - path: /etc/systemd/system/yvpn-gro.service
+    content: |
+      [Unit]
+      Description=UDP GRO forwarding on the public interface (Tailscale exit node)
+      Wants=network-online.target
+      After=network-online.target
+      [Service]
+      Type=oneshot
+      ExecStart=-/bin/sh -c 'ethtool -K "$$(ip -o route get 8.8.8.8 | cut -f 5 -d " ")" rx-udp-gro-forwarding on rx-gro-list off'
+      [Install]
+      WantedBy=multi-user.target
 `;
 const CI_FILES_NODE = `  - path: /etc/yvpn/node.json
     permissions: '0600'
@@ -1466,11 +1500,7 @@ const CI_FILES_NODE = `  - path: /etc/yvpn/node.json
       {{NODE_CONFIG}}
 `;
 const CI_RUN_EXIT = `  - sysctl --system
-  # Tailscale's advice for every Linux exit node: let the kernel batch forwarded
-  # UDP (GRO) on the public interface. Forwarding then costs far less CPU, which
-  # on a one-core droplet is what caps throughput. If the NIC can't, ethtool
-  # just says so and the boot carries on.
-  - ethtool -K "$(ip -o route get 8.8.8.8 | cut -f 5 -d ' ')" rx-udp-gro-forwarding on rx-gro-list off
+  - systemctl enable --now yvpn-gro.service
 `;
 const CI_RUN_TAILSCALE = `  # The static tarball, rather than install.sh: no apt repo, no apt-get update,
   # and no waiting on unattended-upgrades for the dpkg lock. amd64 matches every
@@ -1527,9 +1557,9 @@ const isPremium = (slug) => /-(amd|intel)$/.test(slug);
 
 // A size can run a node if it's big enough for what the node runs (and for the
 // image), and a plain CPU droplet: GPU droplets need their own images and cost
-// dollars an hour. With premium, only the AMD and Intel sizes count.
-const usableSize = (s, minDisk, needs, premium) =>
-  s.available && (!premium || isPremium(s.slug)) &&
+// dollars an hour.
+const usableSize = (s, minDisk, needs) =>
+  s.available &&
   s.memory >= needs.memoryMB && (s.vcpus ?? 1) >= needs.vcpus &&
   s.disk >= Math.max(minDisk, needs.diskGB) &&
   !s.slug.startsWith("gpu-") && !/gpu/i.test(s.description || "");
@@ -1546,20 +1576,21 @@ async function fetchCatalogue() {
 }
 
 // Every region a node running `addon` can be created in, each with the
-// cheapest size it sells that is big enough (and premium, if asked). Regions
-// without one (no such size, or no Ubuntu image) are left out rather than
+// cheapest size it sells that is big enough. With premium, the cheapest
+// premium size where the region sells one, else the cheapest. Regions
+// without any (no such size, or no Ubuntu image) are left out rather than
 // failing at create time. Same rules as the CLI.
 function datacentersFor(cat, addon, premium = false) {
   if (!cat) return [];
   const needs = addonInfo(addon).needs;
   const img = cat.image;
-  const sizes = cat.sizes.filter((x) => usableSize(x, img.min_disk_size || 0, needs, premium));
+  const sizes = cat.sizes.filter((x) => usableSize(x, img.min_disk_size || 0, needs));
+  const cheapest = (xs) => xs.reduce((a, z) => (!a || z.price_hourly < a.price_hourly ? z : a), null);
   return cat.regions
     .filter((x) => x.available && (img.regions || []).includes(x.slug))
     .map((x) => {
-      const best = sizes
-        .filter((z) => (z.regions || []).includes(x.slug))
-        .reduce((a, z) => (!a || z.price_hourly < a.price_hourly ? z : a), null);
+      const here = sizes.filter((z) => (z.regions || []).includes(x.slug));
+      const best = (premium && cheapest(here.filter((z) => isPremium(z.slug)))) || cheapest(here);
       return best && {
         slug: x.slug, name: x.name, size: best.slug, price_monthly: best.price_monthly,
         price_hourly: best.price_hourly, vcpus: best.vcpus, memory: best.memory, disk: best.disk,
@@ -1589,6 +1620,7 @@ async function createDroplet(authKey, dc, opts, signal) {
       region: dc.slug,
       size: dc.size,
       image: IMAGE,
+      ipv6: true,   // so IPv6 through the exit node is forwarded, not dropped
       tags,
       user_data: cloudInit(p),
     }),
@@ -2870,6 +2902,8 @@ function paintExit() {
       : `<span class="pill busy">looking…</span>`;
     return;
   }
+  // A path checked for one exit says nothing about the next.
+  if (speed.pathIp !== x.ip) { speed.pathIp = x.ip; $("#sp-path").value = ""; }
   const where = [x.country && countryName(x.country), x.colo && `Cloudflare ${x.colo}`].filter(Boolean).join(" · ");
   $("#sp-exit").innerHTML = x.kind === "node"
     ? `<span class="pill ok">through <b>${esc(x.node)}</b></span>
@@ -2980,7 +3014,8 @@ async function runSpeed() {
       speed.exit = after; paintExit();
       return;
     }
-    speed.runs.push({ at: Date.now(), ...before, ip: undefined, latency, down, up });
+    const path = before.kind === "node" ? $("#sp-path").value || undefined : undefined;
+    speed.runs.push({ at: Date.now(), ...before, ip: undefined, path, latency, down, up });
     saveRuns();
     speed.live = `Done: <b>${down.toFixed(0)} Mbps</b> down, <b>${up.toFixed(0)} Mbps</b> up, ${latency.toFixed(0)} ms.` +
       (before.kind === "direct" ? " Now pick a node in Tailscale and run it again." : "");
@@ -3022,6 +3057,7 @@ function paintRuns() {
     return `<tr>
       <td class="dim">${esc(new Date(r.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))}</td>
       <td class="name">${esc(exitLabel(r))}</td>
+      <td class="dim">${esc(r.kind === "node" ? r.path || "?" : DASH)}</td>
       <td class="dim col-wide">${esc(r.kind === "node" ? r.size : DASH)}</td>
       <td class="num col-wide">${r.price ? "$" + r.price.toFixed(4) : DASH}</td>
       <td class="num">${r.latency.toFixed(0)} ms${delta(r.latency, base?.latency, false)}</td>
@@ -3030,7 +3066,7 @@ function paintRuns() {
     </tr>`;
   }).reverse().join("");
   $("#sp-runs").innerHTML = `<table>
-    <thead><tr><th>When</th><th>Exit</th><th class="col-wide">Size</th><th class="num col-wide">$/hr</th>
+    <thead><tr><th>When</th><th>Exit</th><th>Path</th><th class="col-wide">Size</th><th class="num col-wide">$/hr</th>
       <th class="num">Latency</th><th class="num">Down Mbps</th><th class="num">Up Mbps</th></tr></thead>
     <tbody>${rows}</tbody></table>`;
   $("#sp-sum").innerHTML = priceSummary();
@@ -3040,8 +3076,12 @@ function paintRuns() {
 // datasheet: the median download per size, set against the cheapest size run.
 function priceSummary() {
   const bySize = new Map();
+  // Relayed runs measure the relay, not the droplet, so once any run is
+  // marked direct, only direct runs are compared.
+  const anyDirect = speed.runs.some((r) => r.path === "direct");
   for (const r of speed.runs) {
     if (r.kind !== "node" || !r.size || !r.price) continue;
+    if (anyDirect && r.path !== "direct") continue;
     const s = bySize.get(r.size) || { size: r.size, price: r.price, downs: [] };
     s.downs.push(r.down);
     bySize.set(r.size, s);
@@ -3054,7 +3094,7 @@ function priceSummary() {
       : "";
   }
   const [cheap, ...rest] = sizes;
-  return "On this connection: " + rest.map((s) =>
+  return "On this connection" + (anyDirect ? ", direct runs only" : "") + ": " + rest.map((s) =>
     `<b>${esc(s.size)}</b> downloads at ${(s.down / cheap.down).toFixed(1)}× the speed of ` +
     `<b>${esc(cheap.size)}</b> for ${(s.price / cheap.price).toFixed(1)}× the price ` +
     `($${((s.price - cheap.price) * MONTHLY_CAP_HOURS).toFixed(2)} more a month, left on)`).join("; ") + ".";
@@ -3141,6 +3181,41 @@ async function loadRegions() {
     state.catalogue = null;
   }
   renderCreate();
+  pingRegions();
+}
+
+// Best-case latency to each datacenter, from this browser. DigitalOcean
+// retired its speedtest-<region> hosts, but every region with Spaces answers
+// HTTPS at <region>.digitaloceanspaces.com, in that datacenter. The first
+// request pays for DNS, TCP and TLS; the rest reuse the connection, so the
+// fastest of them is about one round trip. Regions without Spaces borrow a
+// neighbour in the same metro; any other is left blank. The real path through
+// Tailscale can only be slower (a relay adds a hop), so this is a floor.
+const PING_HOST = { nyc1: "nyc3", nyc2: "nyc3", sfo1: "sfo3" };
+const pingHost = (slug) => `https://${PING_HOST[slug] || slug}.digitaloceanspaces.com/`;
+async function pingOnce(url) {
+  const t = performance.now();
+  await fetch(url, { mode: "no-cors", cache: "no-store", signal: AbortSignal.timeout(3000) });
+  return performance.now() - t;
+}
+async function pingRegion(slug, tries = 4) {
+  const url = pingHost(slug);
+  let best = Infinity;
+  try {
+    await pingOnce(url);                        // warm: DNS, TCP, TLS
+    for (let i = 0; i < tries; i++) best = Math.min(best, await pingOnce(url));
+  } catch { return null; }
+  return Math.round(best);
+}
+let pinging = null;
+function pingRegions() {
+  if (pinging || !state.catalogue) return pinging;
+  const slugs = state.catalogue.regions.filter((r) => r.available).map((r) => r.slug);
+  pinging = Promise.all(slugs.map(async (slug) => {
+    const ms = await pingRegion(slug);
+    if (ms != null) { state.ping[slug] = ms; renderRegions(); }
+  })).finally(() => { pinging = null; });
+  return pinging;
 }
 
 // Add-ons are asked first because they decide the rest: which datacenters can
@@ -3177,17 +3252,24 @@ function renderRegions() {
   const premium = $("#premium").checked;
   state.regions = datacentersFor(state.catalogue, pickedAddon, premium);
   const keep = state.regions.some((r) => r.slug === prev) ? prev : state.regions[0]?.slug;
-  const priced = [pickedAddon && addonInfo(pickedAddon).name, premium && "a premium CPU"].filter(Boolean);
+  const priced = [pickedAddon && addonInfo(pickedAddon).name, premium && "a premium CPU where sold"].filter(Boolean);
   $("#size-hint").textContent = priced.length ? "priced for " + priced.join(" on ") : "";
+  const pings = state.regions.map((r) => state.ping[r.slug]).filter((v) => v != null);
+  const fastest = pings.length ? Math.min(...pings) : null;
+  const pingCell = (r) => {
+    const ms = state.ping[r.slug];
+    return ms == null ? `<s class="ping num">…</s>`
+      : `<s class="ping num${ms === fastest ? " best" : ""}" title="best round trip from this browser">${ms} ms</s>`;
+  };
   const rows = state.regions.map((r) => `
     <label class="region">
       <input type="radio" name="region" value="${esc(r.slug)}" ${r.slug === keep ? "checked" : ""}>
-      <span class="pick-row"><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><s class="col-size">${esc(r.size)}</s><span class="num">${fmtDollars(r.price_monthly)}/mo</span></span>
+      <span class="pick-row"><b>${esc(r.slug)}</b><i>${esc(r.name)}</i><s class="col-size">${esc(r.size)}</s>${pingCell(r)}<span class="num">${fmtDollars(r.price_monthly)}/mo</span></span>
       <span class="fold"><span><span class="pick-more">${esc(sizeText(r))}</span></span></span>
     </label>`).join("");
   $("#regions").innerHTML = rows
-    ? `<div class="pick-head"><span>Slug</span><span>Location</span><span class="col-size">Size</span><span class="num">Price</span></div>` + rows
-    : `<p class="muted small">No datacenters available${pickedAddon ? " for this add-on" : ""}${premium ? " with a premium CPU" : ""}.</p>`;
+    ? `<div class="pick-head"><span>Slug</span><span>Location</span><span class="col-size">Size</span><span class="num">Ping</span><span class="num">Price</span></div>` + rows
+    : `<p class="muted small">No datacenters available${pickedAddon ? " for this add-on" : ""}.</p>`;
 }
 
 // What the open datacenter row says: the droplet it will get, and what it bills.
